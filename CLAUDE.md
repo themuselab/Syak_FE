@@ -73,7 +73,8 @@ src/
 - **화면 부품을 `app/` 안에 두지 않는다.** Expo Router는 `app/` 안의 모든 파일을 라우트로 취급하며, Next.js의 `_components` 같은 비공개 폴더를 지원하지 않는다. 그래서 부품은 `src/screens` / `src/shared`에 둔다.
 
 ### `index` 회피 규칙
-- **라우트 `index.tsx` 안 씀.** 모든 화면에 명시적 이름(`home.tsx`, `login.tsx` 등)을 준다. `/` 진입은 루트 `_layout.tsx`에서 로그인 상태를 확인해 `<Redirect>`로 처리한다.
+- **라우트는 명시적 이름**(`home.tsx`, `login.tsx` 등)을 쓴다. 화면용 `index.tsx`는 만들지 않는다.
+- **단, `app/index.tsx`(= `/` 진입점)는 예외로 필요하다.** 네이티브 앱은 시작 시 `/`를 여는데, 이 라우트가 없으면 매칭 실패로 스플래시에서 멈춘다(`initialRouteName`만으로는 해결 안 됨). 그래서 `app/index.tsx`는 첫 화면(splash 등)으로 보내는 얇은 `<Redirect>`만 둔다.
 - `_layout.tsx`(밑줄 특수파일)는 Expo Router 필수라 **유지**한다.
 - **배럴 `index.ts`(re-export 모음 파일) 금지.** import는 항상 실제 파일 경로에서 직접 한다. (예: `@/shared/ui/Button`)
 

@@ -19,19 +19,22 @@
 ```
 
 ## 3. 라우팅
-- 첫 화면은 `splash`. `app/_layout.tsx`의 `unstable_settings.initialRouteName = 'splash'`.
+- **`/` 진입점은 `app/index.tsx`** — 네이티브는 시작 시 `/`를 열기 때문에 필수. `<Redirect href="/splash" />`만 둔다. (없으면 스플래시에서 멈춤)
 - 화면 이동은 `expo-router`의 `router.replace`(뒤로가기 방지).
 - 라우트 파일은 얇게 — 화면 본체는 `src/screens/onboarding/`에서 가져와 렌더.
+- `app/_layout.tsx`는 마운트 시 네이티브 스플래시를 즉시 해제하고, **폰트는 백그라운드 로드**(로딩 대기로 화면을 막지 않음 — 막으면 기기에서 스플래시에 멈춤).
 
 | 라우트 | 파일 | 화면 |
 |---|---|---|
+| `/` | `app/index.tsx` | → `/splash`로 redirect |
 | `/splash` | `app/splash.tsx` | `SplashScreen` |
 | `/login` | `app/login.tsx` | `LoginScreen` |
 
 ## 4. 파일 구조
 ```
 app/
-  _layout.tsx          # 루트 스택 + 폰트 로드 + providers, initialRouteName=splash
+  _layout.tsx          # 루트 스택 + providers + 폰트(백그라운드) + 스플래시 해제
+  index.tsx            # '/' 진입점 → /splash 로 redirect (네이티브 진입 필수)
   splash.tsx           # /splash 라우트
   login.tsx            # /login 라우트
 src/screens/onboarding/

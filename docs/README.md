@@ -16,6 +16,7 @@
 | [onboarding.md](./onboarding.md) | 스플래시·로그인·로그인 실패 (온보딩) | UI 완료 / 백엔드 연동 대기 |
 | [home.md](./home.md) | 홈(지도뷰) — 검색·칩·필터·바텀시트·매장목록 | Phase 1(UI) 완료 / 지도(Phase 2)·백엔드 대기 |
 | [shop-detail.md](./shop-detail.md) | 샵 상세 — 헤더·캐러셀·탭(스크롤스파이)·빈자리·메뉴·정보·리뷰·예약바 | Phase 1(UI) 완료 / 백엔드 대기 |
+| [notification.md](./notification.md) | 알림 목록 + 비회원 로그인 유도 모달 | UI 완료 / 백엔드 연동 대기 |
 
 ## 관련 참고
 - 디자인 원본: `designs/`(페이지별 캡처) + `designs/design.pen`(pencil)

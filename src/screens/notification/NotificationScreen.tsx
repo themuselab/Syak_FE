@@ -1,7 +1,8 @@
 import { FlatList, View } from 'react-native';
 
+import { BackHeader } from '@/shared/ui/BackHeader';
+
 import { NotificationEmpty } from './components/NotificationEmpty';
-import { NotificationHeader } from './components/NotificationHeader';
 import { NotificationItem } from './components/NotificationItem';
 import { MOCK_NOTIFICATIONS } from './mockNotifications';
 
@@ -12,7 +13,7 @@ export function NotificationScreen() {
 
   return (
     <View className="flex-1 bg-white">
-      <NotificationHeader />
+      <BackHeader title="알림" />
       {notifications.length === 0 ? (
         <NotificationEmpty />
       ) : (

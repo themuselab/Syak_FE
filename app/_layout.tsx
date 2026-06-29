@@ -11,9 +11,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { queryClient } from '@/shared/lib/queryClient';
 
-// 하단 탭바 없음 → 루트 스택. index.tsx 대신 login 을 첫 화면으로.
+// 하단 탭바 없음 → 루트 스택. index.tsx 대신 splash(첫 진입 로딩)를 첫 화면으로.
 export const unstable_settings = {
-  initialRouteName: 'login',
+  initialRouteName: 'splash',
 };
 
 SplashScreen.preventAutoHideAsync();

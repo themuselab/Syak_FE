@@ -73,7 +73,8 @@ src/
 - **화면 부품을 `app/` 안에 두지 않는다.** Expo Router는 `app/` 안의 모든 파일을 라우트로 취급하며, Next.js의 `_components` 같은 비공개 폴더를 지원하지 않는다. 그래서 부품은 `src/screens` / `src/shared`에 둔다.
 
 ### `index` 회피 규칙
-- **라우트 `index.tsx` 안 씀.** 모든 화면에 명시적 이름(`home.tsx`, `login.tsx` 등)을 준다. `/` 진입은 루트 `_layout.tsx`에서 로그인 상태를 확인해 `<Redirect>`로 처리한다.
+- **라우트는 명시적 이름**(`home.tsx`, `login.tsx` 등)을 쓴다. 화면용 `index.tsx`는 만들지 않는다.
+- **단, `app/index.tsx`(= `/` 진입점)는 예외로 필요하다.** 네이티브 앱은 시작 시 `/`를 여는데, 이 라우트가 없으면 매칭 실패로 스플래시에서 멈춘다(`initialRouteName`만으로는 해결 안 됨). 그래서 `app/index.tsx`는 첫 화면(splash 등)으로 보내는 얇은 `<Redirect>`만 둔다.
 - `_layout.tsx`(밑줄 특수파일)는 Expo Router 필수라 **유지**한다.
 - **배럴 `index.ts`(re-export 모음 파일) 금지.** import는 항상 실제 파일 경로에서 직접 한다. (예: `@/shared/ui/Button`)
 
@@ -146,3 +147,10 @@ src/
   - 브랜치명은 작업 단위로 짓는다 (예: `feat/home-map`, `fix/login-error`).
 - 커밋 메시지는 Conventional Commits(`feat:`, `fix:`, `chore:` ...)를 따른다.
 - 작업 완료 후 해당 브랜치를 push 한다. (`main`으로의 병합은 PR로 진행)
+
+### 기술 문서(docs) 규칙
+문서는 **`syakFE/docs/`** 에 평평하게 모은다(백엔드 `syakBE/docs/`와 대칭). 종류는 3가지:
+- **기능 명세 `docs/<기능>.md`** — 화면/기능을 구현하거나 크게 바꾸면 함께 작성·갱신하고 `docs/README.md` 인덱스에 추가. 범위·화면 흐름·라우팅·파일 구조·컴포넌트 명세·디자인 출처(`designs/`, `design.pen`)·임시 동작·남은 작업·검증 방법을 담는다.
+- **`docs/troubleshooting.md`** — 오류/문제를 해결하면 기록한다(증상→원인→해결, 관련 파일/커밋). **최신 항목을 맨 위**로 누적. 같은 증상 재발 시 여기부터 검색.
+- **`docs/decisions.md`** — 주요 기술 결정은 이유와 함께 기록(맥락·결정·이유·버린 대안).
+- 코드와 문서가 어긋나면 문서를 사실에 맞게 고친다. 한 파일이 너무 커지면 폴더로 분리한다.

@@ -1,4 +1,5 @@
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import { router } from 'expo-router';
 import { useMemo } from 'react';
 
 import type { Shop } from '../mockShops';
@@ -45,7 +46,11 @@ export function ShopBottomSheet({ shops, onToggleFavorite, onReset }: Props) {
               keyExtractor={(item) => item.id}
               contentContainerStyle={{ paddingTop: 13 }}
               renderItem={({ item }) => (
-                <ShopListCard shop={item} onToggleFavorite={() => onToggleFavorite(item.id)} />
+                <ShopListCard
+                  shop={item}
+                  onPress={() => router.push(`/shop/${item.id}`)}
+                  onToggleFavorite={() => onToggleFavorite(item.id)}
+                />
               )}
             />
           )}

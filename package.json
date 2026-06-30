@@ -4,7 +4,6 @@
   "version": "1.0.0",
   "dependencies": {
     "@expo/config-plugins": "~54.0.4",
-    "@expo/ui": "~0.2.0-beta.9",
     "@gorhom/bottom-sheet": "^5.2.14",
     "@react-native-kakao/core": "^2.4.5",
     "@react-native-kakao/user": "^2.4.5",

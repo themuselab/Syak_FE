@@ -13,6 +13,14 @@
 
 ---
 
+## 2026-06-30 · 결정: 네이버 로그인 라이브러리 = `@react-native-seoul/naver-login`
+- 맥락/문제: 카카오 다음으로 네이버 로그인 추가. 백엔드 `POST /auth/naver`는 클라가 받은 네이버 `access_token`을 그대로 받아 `openapi.naver.com/v1/nid/me`로 검증한다(카카오와 동일 계약). 프론트는 네이버 SDK로 access_token만 얻으면 됨.
+- 결정: **`@react-native-seoul/naver-login`(v4.2.4, 2026-01)** 채택.
+- 이유: 네이버는 카카오와 달리 **사실상 대체재가 없다** — 이 라이브러리(crossplatformkorea 관리)가 유일한 유지보수 표준이고 Expo config plugin·dev build를 지원한다. New Architecture 명시는 없으나 최신 릴리스(RN 0.81 시기)라 채택해 진행하고, 빌드/런타임 문제 시 그때 대응한다. (카카오에서 `@react-native-seoul/kakao-login`을 new arch 미보장으로 기각했지만, 네이버는 이 라이브러리 외 선택지 자체가 없음.)
+- **트레이드오프(주의)**: 네이버 SDK 초기화가 `consumerKey`+**`consumerSecret`**+`appName`을 요구한다 → **consumerSecret이 앱 번들에 박힌다**. 카카오(공개 네이티브키만)와 달리 secret이 클라에 노출되지만, **네이버 SDK 설계상 회피 불가**다(웹 OAuth로 우회하면 백엔드 access_token 계약과 어긋남). 그래서 `.env`(`EXPO_PUBLIC_NAVER_CONSUMER_SECRET`)로 주입하되 이 한계를 문서에 남긴다.
+- 대안(버림): 웹 OAuth(expo-auth-session) — 카카오와 동일 이유로 기각(code→token 교환에 secret 필요, UX 브라우저 전환). 다른 네이버 RN 라이브러리 — 유지보수되는 게 사실상 없음.
+- 관련: [auth.md](./auth.md), [dev-build.md](./dev-build.md), `app.config.ts`, `app/_layout.tsx`, `src/shared/domain/auth/socialAuth.ts`
+
 ## 2026-06-30 · 결정: 카카오 로그인 라이브러리 = `react-native-kakao`(mym0404)
 - 맥락/문제: 카카오는 RN 공식 래퍼가 없어 서드파티 선택 필요. 후보는 다운로드·자료가 가장 많은 `@react-native-seoul/kakao-login`과 비교적 최신인 `react-native-kakao`(mym0404).
 - 결정: **`react-native-kakao`(@react-native-kakao/core·user)** 채택.

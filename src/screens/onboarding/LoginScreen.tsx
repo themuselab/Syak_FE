@@ -5,7 +5,11 @@ import { Pressable, Text, View } from 'react-native';
 import { ApiError, ErrorCode } from '@/shared/api/errors';
 import { useSocialLogin } from '@/shared/domain/auth/auth.queries';
 import type { SocialProvider } from '@/shared/domain/auth/auth.types';
-import { getSocialToken, SocialAuthNotReadyError } from '@/shared/domain/auth/socialAuth';
+import {
+  getSocialToken,
+  SocialAuthCancelledError,
+  SocialAuthNotReadyError,
+} from '@/shared/domain/auth/socialAuth';
 
 import { LoginErrorToast } from './components/LoginErrorToast';
 import { OnboardingBackground } from './components/OnboardingBackground';
@@ -33,7 +37,8 @@ export function LoginScreen() {
       await socialLogin.mutateAsync({ provider, accessToken: token });
       router.replace('/home'); // 신규·기존 모두 홈 (닉네임 화면 없음)
     } catch (e) {
-      setErrorMessage(resolveLoginError(e));
+      const message = resolveLoginError(e);
+      if (message) setErrorMessage(message); // 취소(null)는 오류 아님 → 토스트 생략
     } finally {
       setLoadingProvider(null);
     }
@@ -92,7 +97,11 @@ export function LoginScreen() {
 }
 
 // 에러 종류별 토스트 메시지 (분기는 code/타입 기준).
-function resolveLoginError(e: unknown): string {
+// 취소(사용자가 창을 닫음)는 null → 토스트 안 띄움. 그 외는 안내 메시지.
+function resolveLoginError(e: unknown): string | null {
+  if (e instanceof SocialAuthCancelledError) {
+    return null;
+  }
   if (e instanceof SocialAuthNotReadyError) {
     return '소셜 로그인 준비 중입니다. 잠시 후 다시 시도해 주세요.';
   }

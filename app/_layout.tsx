@@ -35,6 +35,23 @@ export default function RootLayout() {
         .then((m) => m.initializeKakaoSDK(kakaoKey))
         .catch(() => {});
     }
+
+    // 네이버 SDK 초기화(1회). 카카오와 동일한 dynamic import 가드. 키 없으면 통과.
+    // 카카오와 달리 consumerSecret까지 필요(네이버 SDK 요구 — .env로 주입).
+    const naverKey = process.env.EXPO_PUBLIC_NAVER_CONSUMER_KEY;
+    if (naverKey) {
+      import('@react-native-seoul/naver-login')
+        .then((m) =>
+          m.default.initialize({
+            consumerKey: naverKey,
+            consumerSecret: process.env.EXPO_PUBLIC_NAVER_CONSUMER_SECRET ?? '',
+            appName: process.env.EXPO_PUBLIC_NAVER_APP_NAME ?? 'syak',
+            serviceUrlSchemeIOS: process.env.EXPO_PUBLIC_NAVER_URL_SCHEME,
+            disableNaverAppAuthIOS: true,
+          }),
+        )
+        .catch(() => {});
+    }
   }, []);
 
   return (

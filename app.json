@@ -8,9 +8,11 @@
     "scheme": "syak",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.themuselab.syak"
     },
     "android": {
+      "package": "com.themuselab.syak",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -41,6 +43,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "012a28cb-89e2-4e80-aa84-6298d7312680"
+      }
+    },
+    "owner": "jbinyim"
   }
 }

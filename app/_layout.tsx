@@ -23,9 +23,18 @@ export default function RootLayout() {
     'Pretendard-SemiBold': require('../assets/fonts/Pretendard-SemiBold.ttf'),
   });
 
-  // 앱이 마운트되면 네이티브 스플래시를 즉시 해제.
+  // 앱이 마운트되면 네이티브 스플래시를 즉시 해제 + 카카오 SDK 초기화.
   useEffect(() => {
     SplashScreen.hideAsync().catch(() => {});
+
+    // 카카오 SDK 초기화(1회). 네이티브 모듈이라 dev build에서만 동작 —
+    // dynamic import로 web/Expo Go 번들에 영향을 주지 않고, 없는 환경에선 조용히 통과.
+    const kakaoKey = process.env.EXPO_PUBLIC_KAKAO_NATIVE_APP_KEY;
+    if (kakaoKey) {
+      import('@react-native-kakao/core')
+        .then((m) => m.initializeKakaoSDK(kakaoKey))
+        .catch(() => {});
+    }
   }, []);
 
   return (

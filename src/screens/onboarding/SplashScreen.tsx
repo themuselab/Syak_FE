@@ -2,18 +2,41 @@ import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { Text, View } from 'react-native';
 
+import { useAuthStore } from '@/shared/domain/auth/auth.store';
+import { getMe } from '@/shared/domain/user/user.api';
+
 import { OnboardingBackground } from './components/OnboardingBackground';
 import { SyakLogo } from './components/SyakLogo';
 
 // 첫 진입 로딩(스플래시) 화면. 디자인: designs/온보딩/온보딩.png
+// 세션 확인: GET /users/me 성공 → 로그인 상태(setUser) → /home, 실패(401 등) → /login.
 export function SplashScreen() {
+  const setUser = useAuthStore((s) => s.setUser);
+
   useEffect(() => {
-    // TODO(백엔드): /users/me 세션 확인 → 로그인 상태면 '/home', 아니면 '/login'.
-    const timer = setTimeout(() => {
-      router.replace('/login');
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
+    let cancelled = false;
+    // 최소 표시시간(브랜드 로딩) — 세션 확인이 빨라도 깜빡임 없이 잠깐 보여준다.
+    const minDelay = new Promise<void>((resolve) => setTimeout(resolve, 1200));
+
+    (async () => {
+      let dest: '/home' | '/login' = '/login';
+      try {
+        const me = await getMe();
+        if (!cancelled) {
+          setUser({ id: me.id, nickname: me.nickname, profileImage: me.profileImage });
+          dest = '/home';
+        }
+      } catch {
+        dest = '/login'; // 비로그인/세션 없음
+      }
+      await minDelay;
+      if (!cancelled) router.replace(dest);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [setUser]);
 
   return (
     <OnboardingBackground>

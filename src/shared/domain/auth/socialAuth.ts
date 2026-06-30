@@ -20,12 +20,13 @@ export class SocialAuthNotReadyError extends Error {
 
 export async function getSocialToken(provider: SocialProvider): Promise<string> {
   switch (provider) {
-    case 'kakao':
-      // TODO(SDK): @react-native-seoul/kakao-login
-      //   import { login } from '@react-native-seoul/kakao-login';
-      //   const token = await login();
-      //   return token.accessToken;
-      throw new SocialAuthNotReadyError('kakao');
+    case 'kakao': {
+      // react-native-kakao(@react-native-kakao/user). 네이티브 모듈이라 dev build에서만 동작.
+      // dynamic import로 web/Expo Go 번들에 영향 없게 한다(모듈 없으면 throw → 상위에서 토스트).
+      const { login } = await import('@react-native-kakao/user');
+      const token = await login();
+      return token.accessToken; // 백엔드 POST /auth/kakao 의 access_token
+    }
     case 'naver':
       // TODO(SDK): @react-native-seoul/naver-login
       //   const { successResponse } = await NaverLogin.login();

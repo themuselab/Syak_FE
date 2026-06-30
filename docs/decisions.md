@@ -13,6 +13,28 @@
 
 ---
 
+## 2026-06-30 · 결정: 지도 라이브러리 = `@mj-studio/react-native-naver-map`
+- 맥락/문제: 홈 지도(한국 매장 앱). 후보 = 네이버지도 / 카카오맵(`@react-native-kakao/map`, 이미 카카오 SDK 사용 중) / 구글(`react-native-maps`).
+- 결정: **`@mj-studio/react-native-naver-map` v2.9.0** 채택.
+- 이유: New Architecture·Expo config plugin·dev build 지원. **Mobile Dynamic Map 월 1억 호출 무료**(우리 규모 사실상 무비용, 카드 등록만 필요). 한국 POI·디자인(소비자 메인)과 일치. `design.pen` 핀 PNG가 이미 3종(`pin-partner/discount/reservable.png`)이라 마커 매핑이 직결. home.md 원래 계획과 일치.
+- 대안(버림): 카카오맵(무료·SDK 일관성은 있으나 비용 해소로 우위 사라짐), 구글(`react-native-maps` — 한국 지도 데이터·POI 약함, 디자인 톤 다름), NCP Web Dynamic Map(웹 전용·유료).
+- 비용 메모: Mobile 월 1억 무료(현행 유지) / Web은 월 1천만 무료·초과 0.1원/건. NCP 콘솔에서 사용 한도 제한 가능.
+- 관련: `src/screens/home/components/HomeMap.tsx`, `app.config.ts`, [home.md](./home.md), [dev-build.md](./dev-build.md)
+
+## 2026-06-30 · 결정: 홈 샵 목록 = 필터된 전체를 받아 클라에서 핀 (지도 bounds 미지원)
+- 맥락/문제: 백엔드 `GET /shops`는 좌표(`lat`/`lng`)를 주지만 **지도영역(bounds)·중심+반경 조회가 없다**. 지도에 핀을 찍으려면 화면 후보 전체가 필요.
+- 결정: 필터 파라미터로 **`limit:100` 단일 조회** → 클라에서 목록 + 지도 핀. 무한스크롤·뷰포트 재조회는 추후.
+- 이유: 현재 지역이 서울 단일이고 필터 적용 후 결과가 100건을 넘기 어렵다. bounds 없이도 핀 표시가 된다.
+- 대안(버림): 무한스크롤(지도 핀엔 전체가 필요해 부적합), 뷰포트 기반 재조회(백엔드 미지원).
+- 관련: `src/shared/domain/shops/`, [home.md](./home.md)
+
+## 2026-06-30 · 결정: 홈 즐겨찾기 1차 로컬 토글 (API는 로그인 후)
+- 맥락/문제: 홈은 **비회원 접근**(`GET /shops` 무인증)인데 `/favorites`는 **인증 필요**. 비회원이 별을 누르면 401.
+- 결정: 1차는 `favoriteIds`(로컬 Set) 토글만. `/favorites` 실연동은 소셜 로그인 dev build 이후, 비회원은 그때 `비회원로그인 알림` 모달로 유도.
+- 이유: 비회원 흐름을 깨지 않고 화면을 완성. 로그인 플로우가 갖춰진 뒤 연동이 자연스럽다.
+- 대안(버림): 지금 `/favorites` 연동(비회원 401 처리·로그인 가드 부담이 먼저), 즐겨찾기 버튼 비활성(디자인 변경).
+- 관련: `src/screens/home/HomeScreen.tsx`, [home.md](./home.md) §3
+
 ## 2026-06-30 · 결정: 네이버 로그인 라이브러리 = `@react-native-seoul/naver-login`
 - 맥락/문제: 카카오 다음으로 네이버 로그인 추가. 백엔드 `POST /auth/naver`는 클라가 받은 네이버 `access_token`을 그대로 받아 `openapi.naver.com/v1/nid/me`로 검증한다(카카오와 동일 계약). 프론트는 네이버 SDK로 access_token만 얻으면 됨.
 - 결정: **`@react-native-seoul/naver-login`(v4.2.4, 2026-01)** 채택.

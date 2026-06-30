@@ -1,6 +1,8 @@
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useMemo, useState } from 'react';
+import { router } from 'expo-router';
+import { useMemo, useRef, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -8,7 +10,7 @@ import { useShops } from '@/shared/domain/shops/shops.queries';
 
 import { CurrentLocationButton } from './components/CurrentLocationButton';
 import { HomeHeader } from './components/HomeHeader';
-import { MapPlaceholder } from './components/MapPlaceholder';
+import { HomeMap, type HomeMapRef } from './components/HomeMap';
 import { SearchBar } from './components/SearchBar';
 import { ShopBottomSheet } from './components/ShopBottomSheet';
 import { filtersToParams } from './filtersToParams';
@@ -20,6 +22,7 @@ import { useHomeFilterStore } from './useHomeFilterStore';
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
+  const mapRef = useRef<HomeMapRef>(null);
 
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set());
 
@@ -57,10 +60,26 @@ export function HomeScreen() {
       return next;
     });
 
+  // 현재위치 → 지도 카메라 이동. 권한 거부·실패 시 조용히 무동작.
+  const handleLocate = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') return;
+      const pos = await Location.getCurrentPositionAsync({});
+      mapRef.current?.moveTo(pos.coords.latitude, pos.coords.longitude);
+    } catch {
+      // 무시
+    }
+  };
+
   return (
     <BottomSheetModalProvider>
       <View className="flex-1 bg-white">
-        <MapPlaceholder />
+        <HomeMap
+          ref={mapRef}
+          shops={shops}
+          onMarkerPress={(id) => router.push(`/shop/${id}`)}
+        />
 
         {/* 상단 핑크 그라데이션 */}
         <LinearGradient
@@ -78,7 +97,7 @@ export function HomeScreen() {
 
         {/* 현재위치 버튼 (지도 우하단, 바텀시트 위) */}
         <View className="absolute right-4" style={{ bottom: height * 0.42 + 12 }}>
-          <CurrentLocationButton />
+          <CurrentLocationButton onPress={handleLocate} />
         </View>
 
         <ShopBottomSheet

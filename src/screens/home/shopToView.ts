@@ -1,7 +1,7 @@
 import type { ShopListItem } from '@/shared/domain/shops/shops.types';
 
-// 지도 마커 종류(=핀 색). 색↔종류 매핑은 design.pen 기준. 우선순위 partner→event→default.
-export type MarkerKind = 'partner' | 'event' | 'default';
+// 지도 마커 종류(=핀 PNG). assets/icons/pin-{kind}.png와 직결. 우선순위 partner→discount→reservable.
+export type MarkerKind = 'partner' | 'discount' | 'reservable';
 
 // 화면(카드·마커)이 쓰는 뷰모델. 백엔드 ShopListItem을 어댑터로 변환한다.
 export type ShopCardView = {
@@ -25,8 +25,8 @@ export function toShopCardView(item: ShopListItem, favoriteIds: Set<string>): Sh
   const markerKind: MarkerKind = item.isPartner
     ? 'partner'
     : item.eventDesc
-      ? 'event'
-      : 'default';
+      ? 'discount'
+      : 'reservable';
 
   return {
     id: item.id,

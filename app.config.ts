@@ -21,12 +21,27 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       >)
     : [];
 
-  // 카카오 SDK(com.kakao.sdk:*)는 카카오 전용 Maven 저장소에만 있다. Expo가 저장소를 중앙
-  // 관리(settings.gradle)하므로, expo-build-properties로 그 저장소를 추가해야 의존성이 해석된다.
+  // 네이버 지도 plugin. NCP Maps Client ID가 있을 때만 포함(로그인 키와 별개).
+  const naverMapClientId = process.env.EXPO_PUBLIC_NAVER_MAP_CLIENT_ID;
+  const naverMapPlugin = naverMapClientId
+    ? ([['@mj-studio/react-native-naver-map', { client_id: naverMapClientId }]] as NonNullable<
+        ExpoConfig['plugins']
+      >)
+    : [];
+
+  // 카카오·네이버지도 SDK는 각 전용 Maven 저장소에만 있다. Expo가 저장소를 중앙 관리(settings.gradle)
+  // 하므로, expo-build-properties로 그 저장소들을 추가해야 의존성이 해석된다.
   const buildPropsPlugin = [
     [
       'expo-build-properties',
-      { android: { extraMavenRepos: ['https://devrepo.kakao.com/nexus/content/groups/public/'] } },
+      {
+        android: {
+          extraMavenRepos: [
+            'https://devrepo.kakao.com/nexus/content/groups/public/',
+            'https://repository.map.naver.com/archive/maven',
+          ],
+        },
+      },
     ],
   ] as NonNullable<ExpoConfig['plugins']>;
 
@@ -34,6 +49,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ...config,
     name: config.name ?? 'syak',
     slug: config.slug ?? 'syak',
-    plugins: [...(config.plugins ?? []), ...buildPropsPlugin, ...kakaoPlugin, ...naverPlugin],
+    plugins: [
+      ...(config.plugins ?? []),
+      ...buildPropsPlugin,
+      ...kakaoPlugin,
+      ...naverPlugin,
+      ...naverMapPlugin,
+    ],
   };
 };

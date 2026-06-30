@@ -13,6 +13,14 @@
 
 ---
 
+## 2026-06-30 · 결정: 지도 라이브러리 = `@mj-studio/react-native-naver-map`
+- 맥락/문제: 홈 지도(한국 매장 앱). 후보 = 네이버지도 / 카카오맵(`@react-native-kakao/map`, 이미 카카오 SDK 사용 중) / 구글(`react-native-maps`).
+- 결정: **`@mj-studio/react-native-naver-map` v2.9.0** 채택.
+- 이유: New Architecture·Expo config plugin·dev build 지원. **Mobile Dynamic Map 월 1억 호출 무료**(우리 규모 사실상 무비용, 카드 등록만 필요). 한국 POI·디자인(소비자 메인)과 일치. `design.pen` 핀 PNG가 이미 3종(`pin-partner/discount/reservable.png`)이라 마커 매핑이 직결. home.md 원래 계획과 일치.
+- 대안(버림): 카카오맵(무료·SDK 일관성은 있으나 비용 해소로 우위 사라짐), 구글(`react-native-maps` — 한국 지도 데이터·POI 약함, 디자인 톤 다름), NCP Web Dynamic Map(웹 전용·유료).
+- 비용 메모: Mobile 월 1억 무료(현행 유지) / Web은 월 1천만 무료·초과 0.1원/건. NCP 콘솔에서 사용 한도 제한 가능.
+- 관련: `src/screens/home/components/HomeMap.tsx`, `app.config.ts`, [home.md](./home.md), [dev-build.md](./dev-build.md)
+
 ## 2026-06-30 · 결정: 홈 샵 목록 = 필터된 전체를 받아 클라에서 핀 (지도 bounds 미지원)
 - 맥락/문제: 백엔드 `GET /shops`는 좌표(`lat`/`lng`)를 주지만 **지도영역(bounds)·중심+반경 조회가 없다**. 지도에 핀을 찍으려면 화면 후보 전체가 필요.
 - 결정: 필터 파라미터로 **`limit:100` 단일 조회** → 클라에서 목록 + 지도 핀. 무한스크롤·뷰포트 재조회는 추후.

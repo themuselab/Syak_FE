@@ -57,6 +57,18 @@
 
 ---
 
+## C-3. 네이버 지도 (NCP) — 홈 지도용
+> ⚠️ **로그인용 developers.naver.com과 별개**인 **`console.ncloud.com`(네이버 클라우드 플랫폼)**에서 발급한다.
+> 모바일 앱 지도라 **Mobile Dynamic Map = 월 1억 호출 무료**(우리 규모 사실상 무비용, 카드 등록만 필요).
+1. **가입 + 결제수단(카드) 등록** — `console.ncloud.com`. (무료 한도 내라 실 과금 거의 없음. 콘솔에서 사용 한도 제한 가능.)
+2. **Services → Maps → 이용 신청** (모바일 **Dynamic Map**).
+3. **Application 등록**: 이름 `syak`, **Android 패키지명** `com.themuselab.syak`, **iOS Bundle ID** `com.themuselab.syak`.
+4. 발급된 **Client ID** → 프론트 `.env`(`EXPO_PUBLIC_NAVER_MAP_CLIENT_ID`, git 제외) + EAS env(A-4).
+5. **재빌드 필요** — 네이티브 모듈(`@mj-studio/react-native-naver-map`) 추가라 EAS 빌드 재실행. (키 없으면 코드가 placeholder로 폴백 → 앱은 안 깨지지만 지도는 회색.)
+- `app.config.ts`에 지도 plugin(`client_id` 조건부) + `expo-build-properties` `extraMavenRepos`에 `https://repository.map.naver.com/archive/maven` 추가돼 있음(카카오 repo 옆).
+
+---
+
 ## D. 백엔드 로컬 (syakBE, 도커)
 카카오 로그인 검증/유저 저장에 백엔드+DB 필요. **Docker Desktop 실행** 후 `syakBE`에서:
 1. `docker compose up -d --build` (app:3000 / postgres:5432 / redis:6379).
@@ -67,12 +79,13 @@
        environment:
          DATABASE_URL: postgresql://syak:syak_dev_password@db:5432/syak_dev
          SUPABASE_DATABASE_URL: postgresql://syak:syak_dev_password@db:5432/syak_dev
+         REDIS_URL: redis://redis:6379   # 캐시도 localhost면 컨테이너 자기자신 → has_slot 등 필터가 HTTP 000
    ```
    → `docker compose up -d`. 로그에 `SlotListener connected`면 OK.
 3. **누락 마이그레이션 적용** — 도커는 `db/init.sql`만 실행하므로 후속 마이그레이션을 직접:
    `docker compose exec -T db psql -U syak -d syak_dev < db/migration_v2.sql`
-4. 확인: `curl http://localhost:3000/api/v1/notifications` → 401 JSON이면 서버 정상.
-> 2·3은 **로컬 테스트용 우회**다. 근본 해결(도커 초기화가 마이그레이션까지 실행)은 백엔드(syakBE) 몫.
+4. 확인: `curl http://localhost:3000/api/v1/notifications` → 401 JSON이면 서버 정상. `curl "http://localhost:3000/api/v1/shops?limit=1"` → items 1건이면 샵 API OK.
+> 2·3은 **로컬 테스트용 우회**다. 근본 해결(도커 초기화가 마이그레이션·REDIS_URL까지)은 백엔드(syakBE) 몫.
 
 ---
 

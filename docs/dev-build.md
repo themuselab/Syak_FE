@@ -17,6 +17,7 @@
    - ⚠️ `app.config.ts`가 카카오 키를 요구하면 init 시 `expo config` 실패 → 키를 함께 주거나(아래) 조건부 plugin 처리. 즉석 우회: `EXPO_PUBLIC_KAKAO_NATIVE_APP_KEY=<키> eas init --non-interactive --force`
 4. **키를 EAS 환경에 등록**(EAS는 `.env`를 안 읽음):
    `eas env:create --name EXPO_PUBLIC_KAKAO_NATIVE_APP_KEY --value <네이티브앱키> --environment development --visibility plaintext --non-interactive`
+   - 네이버까지 쓰면 동일 방식으로 4종 추가: `EXPO_PUBLIC_NAVER_CONSUMER_KEY`, `EXPO_PUBLIC_NAVER_CONSUMER_SECRET`, `EXPO_PUBLIC_NAVER_APP_NAME`, `EXPO_PUBLIC_NAVER_URL_SCHEME`. (consumerSecret도 앱에 박히는 값이라 plaintext로 둠 — 네이버 SDK 한계, [decisions.md](./decisions.md) 참고.)
 5. `eas build --profile development --platform android --non-interactive`
    - 첫 빌드는 keystore 자동 생성. 완료되면 apk 링크/QR 출력.
 6. apk를 기기에 설치(링크/QR). 같은 앱 식별자라 기존 위에 덮어쓰기됨.
@@ -39,6 +40,20 @@
    ```
 3. 그 값을 카카오 콘솔 **플랫폼 → Android → 키 해시**에 추가(여러 개 등록 가능) → 저장. 1~2분 후 반영.
 - 미등록 시: `keyHash validation failed (Misconfigured)` → 백엔드에 닿기도 전에 SDK에서 실패.
+
+---
+
+## C-2. 네이버 콘솔 (developers.naver.com) — 네이버 추가 시
+> 카카오의 B·C에 해당. **네이버 로그인은 Android에 키해시가 필요 없고 패키지명만** 등록한다(카카오와 차이).
+> 백엔드 `NaverAuthProvider`는 토큰만 검증(`openapi.naver.com/v1/nid/me`)하므로 **콘솔의 같은 네이버 앱**이면 된다.
+1. **애플리케이션 등록**: 네이버 개발자센터 → Application → 애플리케이션 등록.
+2. **사용 API = "네이버 로그인"** 추가. 제공 정보(필수: 회원이름 또는 닉네임, 프로필 사진) 선택.
+3. **Client ID / Client Secret 발급** → 프론트 `.env`(`EXPO_PUBLIC_NAVER_CONSUMER_KEY`/`_CONSUMER_SECRET`, git 제외) + EAS env(A-4). `EXPO_PUBLIC_NAVER_APP_NAME`은 앱 표시명(예: `syak`).
+4. **로그인 오픈 API 서비스 환경 등록**:
+   - **Android**: 패키지명 `com.themuselab.syak` + 다운로드 URL(아무 값). **키해시 불필요.**
+   - **iOS**: URL Scheme(예: `naverLogin`) + 번들 ID `com.themuselab.syak`. 이 scheme을 `.env` `EXPO_PUBLIC_NAVER_URL_SCHEME`과 `app.config.ts` naver plugin(`urlScheme`)에 **동일하게** 넣는다.
+5. **재빌드 필요** — 네이티브 모듈(`@react-native-seoul/naver-login`) 추가라 A의 EAS 빌드를 다시 돌려야 기기에 반영된다(JS만 바뀐 게 아님).
+- Android 릴리스(minify/R8) 빌드 시 Proguard 규칙 `-keep public class com.navercorp.nid.** { *; }` 필요(현재 development apk는 minify 안 해서 불필요, 추후 릴리스 시 챙길 것).
 
 ---
 

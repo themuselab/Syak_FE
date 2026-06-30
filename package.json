@@ -7,6 +7,7 @@
     "@gorhom/bottom-sheet": "^5.2.14",
     "@react-native-kakao/core": "^2.4.5",
     "@react-native-kakao/user": "^2.4.5",
+    "@react-native-seoul/naver-login": "^4.2.4",
     "@tanstack/react-query": "^5.101.1",
     "expo": "~54.0.0",
     "expo-build-properties": "~1.0.10",

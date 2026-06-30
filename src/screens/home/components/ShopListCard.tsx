@@ -1,8 +1,9 @@
+import { Image } from 'expo-image';
 import { Star } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 
 import { colors } from '@/shared/theme/colors';
-import type { Shop } from '../mockShops';
+import type { ShopCardView } from '../shopToView';
 
 const FAVORITE_COLOR = '#FFC107';
 
@@ -15,6 +16,7 @@ function Badge({ label }: { label: string }) {
     >
       <Text
         className="text-caption-s font-pretendard-medium"
+        numberOfLines={1}
         style={{ color: isDeal ? colors.primary[600] : colors.gray[600] }}
       >
         {label}
@@ -24,7 +26,7 @@ function Badge({ label }: { label: string }) {
 }
 
 type Props = {
-  shop: Shop;
+  shop: ShopCardView;
   onPress?: () => void;
   onToggleFavorite?: () => void;
 };
@@ -37,14 +39,25 @@ export function ShopListCard({ shop, onPress, onToggleFavorite }: Props) {
       className="flex-row items-center gap-3 border-b px-5 py-4"
       style={{ borderColor: '#f3f3f3' }}
     >
-      <View className="h-[60px] w-[60px] rounded-md" style={{ backgroundColor: '#e3e3e3' }} />
+      {shop.photo ? (
+        <Image
+          source={{ uri: shop.photo }}
+          style={{ width: 60, height: 60, borderRadius: 6 }}
+          contentFit="cover"
+        />
+      ) : (
+        <View className="h-[60px] w-[60px] rounded-md" style={{ backgroundColor: '#e3e3e3' }} />
+      )}
       <View className="flex-1 flex-row items-center justify-between">
         <View className="gap-1">
           <View className="flex-row items-center gap-2">
             <Text className="text-heading-m font-pretendard-semibold text-gray-900">{shop.name}</Text>
-            <Text className="text-caption-m font-pretendard-medium" style={{ color: '#adb5bd' }}>
-              리뷰 {shop.reviewCount}
-            </Text>
+            {/* 리뷰수는 목록 응답 미제공 → 값이 있을 때만 표시 (백엔드 추가 시 자동 노출) */}
+            {shop.reviewCount != null && (
+              <Text className="text-caption-m font-pretendard-medium" style={{ color: '#adb5bd' }}>
+                리뷰 {shop.reviewCount}
+              </Text>
+            )}
           </View>
           <Text className="text-body-m font-pretendard text-gray-600">{shop.address}</Text>
           <View className="flex-row gap-1">

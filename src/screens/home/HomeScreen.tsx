@@ -4,35 +4,58 @@ import { useMemo, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useShops } from '@/shared/domain/shops/shops.queries';
+
 import { CurrentLocationButton } from './components/CurrentLocationButton';
 import { HomeHeader } from './components/HomeHeader';
 import { MapPlaceholder } from './components/MapPlaceholder';
 import { SearchBar } from './components/SearchBar';
 import { ShopBottomSheet } from './components/ShopBottomSheet';
-import { MOCK_SHOPS } from './mockShops';
+import { filtersToParams } from './filtersToParams';
+import { toShopCardView } from './shopToView';
 import { useHomeFilterStore } from './useHomeFilterStore';
 
-// 홈(지도뷰). Phase 1: 지도는 placeholder, mock 데이터. 필터는 단일 바텀시트 내용 전환.
+// 홈(지도뷰). 지도는 placeholder(Phase B에서 네이버지도). 데이터는 GET /shops(비회원 가능).
+// 서버 필터는 filtersToParams로, 이름검색·price_desc는 받은 목록에 클라 후처리. 즐겨찾기는 1차 로컬.
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
-  const [shops, setShops] = useState(MOCK_SHOPS);
-  const search = useHomeFilterStore((s) => s.search);
+
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set());
+
+  const sort = useHomeFilterStore((s) => s.sort);
+  const regions = useHomeFilterStore((s) => s.regions);
   const price = useHomeFilterStore((s) => s.price);
+  const serviceFields = useHomeFilterStore((s) => s.serviceFields);
+  const toggles = useHomeFilterStore((s) => s.toggles);
+  const search = useHomeFilterStore((s) => s.search);
   const reset = useHomeFilterStore((s) => s.reset);
 
-  const filtered = useMemo(
-    () =>
-      shops.filter(
-        (s) =>
-          (search === '' || s.name.includes(search)) &&
-          (price === 'all' || String(s.priceTier) === price),
-      ),
-    [shops, search, price],
+  // 백엔드가 받는 필터만 쿼리 파라미터로.
+  const params = useMemo(
+    () => filtersToParams({ sort, regions, price, serviceFields, toggles }),
+    [sort, regions, price, serviceFields, toggles],
   );
 
+  const { data, isLoading, isError, refetch } = useShops(params);
+
+  // 받은 목록에 클라 후처리(이름검색·price_desc) → 뷰모델 변환.
+  const shops = useMemo(() => {
+    let items = data?.items ?? [];
+    if (search) items = items.filter((it) => it.name.includes(search));
+    if (sort === 'price_desc') {
+      items = [...items].sort((a, b) => (b.minPrice ?? -Infinity) - (a.minPrice ?? -Infinity));
+    }
+    return items.map((it) => toShopCardView(it, favoriteIds));
+  }, [data, search, sort, favoriteIds]);
+
   const toggleFavorite = (id: string) =>
-    setShops((prev) => prev.map((s) => (s.id === id ? { ...s, favorite: !s.favorite } : s)));
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   return (
     <BottomSheetModalProvider>
@@ -58,7 +81,14 @@ export function HomeScreen() {
           <CurrentLocationButton />
         </View>
 
-        <ShopBottomSheet shops={filtered} onToggleFavorite={toggleFavorite} onReset={reset} />
+        <ShopBottomSheet
+          shops={shops}
+          isLoading={isLoading}
+          isError={isError}
+          onRetry={() => refetch()}
+          onToggleFavorite={toggleFavorite}
+          onReset={reset}
+        />
       </View>
     </BottomSheetModalProvider>
   );

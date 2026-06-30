@@ -7,9 +7,9 @@ export type DateKey = 'today' | 'tomorrow' | 'day_after';
 // 바텀시트에서 열려있는 필터 (null = 매장 목록). 시트 내용 전환에 사용.
 export type FilterKey = 'sort' | 'region' | 'price' | 'time' | 'service';
 
-type ToggleKey = 'sameDay' | 'discount' | 'available';
+export type ToggleKey = 'sameDay' | 'discount' | 'available';
 
-type HomeFilterState = {
+export type HomeFilterState = {
   activeFilter: FilterKey | null;
   setActiveFilter: (f: FilterKey | null) => void;
 

@@ -15,6 +15,20 @@
 
 ---
 
+## 2026-06-30 · 로컬 백엔드 Redis 연결 실패로 일부 샵 필터가 HTTP 000
+- 증상: `GET /shops?has_slot=true`, 일부 필터 요청이 응답 없음(curl `HTTP 000`). 도커 app 로그에 `ECONNREFUSED ::1:6379 / 127.0.0.1:6379`. 기본 목록·`has_event` 등 캐시 미경유 요청은 200.
+- 원인: app 컨테이너의 `REDIS_URL`이 `localhost:6379` → 도커 내부에서 자기 자신을 봐 연결 실패. (`composition-root.ts`는 `REDIS_URL` 있으면 RedisCacheService 사용, 캐시 경로 필터가 거기서 멈춤.)
+- 해결: `syakBE/docker-compose.override.yml`에 `REDIS_URL: redis://redis:6379` 추가 → `docker compose up -d`. (DB host=`db`와 동일한 로컬 우회 패턴.) 근본 해결은 백엔드 `docker-compose.yml` 기본에 `REDIS_URL` 포함(syakBE 영역).
+- 관련: 백엔드 로컬(`syakBE/docker-compose.override.yml`), [dev-build.md](./dev-build.md) D절
+
+## 2026-06-30 · `GET /shops?categories=` 필터가 항상 0건 (백엔드)
+- 증상: 응답의 `categories`는 영문(`"nail"`,`"hair"`)인데 `?categories=nail`(영문)·`?categories=네일`(한글) 모두 `total:0`. 다른 필터(`districts`/`price_tiers`/`sort`/`has_event`/`has_slot`)는 정상.
+- 원인: 백엔드 categories 필터 로직과 seed 데이터 정합성 문제(+ 문서는 한글, 데이터는 영문). FE 범위 아님.
+- 해결: FE는 디자인대로 **한글 categories 전송**(`filtersToParams.ts`). 백엔드 수정 대기 — [home.md](./home.md) §4 백엔드 갭에 기록.
+- 관련: `src/screens/home/filtersToParams.ts`, 백엔드 catalog 필터
+
+---
+
 > 아래 9건(2026-06-30)은 **카카오 로그인 dev build 실기기 연동** 과정에서 차례로 만난 문제다.
 > 전체 셋업 절차는 [dev-build.md](./dev-build.md), 인증 흐름은 [auth.md](./auth.md) 참고.
 

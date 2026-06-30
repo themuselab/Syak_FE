@@ -18,6 +18,7 @@
 | [shop-detail.md](./shop-detail.md) | 샵 상세 — 헤더·캐러셀·탭(스크롤스파이)·빈자리·메뉴·정보·리뷰·예약바 | Phase 1(UI) 완료 / 백엔드 대기 |
 | [notification.md](./notification.md) | 알림 목록 + 비회원 로그인 유도 모달 | UI 완료 / 백엔드 연동 대기 |
 | [my.md](./my.md) | 마이페이지 — 프로필·알림 설정 토글·반경 슬라이더·로그인/로그아웃 | UI 완료 / 백엔드 연동 대기 |
+| [auth.md](./auth.md) | 인증 — 소셜 로그인·세션 확인·로그아웃·토큰 갱신 | 플로우 골격 완료 / 소셜 SDK·dev build 대기 |
 
 ## 관련 참고
 - 디자인 원본: `designs/`(페이지별 캡처) + `designs/design.pen`(pencil)

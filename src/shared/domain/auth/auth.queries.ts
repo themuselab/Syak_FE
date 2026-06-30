@@ -16,6 +16,7 @@ export function useSignOut() {
   const setUser = useAuthStore((s) => s.setUser);
   return useMutation({
     mutationFn: signOut,
-    onSuccess: () => setUser(null),
+    // 성공/실패(AUTH_UNAUTHORIZED = 이미 로그아웃) 모두 로컬 세션을 비운다.
+    onSettled: () => setUser(null),
   });
 }

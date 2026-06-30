@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useSignOut } from '@/shared/domain/auth/auth.queries';
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import { colors } from '@/shared/theme/colors';
 import { BackHeader } from '@/shared/ui/BackHeader';
@@ -21,7 +22,7 @@ const iconAppNews = require('../../../assets/icons/my-app-news.png');
 export function MyScreen() {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
-  const setUser = useAuthStore((s) => s.setUser);
+  const signOut = useSignOut();
   const isLoggedIn = user != null;
 
   // 알림 설정(로컬 상태). 추후 GET/PATCH /notifications/settings로 대체.
@@ -34,8 +35,8 @@ export function MyScreen() {
   const subtitle = isLoggedIn ? (user.nickname ?? '닉네임 미설정') : '로그인하고 편리하게 샥-';
 
   const handleLogout = () => {
-    setUser(null);
-    router.replace('/login');
+    // useSignOut이 onSettled에서 로컬 세션을 비운다(성공/실패 모두). 이동만 처리.
+    signOut.mutate(undefined, { onSettled: () => router.replace('/login') });
   };
 
   return (

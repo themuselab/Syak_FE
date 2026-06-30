@@ -13,6 +13,12 @@
 
 ---
 
+## 2026-06-30 · 결정: 소셜 로그인 = 네이티브 SDK + dev build (어댑터로 격리)
+- 맥락/문제: 백엔드 `POST /auth/:provider`는 클라가 받은 소셜 `access_token`(애플은 `identityToken`)을 그대로 받는다. 토큰을 어떻게 얻느냐(네이티브 SDK vs 웹 OAuth)와 빌드 방식 결정 필요.
+- 결정: **네이티브 SDK**(@react-native-seoul/kakao-login·naver-login + expo-apple-authentication) + **dev build**. 소셜 토큰 획득부는 `socialAuth.ts`의 `getSocialToken(provider)` **어댑터로 격리**(현재 stub). 키·dev build 준비 전까지 골격만 구현.
+- 이유: 네이티브 SDK가 백엔드 access_token 계약과 자연스럽고 카카오톡/네이버앱 연동·UX가 낫다. 어댑터로 격리하면 키/빌드 없이도 화면 배선·세션·로그아웃을 완성·검증하고, 나중에 어댑터 3곳만 교체하면 된다.
+- 대안(버림): 웹 OAuth(expo-auth-session) — Expo Go에서 빠르나 카카오/네이버는 code→token 교환에 client_secret이 필요해 백엔드 계약과 어긋나고 UX가 브라우저 전환.
+
 ## 2026-06-29 · 결정: `app/index.tsx`를 `/` 진입 라우트로 둔다
 - 맥락/문제: 화면용 `index.tsx`를 피하려 했으나, 네이티브 앱은 시작 시 `/`를 열어 진입 라우트가 없으면 스플래시에서 멈춤.
 - 결정: `app/index.tsx`는 두되, 화면 로직 없이 `<Redirect href="/splash" />`만.

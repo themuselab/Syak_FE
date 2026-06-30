@@ -4,7 +4,7 @@
 > 디자인: `designs/홈지도뷰/*`, `design.pen` 프레임 `GhhI1`(메인)·`aMGlg`(정렬)·`T7ZAb7`(지역)·`ykdR2`(가격)·`S5sgV5`(예약시간)·`Ib0Re`(시술)·`FvUT4`(빈 상태).
 
 ## 1. 구성
-- **헤더**: 로고 + 알림/프로필 아이콘 (상단 핑크 그라데이션 위).
+- **헤더**: 로고 + 알림/프로필 아이콘 (상단 핑크 그라데이션 위). 벨 → `/notifications`, 유저 → `/my` 이동.
 - **검색바**: pill, 핑크 테두리, mock 이름 검색(store.search).
 - **지도**: Phase 1은 단색 placeholder(`MapPlaceholder`). Phase 2에서 `NaverMapView`로 교체(교체 지점 1곳).
 - **현재위치 버튼**: 지도 우하단.

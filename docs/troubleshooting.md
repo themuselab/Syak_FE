@@ -15,6 +15,13 @@
 
 ---
 
+## 2026-06-30 · 홈 헤더 알림·프로필 아이콘 탭해도 이동 안 함
+- 증상: 홈 화면 헤더의 벨(알림)·유저(프로필) 아이콘을 눌러도 아무 반응 없음.
+- 원인: `HomeHeader`의 두 `Pressable`에 `onPress`가 없었음(아이콘만 렌더, 핸들러 누락).
+- 해결: 벨 → `router.push('/notifications')`, 유저 → `router.push('/my')` 연결.
+- 관련: 커밋 `5f6ee37`, `src/screens/home/components/HomeHeader.tsx`
+- 교훈: 디자인엔 보여도 `Pressable`은 `onPress` 없으면 죽은 버튼. 화면 추가 시 진입점(헤더 아이콘 등) 연결도 함께 점검.
+
 ## 2026-06-29 · 아이폰 Expo Go에서 파란 스플래시에서 안 넘어감
 - 증상: Expo Go 연결은 되는데(앱 스플래시 표시) 화면이 안 바뀜. 흔들면 dev 메뉴는 뜸(JS는 살아있음), 터미널 에러 로그 없음, `iOS Bundled` 정상.
 - 원인: `app/index.tsx`(`/` 진입 라우트)가 없었음. 네이티브 앱은 시작 시 `/`를 여는데 매칭 라우트가 없어 멈춤. (`unstable_settings.initialRouteName`만으로는 해결 안 됨 — 웹은 `/login`을 직접 열어 안 걸렸던 것)

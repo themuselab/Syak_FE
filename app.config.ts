@@ -14,10 +14,19 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       >)
     : [];
 
+  // 카카오 SDK(com.kakao.sdk:*)는 카카오 전용 Maven 저장소에만 있다. Expo가 저장소를 중앙
+  // 관리(settings.gradle)하므로, expo-build-properties로 그 저장소를 추가해야 의존성이 해석된다.
+  const buildPropsPlugin = [
+    [
+      'expo-build-properties',
+      { android: { extraMavenRepos: ['https://devrepo.kakao.com/nexus/content/groups/public/'] } },
+    ],
+  ] as NonNullable<ExpoConfig['plugins']>;
+
   return {
     ...config,
     name: config.name ?? 'syak',
     slug: config.slug ?? 'syak',
-    plugins: [...(config.plugins ?? []), ...kakaoPlugin],
+    plugins: [...(config.plugins ?? []), ...buildPropsPlugin, ...kakaoPlugin],
   };
 };

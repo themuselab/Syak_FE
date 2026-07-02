@@ -1,12 +1,12 @@
 import { Text, View } from 'react-native';
 
-import type { MenuItem } from '../mockShopDetail';
+import type { MenuItem } from '../shopDetailToView';
 
 type Props = {
   menus: MenuItem[];
 };
 
-// 메뉴·가격 섹션: 메뉴명 … 리더선 … 가격.
+// 메뉴·가격 섹션: 메뉴명 … 리더선 … 가격. 데이터 없으면 빈 상태 문구(백엔드 노출 대기).
 export function MenuSection({ menus }: Props) {
   return (
     <View className="gap-4">
@@ -16,6 +16,11 @@ export function MenuSection({ menus }: Props) {
       >
         메뉴·가격
       </Text>
+      {menus.length === 0 && (
+        <Text className="font-pretendard text-[14px]" style={{ color: '#adb5bd' }}>
+          메뉴 정보를 준비 중이에요
+        </Text>
+      )}
       <View className="gap-4">
         {menus.map((m, i) => (
           <View key={i} className="flex-row items-center gap-1">

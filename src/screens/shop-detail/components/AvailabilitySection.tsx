@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import type { AvailabilityPeriod, DayAvailability } from '../mockShopDetail';
+import type { AvailabilityPeriod, DayAvailability } from '../shopDetailToView';
 
 type Props = {
   availability: DayAvailability[];

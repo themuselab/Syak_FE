@@ -10,7 +10,7 @@ export type ShopListItem = {
   priceTier: string | null; // 예 "1만원대"
   categories: string[]; // 대표 업종
   todayOpen: boolean;
-  slotSummary: { name: string; times: string }[]; // times = 공백 구분 문자열
+  slotSummary: { name: string; times: string[] }[]; // 디자이너별 오늘 가능 시각 (실응답 기준 — docs의 "공백 구분 문자열"과 다름)
   eventDesc: string | null;
   eventPrice: string | null;
   isPartner: boolean;

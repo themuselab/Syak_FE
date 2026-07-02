@@ -13,6 +13,13 @@
 
 ---
 
+## 2026-07-02 · 결정: 상세 빈자리 = slots API 3일치를 클라에서 구간 그룹핑
+- 맥락/문제: 디자인의 빈자리는 "앞으로 3일간" × 오전/오후/저녁 구간 구조인데, 백엔드 `GET /slots/shop/:id`는 flat `{date, startTime}` 배열(기본 3일치)만 준다. 상세 응답의 `slotSummary`(디자이너별 오늘 시각)와는 다른 소스.
+- 결정: 빈자리 섹션은 **slots API**를 쓰고, 클라 어댑터(`shopDetailToView.buildAvailability`)에서 오늘 기준 3일 고정 생성 → date별 그룹 → 오전(<12:00)/오후(12:00~18:00)/저녁(≥18:00) 분배, 빈 구간은 '마감되었습니다'.
+- 이유: API 기본값(3일치)이 디자인과 정확히 일치, 'HH:MM' 문자열 비교로 구간 분배가 단순·안정. slotSummary는 오늘·디자이너별이라 디자인 구조와 안 맞음.
+- 대안(버림): slotSummary 사용(3일 불가), 백엔드에 그룹핑 요청(표현 로직은 클라 소관).
+- 관련: `src/screens/shop-detail/shopDetailToView.ts`, `src/shared/domain/reservation/`, [shop-detail.md](./shop-detail.md)
+
 ## 2026-06-30 · 결정: 지도 라이브러리 = `@mj-studio/react-native-naver-map`
 - 맥락/문제: 홈 지도(한국 매장 앱). 후보 = 네이버지도 / 카카오맵(`@react-native-kakao/map`, 이미 카카오 SDK 사용 중) / 구글(`react-native-maps`).
 - 결정: **`@mj-studio/react-native-naver-map` v2.9.0** 채택.

@@ -5,7 +5,11 @@ import type { ShopCardView } from '../shopToView';
 
 export type HomeMapRef = { moveTo: (lat: number, lng: number) => void };
 
-type Props = { shops: ShopCardView[]; onMarkerPress: (id: string) => void };
+type Props = {
+  shops: ShopCardView[];
+  onMarkerPress: (id: string) => void;
+  onMapPress?: () => void;
+};
 
 // web/Expo Go: 네이버 지도는 네이티브 전용이라 회색 placeholder. (실제 지도는 dev build)
 export const HomeMap = forwardRef<HomeMapRef, Props>((_props, ref) => {

@@ -85,7 +85,10 @@
 3. **누락 마이그레이션 적용** — 도커는 `db/init.sql`만 실행하므로 후속 마이그레이션을 직접:
    `docker compose exec -T db psql -U syak -d syak_dev < db/migration_v2.sql`
 4. 확인: `curl http://localhost:3000/api/v1/notifications` → 401 JSON이면 서버 정상. `curl "http://localhost:3000/api/v1/shops?limit=1"` → items 1건이면 샵 API OK.
-> 2·3은 **로컬 테스트용 우회**다. 근본 해결(도커 초기화가 마이그레이션·REDIS_URL까지)은 백엔드(syakBE) 몫.
+5. **실제 매장 데이터 시드** — 매장 원본은 Supabase(4만+개)인데 **DB 직결(5432)은 IPv6 전용이라 로컬 불가**. 대신 **REST API(HTTPS)는 됨** → 백엔드 제공 `scripts/fetch-seed-data.js`(Supabase REST → 실제 매장 30개+슬롯 → `db/seed-shops.sql`) 실행 후 4번처럼 psql로 적용.
+   - ⚠️ 원 스크립트의 `order=today_open.desc,review_count.desc`는 Supabase statement timeout(4만행 정렬) → 쿼리를 `today_open=is.true&order=review_count.desc`로 바꾼 사본으로 실행(같은 의도, 필터 먼저라 빠름).
+   - 도커 down→up으로 DB가 초기화되면 시드·마이그레이션 재적용 필요.
+> 2·3·5는 **로컬 테스트용 우회**다. 근본 해결(도커 초기화가 마이그레이션·REDIS_URL·시드까지)은 백엔드(syakBE) 몫.
 
 ---
 

@@ -21,11 +21,15 @@ const SEOUL = { latitude: 37.5665, longitude: 126.978, zoom: 12 };
 
 export type HomeMapRef = { moveTo: (lat: number, lng: number) => void };
 
-type Props = { shops: ShopCardView[]; onMarkerPress: (id: string) => void };
+type Props = {
+  shops: ShopCardView[];
+  onMarkerPress: (id: string) => void;
+  onMapPress?: () => void; // 핀 없는 빈 곳 탭 (미리보기 해제)
+};
 
 // 네이버 지도 + 샵 좌표 핀. 네이티브 전용(web/Expo Go는 HomeMap.web.tsx placeholder).
 // 키(EXPO_PUBLIC_NAVER_MAP_CLIENT_ID) 미발급 dev build에서도 안전하게 placeholder로 폴백.
-export const HomeMap = forwardRef<HomeMapRef, Props>(({ shops, onMarkerPress }, ref) => {
+export const HomeMap = forwardRef<HomeMapRef, Props>(({ shops, onMarkerPress, onMapPress }, ref) => {
   const mapRef = useRef<NaverMapViewRef>(null);
 
   useImperativeHandle(ref, () => ({
@@ -37,7 +41,12 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(({ shops, onMarkerPress }, 
   }
 
   return (
-    <NaverMapView ref={mapRef} style={StyleSheet.absoluteFill} initialCamera={SEOUL}>
+    <NaverMapView
+      ref={mapRef}
+      style={StyleSheet.absoluteFill}
+      initialCamera={SEOUL}
+      onTapMap={onMapPress}
+    >
       {shops
         .filter((s) => s.lat != null && s.lng != null)
         .map((s) => (

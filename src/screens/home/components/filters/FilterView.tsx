@@ -1,5 +1,6 @@
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors } from '@/shared/theme/colors';
 import { type FilterKey } from '../../useHomeFilterStore';
@@ -19,6 +20,7 @@ const TITLE: Record<FilterKey, string> = {
 
 // 바텀시트 안에서 필터 화면을 렌더 (목록 대신). 핸들은 시트가 제공.
 export function FilterView({ filterKey, onClose }: { filterKey: FilterKey; onClose: () => void }) {
+  const insets = useSafeAreaInsets(); // 닫기 버튼이 하단 내비 바에 가리지 않게
   return (
     <View className="flex-1">
       {/* 제목 + divider */}
@@ -41,7 +43,7 @@ export function FilterView({ filterKey, onClose }: { filterKey: FilterKey; onClo
       </BottomSheetScrollView>
 
       {/* 닫기 */}
-      <View className="px-5 pb-3 pt-2">
+      <View className="px-5 pt-2" style={{ paddingBottom: 12 + insets.bottom }}>
         <Pressable
           onPress={onClose}
           className="h-11 items-center justify-center rounded-sm border"

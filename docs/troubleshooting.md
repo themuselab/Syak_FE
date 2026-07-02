@@ -15,6 +15,13 @@
 
 ---
 
+## 2026-07-02 · 필터 바텀시트 닫기 버튼이 실기기에서 클릭 안 됨
+- 증상: 갤럭시탭에서 정렬/지역 등 필터를 열면 닫기 버튼이 화면 맨 아래 붙어 **안드로이드 하단 내비게이션(제스처) 바와 겹쳐** 탭이 안 먹힘. web에선 정상이라 늦게 발견.
+- 원인: `FilterView` 닫기 버튼 하단 여백이 `pb-3`(12px) 고정 — **safe area bottom inset 미반영**(CLAUDE.md §8 위반). 목록 `BottomSheetFlatList`의 마지막 카드도 동일 문제.
+- 해결: `useSafeAreaInsets().bottom`을 닫기 버튼 `paddingBottom`(12+inset)과 목록 `contentContainerStyle.paddingBottom`(inset+12)에 더함.
+- 관련: `src/screens/home/components/filters/FilterView.tsx`, `ShopBottomSheet.tsx`
+- 교훈: 시트/화면 최하단 터치 요소는 항상 insets.bottom을 더한다. web은 inset이 0이라 이 버그가 안 보인다 — 하단 UI는 실기기에서 확인.
+
 ## 2026-06-30 · 로컬 백엔드 Redis 연결 실패로 일부 샵 필터가 HTTP 000
 - 증상: `GET /shops?has_slot=true`, 일부 필터 요청이 응답 없음(curl `HTTP 000`). 도커 app 로그에 `ECONNREFUSED ::1:6379 / 127.0.0.1:6379`. 기본 목록·`has_event` 등 캐시 미경유 요청은 200.
 - 원인: app 컨테이너의 `REDIS_URL`이 `localhost:6379` → 도커 내부에서 자기 자신을 봐 연결 실패. (`composition-root.ts`는 `REDIS_URL` 있으면 RedisCacheService 사용, 캐시 경로 필터가 거기서 멈춤.)

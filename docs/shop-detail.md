@@ -1,6 +1,7 @@
 # 샵 상세페이지 (shop-detail)
 
-홈 지도뷰 매장 목록에서 카드를 탭하면 진입하는 매장 상세 화면. **Phase 1: UI/UX + mock 데이터** (백엔드는 Phase 3).
+홈 지도뷰 매장 목록에서 카드를 탭하면 진입하는 매장 상세 화면.
+**상태: 백엔드 연동 완료** — `GET /shops/:id`(상세) + `GET /slots/shop/:id`(빈자리 3일치). 단 메뉴·리뷰 목록·도로명주소·다중 사진은 **백엔드 미노출(§백엔드 갭)** → 빈 상태/축소 표시, 백엔드 노출 시 자동 반영 구조.
 
 ## 디자인 출처
 - 캡처: `designs/상세페이지/샵 상세 (수정).png`
@@ -29,24 +30,51 @@
 - 탭 press → `scrollTo(offset - 탭바높이)` (홈은 0). 스크롤 시 `onScroll`에서 현재 위치로 활성 탭 자동 갱신.
 - 탭바는 `stickyHeaderIndices={[1]}`로 상단 고정. 고정 시 흰 배경, 활성 탭 밑줄(`#d23e6a`)·핑크 텍스트(`#b32f58`).
 
+## 데이터 흐름 (백엔드 연동)
+```
+useShop(shopId)        GET /shops/:id        — 상세(이름·카테고리·리뷰수·배지·사진·전화·bookingUrl)
+useShopSlots(shopId)   GET /slots/shop/:id   — 빈자리 슬롯 (dates 생략 = 오늘부터 3일치, flat)
+        ↓
+toShopDetailView(shop, slots)   ★ 뷰모델 어댑터 (shopDetailToView.ts)
+  - category = categories.join(', ') / badges = eventDesc+priceTier (홈과 동일 규칙)
+  - availability = 오늘 기준 3일 고정 × 오전(<12)/오후(12~18)/저녁(≥18) 그룹핑, 빈 구간 '마감되었습니다'
+  - info = 주소(region+district) · 오늘 예약(오늘 슬롯 유무) · 전화
+  - menus/reviews = [] (백엔드 미노출 → 섹션 빈 상태 문구)
+        ↓ 각 섹션 컴포넌트
+예약바: 전화 tel: / 네이버 예약 = bookingUrl 열기(없으면 비활성) + POST /shops/:id/reservation-click(애널리틱스, fire-and-forget)
+```
+
 ## 파일 구조
 ```
 src/screens/shop-detail/
-  ShopDetailScreen.tsx        조립 + 스크롤스파이/스티키 로직
-  mockShopDetail.ts           ShopDetail 타입 + MOCK_SHOP_DETAIL + getShopDetail(id)
+  ShopDetailScreen.tsx        조립 + useShop/useShopSlots + 로딩/에러 + 스크롤스파이/스티키
+  shopDetailToView.ts         ★ 뷰모델 타입 + toShopDetailView 어댑터 (슬롯 3일 그룹핑)
   components/
-    DetailHeader.tsx          뒤로가기 + 즐겨찾기 별
+    DetailHeader.tsx          뒤로가기 + 즐겨찾기 별 (로컬 토글 — API는 로그인 연동 후)
     ShopTitleBlock.tsx        이름·분류·리뷰수 + 배지
     Badge.tsx                 배지/태그 칩 (bg·color·fontSize props)
-    ImageCarousel.tsx         가로 스크롤 placeholder 이미지
+    ImageCarousel.tsx         실이미지(expo-image) 캐러셀, 없으면 placeholder
     SectionTabs.tsx           탭바 (TabKey, TABS export)
     AvailabilitySection.tsx   날짜칩 선택 + 시간대 슬롯
-    MenuSection.tsx           메뉴명 … 리더선 … 가격
+    MenuSection.tsx           메뉴명 … 리더선 … 가격 (빈 상태: '메뉴 정보를 준비 중이에요')
     InfoSection.tsx           라벨/값 행
-    ReviewSection.tsx         리뷰 본문 + 키워드 태그 + 날짜
-    ReservationBar.tsx        전화로 예약(tel) / 네이버 예약
+    ReviewSection.tsx         리뷰 본문 + 태그 + 날짜 (빈 상태: '리뷰를 준비 중이에요')
+    ReservationBar.tsx        전화로 예약(tel) / 네이버 예약(bookingUrl, 없으면 비활성)
+src/shared/domain/reservation/
+  reservation.types.ts        ShopSlot { shopId, date, startTime }
+  reservation.api.ts          getShopSlots(id) · postReservationClick(id)
+  reservation.queries.ts      useShopSlots(id)
 ```
-수정: `src/screens/home/components/ShopBottomSheet.tsx` — 매장 카드 `onPress`로 상세 이동 연결.
+
+## ⚠️ 백엔드 갭 (디자인엔 있는데 상세 API가 안 줌 — 원본 Supabase detail JSONB엔 전부 있음, 노출 요청)
+| # | 디자인 요구 | 백엔드 현재 | 원본 위치 | FE 임시 처리 |
+|---|---|---|---|---|
+| 1 | 메뉴·가격 목록 | 없음 | `detail.menus` ({name, price, recommend}) | 빈 상태 문구 |
+| 2 | 리뷰 본문 목록(본문·태그·날짜) | `reviewCount` 숫자만 (리뷰 API 미구현) | `detail.reviews` ({body, images…}) | 빈 상태 문구 |
+| 3 | 도로명 주소("망우로6길 8 1층") | `district`(구까지) | `detail.roadAddress` | region+district 표시 |
+| 4 | 사진 캐러셀 여러 장 | `photos` = 대표 1장 | `detail.images` (4장) | 1장 표시 |
+| 5 | 슬롯 "1자리 남았어요" 잔여수 | 슬롯에 잔여수 없음 | 원본에도 없음 | 미표시 |
+> 1~4는 백엔드가 상세 응답에 노출만 하면 FE 어댑터에 매핑 추가로 즉시 반영.
 
 ## 주요 디자인 값 (디자인 HEX 그대로)
 - 배지 — 첫방문 특가: bg `#fff1f6` / text `#b32f58`, 2만원대: bg `#f1f1f1` / text `#7a7a7a` (13/SemiBold, r4).
@@ -58,18 +86,17 @@ src/screens/shop-detail/
 - 예약바 — 전화로 예약: 흰 배경 border `#e6e6e6`/text `#7d7d7d`. 네이버 예약: bg `#00de5a`/text 흰색 + ↗. (r8, 16/SemiBold)
 - 폰트: 전부 Pretendard. SemiBold=`font-pretendard-semibold`, Medium=`font-pretendard-medium`, Regular=`font-pretendard`.
 
-## 임시 동작 / Phase 1 한계
-- **데이터**: `getShopDetail(id)`는 id 무관하게 단일 mock 반환. Phase 3에서 `shops` 도메인 API로 교체하고 `ShopDetail` 타입을 `src/shared/domain/shops`로 이동.
-- **이미지**: 회색 placeholder(126×152). 실제 이미지 없음.
-- **빈자리**: 날짜칩 전환은 mock 데이터 기반(오늘은 디자인과 1:1, 내일/모레는 임시 슬롯). 슬롯 탭 예약 플로우 미구현.
-- **예약 버튼**: 전화로 예약 → `Linking` `tel:` 연결. 네이버 예약 → 예약 URL 미정이라 동작 없음(추후 연결).
-- **헤더 즐겨찾기 별**: pen 헤더엔 없으나 캡처 기준으로 추가(사용자 확정). 토글은 로컬 상태(백엔드 즐겨찾기 연동 대기).
+## 임시 동작 / 참고
+- **'오늘 예약 가능해요' 문구**: 디자인엔 마감 상태 문구('오늘은 예약 마감이에요')만 있어 가능 상태는 대칭 문구로 채움 — 디자인 확정 시 교체.
+- **네이버 예약 라벨**: `bookingUrl`이 네이버가 아닐 수도 있음(인스타 등) — 사용자 확정으로 라벨 유지 + URL 열기. 없으면 비활성.
+- **헤더 즐겨찾기 별**: 로컬 토글(즐겨찾기 API는 로그인 연동 후 일괄).
+- 예약 생성 API 없음 — 예약 확정은 외부 링크(`bookingUrl`) 정책(백엔드 docs 명시).
 
 ## 남은 작업
-- 백엔드 연동: 샵 상세 조회 / 빈자리 슬롯 / 즐겨찾기 / 리뷰 페이지네이션.
-- 네이버 예약 링크 연결, 슬롯 선택 → 예약 플로우.
-- 실제 이미지 캐러셀, iOS 빌드 확인.
+- **백엔드 갭(§위)** 노출 시: menus/reviews/roadAddress/images 어댑터 매핑 추가.
+- 즐겨찾기 API 연동(로그인 후), 슬롯 탭 → 예약 플로우(정책 확정 후), iOS 빌드 확인.
 
 ## 검증
-- `npx tsc --noEmit` 통과.
-- `npx expo start --web` → 홈 목록 카드 탭 또는 `/shop/1` 직접 진입 → 디자인 캡처와 1:1 대조. 탭 스크롤스파이·날짜칩 전환·별 토글·전화 버튼 확인.
+- `npm run typecheck` / `npm run lint` 통과.
+- web + 로컬 BE(실매장 시드): `/shop/1042079600` — 실데이터 헤더(고담맨즈헤어·헤어·리뷰 34140·1만원대)·실사진·빈자리 3일 실슬롯 그룹핑(오전/오후/저녁)·정보(주소·오늘 예약·전화)·메뉴/리뷰 빈 상태 문구·스크롤스파이 확인 완료.
+- 실기기: fast refresh(재빌드 불필요)로 전화 tel:·네이버 예약 URL 열기 확인.

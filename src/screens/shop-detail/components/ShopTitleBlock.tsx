@@ -1,10 +1,10 @@
 import { Text, View } from 'react-native';
 
-import type { ShopDetail } from '../mockShopDetail';
+import type { ShopDetailView } from '../shopDetailToView';
 import { Badge } from './Badge';
 
 type Props = {
-  shop: Pick<ShopDetail, 'name' | 'category' | 'reviewCount' | 'badges'>;
+  shop: Pick<ShopDetailView, 'name' | 'category' | 'reviewCount' | 'badges'>;
 };
 
 // 이름 + 분류 + 리뷰수 / 배지. 좌측 정렬.

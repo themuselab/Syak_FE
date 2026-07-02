@@ -3,12 +3,21 @@ import { Linking, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = {
-  phone: string;
+  phone: string | null;
+  bookingUrl: string | null;
+  onReserveClick?: () => void; // 예약 버튼 클릭 애널리틱스 (fire-and-forget)
 };
 
-// 고정 하단 예약 바: 전화로 예약(tel 연결) / 네이버 예약(URL 미정 — Phase 1 동작 없음).
-export function ReservationBar({ phone }: Props) {
+// 고정 하단 예약 바: 전화로 예약(tel:) / 네이버 예약(bookingUrl 열기). 값 없으면 해당 버튼 비활성.
+export function ReservationBar({ phone, bookingUrl, onReserveClick }: Props) {
   const insets = useSafeAreaInsets();
+
+  const openBooking = () => {
+    if (!bookingUrl) return;
+    onReserveClick?.();
+    Linking.openURL(bookingUrl).catch(() => {});
+  };
+
   return (
     <View
       className="absolute bottom-0 left-0 right-0 bg-white"
@@ -24,9 +33,16 @@ export function ReservationBar({ phone }: Props) {
     >
       <View className="flex-row gap-2">
         <Pressable
-          onPress={() => Linking.openURL(`tel:${phone}`)}
+          onPress={() => phone && Linking.openURL(`tel:${phone}`).catch(() => {})}
+          disabled={!phone}
           className="items-center justify-center rounded-sm"
-          style={{ flex: 102, borderWidth: 1, borderColor: '#e6e6e6', paddingVertical: 12 }}
+          style={{
+            flex: 102,
+            borderWidth: 1,
+            borderColor: '#e6e6e6',
+            paddingVertical: 12,
+            opacity: phone ? 1 : 0.4,
+          }}
         >
           <Text
             className="font-pretendard-semibold text-[16px]"
@@ -37,8 +53,16 @@ export function ReservationBar({ phone }: Props) {
         </Pressable>
 
         <Pressable
+          onPress={openBooking}
+          disabled={!bookingUrl}
           className="flex-row items-center justify-center rounded-sm"
-          style={{ flex: 225, backgroundColor: '#00de5a', paddingVertical: 12, gap: 9 }}
+          style={{
+            flex: 225,
+            backgroundColor: '#00de5a',
+            paddingVertical: 12,
+            gap: 9,
+            opacity: bookingUrl ? 1 : 0.4,
+          }}
         >
           <Text
             className="font-pretendard-semibold text-[16px]"

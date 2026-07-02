@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 
-import type { InfoRow } from '../mockShopDetail';
+import type { InfoRow } from '../shopDetailToView';
 
 type Props = {
   info: InfoRow[];

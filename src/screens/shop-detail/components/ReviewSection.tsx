@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 
-import type { ReviewItem } from '../mockShopDetail';
+import type { ReviewItem } from '../shopDetailToView';
 import { Badge } from './Badge';
 
 type Props = {
@@ -8,7 +8,7 @@ type Props = {
   reviews: ReviewItem[];
 };
 
-// 리뷰 섹션: 본문 + 키워드 태그 + 날짜. 항목별 하단 구분선.
+// 리뷰 섹션: 본문 + 키워드 태그 + 날짜. 항목별 하단 구분선. 목록 없으면 빈 상태 문구(백엔드 노출 대기).
 export function ReviewSection({ reviewCount, reviews }: Props) {
   return (
     <View className="gap-4">
@@ -18,6 +18,11 @@ export function ReviewSection({ reviewCount, reviews }: Props) {
       >
         리뷰 {reviewCount}
       </Text>
+      {reviews.length === 0 && (
+        <Text className="font-pretendard text-[14px]" style={{ color: '#adb5bd' }}>
+          리뷰를 준비 중이에요
+        </Text>
+      )}
       <View>
         {reviews.map((review, i) => (
           <View

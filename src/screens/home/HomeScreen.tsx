@@ -1,7 +1,6 @@
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,14 +16,16 @@ import { filtersToParams } from './filtersToParams';
 import { toShopCardView } from './shopToView';
 import { useHomeFilterStore } from './useHomeFilterStore';
 
-// 홈(지도뷰). 지도는 placeholder(Phase B에서 네이버지도). 데이터는 GET /shops(비회원 가능).
+// 홈(지도뷰). 네이버 지도 + GET /shops(비회원 가능).
 // 서버 필터는 filtersToParams로, 이름검색·price_desc는 받은 목록에 클라 후처리. 즐겨찾기는 1차 로컬.
+// 핀 탭 → 바텀시트에 그 매장 미리보기(카드 1개), 지도 빈 곳 탭 → 해제.
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const mapRef = useRef<HomeMapRef>(null);
 
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set());
+  const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
 
   const sort = useHomeFilterStore((s) => s.sort);
   const regions = useHomeFilterStore((s) => s.regions);
@@ -52,6 +53,12 @@ export function HomeScreen() {
     return items.map((it) => toShopCardView(it, favoriteIds));
   }, [data, search, sort, favoriteIds]);
 
+  // 핀 탭으로 선택된 매장. 필터 변경으로 목록에서 빠지면 자동 해제(null).
+  const selectedShop = useMemo(
+    () => shops.find((s) => s.id === selectedShopId) ?? null,
+    [shops, selectedShopId],
+  );
+
   const toggleFavorite = (id: string) =>
     setFavoriteIds((prev) => {
       const next = new Set(prev);
@@ -78,7 +85,8 @@ export function HomeScreen() {
         <HomeMap
           ref={mapRef}
           shops={shops}
-          onMarkerPress={(id) => router.push(`/shop/${id}`)}
+          onMarkerPress={setSelectedShopId}
+          onMapPress={() => setSelectedShopId(null)}
         />
 
         {/* 상단 핑크 그라데이션 */}
@@ -102,6 +110,7 @@ export function HomeScreen() {
 
         <ShopBottomSheet
           shops={shops}
+          selectedShop={selectedShop}
           isLoading={isLoading}
           isError={isError}
           onRetry={() => refetch()}

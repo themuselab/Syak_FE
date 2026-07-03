@@ -43,9 +43,11 @@ export function ReviewSection({ reviewCount, reviews }: Props) {
                 ))}
               </View>
             </View>
-            <Text className="text-right font-pretendard text-[12px]" style={{ color: '#5b5b5b' }}>
-              {review.date}
-            </Text>
+            {review.date != null && (
+              <Text className="text-right font-pretendard text-[12px]" style={{ color: '#5b5b5b' }}>
+                {review.date}
+              </Text>
+            )}
           </View>
         ))}
       </View>

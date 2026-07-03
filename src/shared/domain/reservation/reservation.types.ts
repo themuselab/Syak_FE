@@ -11,3 +11,23 @@ export type ShopSlot = {
 export type ShopSlotsResponse = {
   slots: ShopSlot[];
 };
+
+// GET /slots/search 파라미터 (dates·times 필수 — 비면 서버 validation 에러).
+export type SlotSearchParams = {
+  dates: string[]; // 'YYYY-MM-DD'
+  times: string[]; // 'HH:MM'
+  districts?: string[];
+};
+
+// GET /slots/search 응답의 샵 한 건.
+export type ShopWithSlots = {
+  shopId: string;
+  shopName: string;
+  district: string | null;
+  availableSlots: { date: string; time: string }[];
+};
+
+export type SlotSearchResponse = {
+  shops: ShopWithSlots[];
+  count: number;
+};

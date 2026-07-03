@@ -7,7 +7,7 @@ export type MarkerKind = 'partner' | 'discount' | 'reservable';
 export type ShopCardView = {
   id: string;
   name: string;
-  reviewCount: number | null; // 목록 응답 미제공 → null(카드에서 숨김)
+  reviewCount: number | null; // null이면 카드에서 숨김
   address: string;
   badges: string[];
   markerKind: MarkerKind;
@@ -31,7 +31,7 @@ export function toShopCardView(item: ShopListItem, favoriteIds: Set<string>): Sh
   return {
     id: item.id,
     name: item.name,
-    reviewCount: null,
+    reviewCount: item.reviewCount,
     address: [item.region, item.district].filter(Boolean).join(' '),
     badges,
     markerKind,

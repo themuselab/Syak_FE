@@ -32,7 +32,7 @@ src/shared/domain/shops/
 - 마커 핀 PNG: `assets/icons/pin-{partner,discount,reservable}.png`. `shopToView.markerKind`(isPartner→partner / eventDesc→discount / else reservable)와 직결.
 
 ## 3. 데이터/필터 로직
-- **목록**: `useShops(params)` — `params`는 `filtersToParams(store)`. 1차 `limit:100` 단일 조회(bounds 미지원·서울 단일 → 무한스크롤 추후).
+- **목록**: `useShops(params)` — `params`는 `filtersToParams(store)`. **무한스크롤**: `useInfiniteQuery`(`limit:20`, `getNextPageParam`은 서버 응답 `total/page/limit`로 계산) + 리스트 `onEndReached`(threshold 0.5)로 다음 페이지 누적, footer 스피너. 지도 핀도 로드된 페이지까지의 샵만 표시. params(page 제외)가 queryKey라 필터 변경 시 1페이지부터 리셋. 페이지 flat 후 id 중복 제거(offset 페이지네이션 중복 대비). **예외**: 시간 필터 활성 시 `/slots/search` 교집합이 페이지 단위로 잘리지 않게 `limit:100` 단일 조회(무한스크롤 비활성 — 100개 초과 결과 미표시는 기존과 동일 한계).
 - **필터 store → 백엔드 파라미터 매핑** (`filtersToParams.ts`):
 
 | store | → GET /shops |
@@ -67,7 +67,7 @@ src/shared/domain/shops/
 ## 5. 남은 작업
 - **네이버 지도 마무리**: 코드 완료. **NCP 키 발급**(console.ncloud.com Maps) → `.env`/EAS env `EXPO_PUBLIC_NAVER_MAP_CLIENT_ID` → **EAS 재빌드**(네이버·애플 로그인과 함께) → 실기기 검증. 절차 [dev-build.md](./dev-build.md) C-3.
 - **슬롯 API 백엔드 수정(§4-1) 후**: 상세 빈자리·예약시간 필터 실동작 재검증(FE 코드는 완료).
-- 무한스크롤(`total>limit` — 실데이터 4만 개라 limit 100 체감됨), favorite API 연동(로그인 후), 마커 클러스터링(핀 많아지면).
+- favorite API 연동(로그인 후), 마커 클러스터링(핀 많아지면).
 
 ## 6. 검증
 - `npm run typecheck`/`lint` 통과.

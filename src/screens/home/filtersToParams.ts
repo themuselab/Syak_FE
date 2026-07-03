@@ -38,7 +38,7 @@ export function filtersToParams(s: FilterSnapshot): ShopListParams {
     (CATEGORY_WHITELIST as string[]).includes(f),
   );
 
-  const params: ShopListParams = { page: 1, limit: 100 };
+  const params: ShopListParams = {}; // page/limit은 useShops(useInfiniteQuery)와 api 기본값이 관리
   const q = s.search.trim();
   if (q) params.q = q;
   if (s.sort !== 'default') params.sort = s.sort;

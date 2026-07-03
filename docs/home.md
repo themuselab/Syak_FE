@@ -39,7 +39,7 @@ src/shared/domain/shops/
 |---|---|
 | `search`(300ms 디바운스) | `q` (서버 ilike) |
 | `sort` price_asc/price_desc/partner | `sort` (default만 생략) |
-| `regions[]` | `districts` |
+| `regions[]` (실데이터 gu 원값 — `@/shared/lib/region.ts` 스냅샷 89개, '경상' 탭 포함) | `districts` |
 | `price` '1'/'2'/'3' | `price_tiers=['N만원대']` |
 | `toggles.discount` | `has_event=true` |
 | `toggles.sameDay` \|\| `toggles.available` | `has_slot=true` (백엔드에 둘 구분 없음) |
@@ -49,7 +49,7 @@ src/shared/domain/shops/
 
 - **예약시간(날짜+시간) 필터**: `times` 선택 시 `toSlotSearchParams` → `GET /slots/search?dates=&times=&districts=`(다중 시간 지원)로 가능 샵 ID를 받아 **목록과 클라 교집합**(HomeScreen). 시간 미선택(날짜만)은 `slot_date` 서버 필터로 충분해 호출 안 함. slots/search 로딩·에러는 목록 로딩·에러 상태에 합류(재시도 시 둘 다 refetch).
 
-- **뷰모델 변환**(`shopToView.ts`): 주소=`region+district`, badges=`eventDesc`+`priceTier`, markerKind=`isPartner→partner / eventDesc→event / else default`, favorite=로컬 `favoriteIds`.
+- **뷰모델 변환**(`shopToView.ts`): 주소=`formatDistrict(district)`(region은 백엔드 "서울" 고정 버그로 미사용 — 서울 구만 "서울 " 접두), badges=`eventDesc`+`priceTier`, markerKind=`isPartner→partner / eventDesc→event / else default`, favorite=로컬 `favoriteIds`.
 - **즐겨찾기**: 1차 **로컬 토글**(HomeScreen `favoriteIds` Set). `/favorites`는 인증 필요 + 홈은 비회원 접근이라, 실연동은 로그인 dev build 이후. 비회원 별 탭 시 1차는 로컬만(추후 `비회원로그인 알림` 모달).
 
 ## 4. ⚠️ 백엔드 갭 (2026-07-03 실시간 전환 후 재검증 — 대부분 해소)
@@ -60,7 +60,9 @@ src/shared/domain/shops/
 | 1 | **슬롯 API 2종 500 에러(버그)** | `GET /slots/shop/:id`·`GET /slots/search` 모두 `column slots.date does not exist`(42703) — 코드가 `date` 컬럼 조회, 실 Supabase는 `slot_date`. 운영 서버도 동일 | 상세 빈자리=빈 상태, 시간 필터=에러 상태(수정 시 자동 동작) |
 | 2 | **세부 시술 필터** | 없음 | 보류(UI 유지) |
 | 3 | `priceTier` 타입 표기 불일치 | BE 타입 `'4만원대+'` vs 실데이터 `'4만원이상'` | FE는 실데이터 기준 |
-| 4 | (선택) 목록 `isFavorite` / 주소 동(dong) / sameDay·available 구분 | 없음 | 로컬 favorite / 구까지 / 둘 다 has_slot |
+| 4 | `region` 항상 "서울" 하드코딩 | `PgShopRepository.ts:119` — 전국 데이터인데 고정 | region 미사용, `formatDistrict(district)` 표기(수정 요청함) |
+| 5 | 위치 기반 조회(lat/lng/radius) 없음 | 파라미터 없음 — "내 주변"·지도 핀에 필요 | 요청함(데이터에 좌표는 있음) |
+| 6 | (선택) 목록 `isFavorite` / 주소 동(dong) / sameDay·available 구분 | 없음 | 로컬 favorite / 구까지 / 둘 다 has_slot |
 
 ## 5. 남은 작업
 - **네이버 지도 마무리**: 코드 완료. **NCP 키 발급**(console.ncloud.com Maps) → `.env`/EAS env `EXPO_PUBLIC_NAVER_MAP_CLIENT_ID` → **EAS 재빌드**(네이버·애플 로그인과 함께) → 실기기 검증. 절차 [dev-build.md](./dev-build.md) C-3.

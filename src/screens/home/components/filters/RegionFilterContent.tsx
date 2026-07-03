@@ -2,21 +2,13 @@ import { X } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { REGION_GROUPS } from '@/shared/lib/region';
 import { colors } from '@/shared/theme/colors';
 import { useHomeFilterStore } from '../../useHomeFilterStore';
 import { SelectChip } from './SelectChip';
 
-// Phase 1 mock 지역 데이터 (백엔드 단계에서 실제 행정구역으로 교체).
-const REGION_DATA: Record<string, string[]> = {
-  서울: ['강남구', '강동구', '송파구', '마포구', '종로구', '용산구', '성동구', '광진구', '서초구', '관악구'],
-  경기: ['수원시', '성남시', '용인시', '고양시', '부천시', '안양시'],
-  인천: ['중구', '남동구', '부평구', '연수구'],
-  부산: ['해운대구', '부산진구', '동래구', '수영구'],
-  대구: ['중구', '수성구', '달서구'],
-  광주: ['동구', '서구', '남구', '북구'],
-  전라: ['전주시', '군산시', '여수시', '순천시'],
-};
-const SIDO = Object.keys(REGION_DATA);
+// 지역 목록 = 실데이터 gu 고유값 스냅샷(@/shared/lib/region). 칩은 label 표시, 서버엔 value(원값) 전송.
+const SIDO = REGION_GROUPS.map((g) => g.sido);
 
 export function RegionFilterContent() {
   const regions = useHomeFilterStore((s) => s.regions);
@@ -43,9 +35,14 @@ export function RegionFilterContent() {
           ))}
         </View>
         <View className="flex-1 flex-row flex-wrap content-start gap-[5px] py-2.5">
-          {REGION_DATA[sido].map((d) => (
+          {REGION_GROUPS.find((g) => g.sido === sido)!.items.map((d) => (
             // 그리드 칩은 선택 표시 안 함(디자인). 선택은 아래 칩으로 노출.
-            <SelectChip key={d} label={d} selected={false} onPress={() => toggleRegion(d)} />
+            <SelectChip
+              key={d.value}
+              label={d.label}
+              selected={false}
+              onPress={() => toggleRegion(d.value)}
+            />
           ))}
         </View>
       </View>

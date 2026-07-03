@@ -12,27 +12,40 @@ const TRACK_H = 8;
 type Props = {
   value: number;
   onChange: (next: number) => void;
+  // 드래그 종료(손 뗌) 시 마지막 값으로 1회 호출 — 서버 저장용 (드래그 중 매번 PATCH 방지).
+  onRelease?: (next: number) => void;
 };
 
-export function RadiusSlider({ value, onChange }: Props) {
+export function RadiusSlider({ value, onChange, onRelease }: Props) {
   const [trackW, setTrackW] = useState(0);
   const widthRef = useRef(0);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const onReleaseRef = useRef(onRelease);
+  onReleaseRef.current = onRelease;
+  const lastValueRef = useRef(value);
 
   const valueFromX = (x: number) => {
     const w = widthRef.current;
-    if (w <= 0) return value;
+    if (w <= 0) return lastValueRef.current;
     const ratio = Math.min(1, Math.max(0, x / w));
     return Math.round(MIN + ratio * (MAX - MIN));
+  };
+
+  const handleDrag = (x: number) => {
+    const next = valueFromX(x);
+    lastValueRef.current = next;
+    onChangeRef.current(next);
   };
 
   const pan = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (e) => onChangeRef.current(valueFromX(e.nativeEvent.locationX)),
-      onPanResponderMove: (e) => onChangeRef.current(valueFromX(e.nativeEvent.locationX)),
+      onPanResponderGrant: (e) => handleDrag(e.nativeEvent.locationX),
+      onPanResponderMove: (e) => handleDrag(e.nativeEvent.locationX),
+      onPanResponderRelease: () => onReleaseRef.current?.(lastValueRef.current),
+      onPanResponderTerminate: () => onReleaseRef.current?.(lastValueRef.current),
     }),
   ).current;
 

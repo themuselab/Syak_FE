@@ -13,6 +13,20 @@
 
 ---
 
+## 2026-07-03 · 결정: 알림 연동 범위 = 목록+설정만, FCM 푸시 셋업은 백엔드 수정 후로 연기
+- 맥락/문제: 알림 기능 연동 시점에 백엔드 FCM이 Google이 2024-06 종료한 레거시 API(`fcm/send`)로 짜여 있어 푸시 발송 자체가 불가(syakBE 수정은 우리 범위 밖). 앱에도 푸시 인프라(expo-notifications·Firebase 설정) 전무.
+- 결정: 이번엔 GET /notifications 목록 + GET/PATCH settings 연동까지만. 앱 푸시 셋업(expo-notifications + google-services + EAS 재빌드)은 **백엔드 FCM v1 마이그레이션 일정이 잡히면 애플 로그인 어댑터 재빌드와 묶어** 진행. 읽음 처리는 BE API 미노출이라 미읽음 뱃지 표시만.
+- 이유: 지금 셋업해도 "권한 팝업+토큰 등록"까지만 확인 가능한 반쪽 검증. 백엔드와 발맞춰 한 번에 끝까지 검증 + EAS 빌드 횟수(월 15회) 절약.
+- 대안(버림): 푸시 인프라 선셋업(반쪽 검증 상태로 방치), 클라 로컬 읽음 처리(기기 바꾸면 초기화 — BE API 대기가 나음).
+- 관련: [notification.md](./notification.md) §9, `src/shared/domain/notification/*`
+
+## 2026-07-03 · 결정: 설정 PATCH 캐시 갱신 = invalidate 대신 setQueryData 교체
+- 맥락/문제: 알림 설정 PATCH 후 화면 값 갱신 방법 — 코드베이스에 mutation+캐시 갱신 선례 없음. 낙관적 업데이트/롤백은 코드가 무거움.
+- 결정: PATCH 응답이 **변경된 전체 설정 객체**이므로 `onSuccess`에서 `setQueryData(['notifications','settings'], data)`로 캐시 직접 교체. 토글 값은 서버(캐시) 파생으로만 렌더.
+- 이유: 추가 GET 없이 정확한 최신 상태 반영. 실패 시 캐시가 안 바뀌므로 토글이 자동으로 원위치 — 롤백 코드 자체가 불필요.
+- 대안(버림): invalidateQueries(불필요한 재조회 1회), 낙관적 업데이트(onMutate/onError 롤백 코드 — 이 UX에선 과함).
+- 관련: `notification.queries.ts`, `MyScreen.tsx`
+
 ## 2026-07-03 · 결정: 지역 목록 = 실데이터 gu 고유값 스냅샷 하드코딩 (+'경상' 탭)
 - 맥락/문제: 지역 필터가 mock 행정구역을 보내 서울 외 지역이 전부 0건(실값 "인천 부평구" vs 전송 "부평구"). 백엔드에 지역 목록 API 없음. 저장 형식도 제각각(서울=구만, 광역시=`시 구`, 경기·지방=시/군만).
 - 결정: Supabase `shops.gu` 고유값 **89개 전수 스냅샷**(2026-07-03)을 `src/shared/lib/region.ts`에 하드코딩. 칩은 label(구/시), 서버엔 value(원값) 전송. 디자인 탭 7개에 **'경상' 탭 추가**(진주·창원·포항 ~2,200개 매장 — 사용자 확정). 주소 표기는 region("서울" 고정 버그) 대신 district 기반 `formatDistrict`(서울 구만 "서울 " 접두).

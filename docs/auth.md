@@ -1,7 +1,7 @@
 # 인증 (소셜 로그인 · 세션 · 로그아웃)
 
 > 상태: **카카오 로그인 실기기(dev build) 연동·검증 완료.** 세션 확인·로그아웃·토큰 갱신 동작.
-> **네이버는 어댑터 구현 완료**(키 발급·EAS 재빌드·실기기 검증 대기). **애플은 어댑터 stub.**
+> **네이버는 어댑터 구현 완료 + 키 발급·`.env` 주입 완료**(EAS 재빌드·실기기 검증 대기). **애플은 어댑터 stub.**
 > 백엔드 계약: `../syakBE/docs/01-auth.md`, `06-user.md`, `00-overview.md`.
 > dev build 셋업·재현 절차는 [dev-build.md](./dev-build.md), 라이브러리 선택은 [decisions.md](./decisions.md).
 
@@ -62,6 +62,7 @@ src/screens/my/MyScreen.tsx     # 로그아웃 useSignOut 연결, 회원 시 use
 
 ## 6. 남은 작업
 - **네이버 마무리**: 키 발급(네이버 개발자센터) → `.env`·EAS env 주입 → EAS 재빌드 → 콘솔 등록 → 실기기 검증. 코드는 완료. 절차 [dev-build.md](./dev-build.md) 네이버 섹션.
+  - ✅ **키 발급·`.env` 주입 완료(2026-07-03 확인)** — `EXPO_PUBLIC_NAVER_CONSUMER_KEY`/`_SECRET`/`_APP_NAME`/`_URL_SCHEME` 전부 `.env`에 존재. 남은 것: **EAS env 확인 → EAS 재빌드 → 콘솔 등록 → 실기기 검증**.
 - **애플 어댑터**: `expo-apple-authentication` 설치 → `socialAuth.ts` apple case 구현(`identityToken` 반환). 애플 버튼은 `Platform.OS === 'ios'`에서만 노출. 카카오·네이버와 동일 패턴.
 - 계정 연동(`POST /auth/link/:provider`) + 마이페이지 `linkedProviders` 표시.
 - 신규 가입 닉네임 입력 화면(디자인 확보 후), 회원 탈퇴(`DELETE /users/me`) 재확인 모달.

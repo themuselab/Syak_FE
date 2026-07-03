@@ -66,6 +66,7 @@ src/shared/domain/shops/
 
 ## 5. 남은 작업
 - **네이버 지도 마무리**: 코드 완료. **NCP 키 발급**(console.ncloud.com Maps) → `.env`/EAS env `EXPO_PUBLIC_NAVER_MAP_CLIENT_ID` → **EAS 재빌드**(네이버·애플 로그인과 함께) → 실기기 검증. 절차 [dev-build.md](./dev-build.md) C-3.
+  - ✅ **구현 완료(2026-07-03)** — NCP 키 발급·`.env` 주입·dev build 실기기 검증까지 전부 끝남(상단 상태 줄과 동일). 더 이상 남은 작업 아님.
 - **슬롯 API 백엔드 수정(§4-1) 후**: 상세 빈자리·예약시간 필터 실동작 재검증(FE 코드는 완료).
 - favorite API 연동(로그인 후), 마커 클러스터링(핀 많아지면).
 

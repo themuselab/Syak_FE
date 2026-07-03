@@ -1,5 +1,6 @@
 import type { ShopSlot } from '@/shared/domain/reservation/reservation.types';
 import type { ShopDetail } from '@/shared/domain/shops/shops.types';
+import { toDateKey } from '@/shared/lib/date';
 
 // 상세 화면 뷰모델. 백엔드 ShopDetail + 슬롯(3일치)을 각 섹션 컴포넌트가 쓰는 형태로 변환한다.
 // (디자인 문구·구조는 designs/상세페이지 캡처 및 design.pen(PA3vj) 기준 — 기존 mock 구조 계승)
@@ -34,7 +35,7 @@ export type InfoRow = {
 export type ReviewItem = {
   text: string;
   tags: string[];
-  date: string;
+  date?: string; // 작성일 — 백엔드 미제공(갭)이라 현재 항상 없음. 제공 시 표시.
 };
 
 export type ShopDetailView = {
@@ -47,9 +48,9 @@ export type ShopDetailView = {
   phone: string | null;
   bookingUrl: string | null;
   availability: DayAvailability[];
-  menus: MenuItem[]; // 백엔드 미제공(갭) → 빈 배열 = 섹션 빈 상태
+  menus: MenuItem[]; // 비어 있으면 섹션 빈 상태 문구
   info: InfoRow[];
-  reviews: ReviewItem[]; // 백엔드 미제공(갭) → 빈 배열 = 섹션 빈 상태
+  reviews: ReviewItem[]; // 비어 있으면 섹션 빈 상태 문구
 };
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -58,12 +59,6 @@ const DAY_META = [
   { key: 'tomorrow', prefix: '내일' },
   { key: 'day-after', prefix: '모레' },
 ];
-
-function toDateKey(d: Date): string {
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${m}-${day}`;
-}
 
 // 슬롯(flat)을 디자인 구조로: 오늘부터 3일 고정 × 오전/오후/저녁 구간. 빈 구간은 '마감되었습니다'.
 function buildAvailability(slots: ShopSlot[], now: Date): DayAvailability[] {
@@ -106,8 +101,11 @@ export function toShopDetailView(
   const hasTodaySlot = availability[0].periods.some((p) => p.slots.length > 0);
 
   const info: InfoRow[] = [
-    // 도로명 주소는 백엔드 미노출(갭) — 현재 region+district까지.
-    { label: '주소', value: [shop.region, shop.district].filter(Boolean).join(' ') },
+    // roadAddress는 시/구 포함 전체 주소로 옴 → 단독 사용, 없으면 region+district 폴백.
+    {
+      label: '주소',
+      value: shop.roadAddress ?? [shop.region, shop.district].filter(Boolean).join(' '),
+    },
     { label: '오늘 예약', value: hasTodaySlot ? '오늘 예약 가능해요' : '오늘은 예약 마감이에요' },
     ...(shop.phone ? [{ label: '전화', value: shop.phone }] : []),
   ];
@@ -122,8 +120,13 @@ export function toShopDetailView(
     phone: shop.phone,
     bookingUrl: shop.bookingUrl,
     availability,
-    menus: [], // 갭 #1: 백엔드가 detail.menus 노출하면 매핑 추가
+    // 가격 없는 메뉴는 이름만(리더선 유지). recommend는 디자인에 표시 요소가 없어 미사용.
+    menus: shop.menus.map((m) => ({
+      name: m.name,
+      price: m.price != null ? `${m.price.toLocaleString()}원` : '',
+    })),
     info,
-    reviews: [], // 갭 #2: 백엔드가 detail.reviews 노출하면 매핑 추가
+    // 작성일은 백엔드 미제공(갭) → date 없이 매핑(미표시). images/ownerReply도 디자인에 없어 미사용.
+    reviews: shop.reviews.map((r) => ({ text: r.body, tags: r.keywords })),
   };
 }

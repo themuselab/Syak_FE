@@ -15,6 +15,13 @@
 
 ---
 
+## 2026-07-03 · 모든 API가 일정하게 ~25초 (목록·상세·limit 무관)
+- 증상: 실시간 전환 후 홈 첫 로딩·상세 진입이 20~25초. limit 20으로 줄여도, 상세(단건)도 똑같이 ~25초 — 데이터 양과 무관하게 **상수 지연**.
+- 원인: **redis 컨테이너가 안 떠 있었음.** `docker compose up -d --build app`은 app(+depends_on인 db)만 올리고 redis는 시작 안 함 → 앱이 매 요청 캐시 조회에서 `getaddrinfo EAI_AGAIN redis`(DNS 실패)를 **긴 타임아웃까지 기다린 뒤** 폴백. 데이터 4만 개 탓이 아님.
+- 해결: `docker compose up -d redis` → 목록 0.7s(콜드)/0.01s(캐시), 상세 0.08s. 재기동은 서비스 지정 없이 **`docker compose up -d`(전체)** 를 기본으로.
+- 관련: syakBE `docker-compose.yml`(app depends_on: db만), [dev-build.md](./dev-build.md) D절
+- 교훈: "일정한 상수 지연"은 데이터 크기가 아니라 **타임아웃 대기**를 의심. `docker compose ps`로 전 서비스 기동부터 확인.
+
 ## 2026-07-02 · 필터 바텀시트 닫기 버튼이 실기기에서 클릭 안 됨
 - 증상: 갤럭시탭에서 정렬/지역 등 필터를 열면 닫기 버튼이 화면 맨 아래 붙어 **안드로이드 하단 내비게이션(제스처) 바와 겹쳐** 탭이 안 먹힘. web에선 정상이라 늦게 발견.
 - 원인: `FilterView` 닫기 버튼 하단 여백이 `pb-3`(12px) 고정 — **safe area bottom inset 미반영**(CLAUDE.md §8 위반). 목록 `BottomSheetFlatList`의 마지막 카드도 동일 문제.

@@ -13,6 +13,20 @@
 
 ---
 
+## 2026-07-03 · 결정: 예약시간 필터 = `/slots/search` 결과와 목록 클라 교집합
+- 맥락/문제: 홈 예약시간 필터는 시간 다중 선택 UI인데, `GET /shops`의 `slot_time`은 **단일 값**만 받는다.
+- 결정: 시간 선택 시 `GET /slots/search`(dates·times 다중 지원)로 가능한 샵 ID를 받아 **목록과 클라 교집합**. 날짜만 선택 시엔 `slot_date` 서버 파라미터로 충분(교집합 호출 안 함). 시간만 선택하면 날짜는 '오늘'로 간주(slots/search는 dates 필수).
+- 이유: UI(다중 시간)를 그대로 살리면서 백엔드 무수정. 요청 1개 추가 비용만.
+- 대안(버림): slot_time 단일 제한(다중 선택 시 무시 — UX 훼손), 백엔드에 다중 slot_time 요청(수정 대기 발생).
+- 관련: `src/screens/home/filtersToParams.ts`(toSlotSearchParams), `HomeScreen.tsx`, [home.md](./home.md) §3
+
+## 2026-07-03 · 결정: 데이터 소스 = 로컬 도커 + Supabase REST env 주입 (실시간 4만 매장)
+- 맥락/문제: 백엔드가 supabase-js(REST) 전환·배포됐지만 로컬 도커는 구이미지(시드 30개)였고, 새 코드는 `SUPABASE_URL`/`SUPABASE_SECRET_KEY` env를 요구하는데 로컬 어디에도 없었다.
+- 결정: `syakBE/docker-compose.override.yml`(로컬 전용, 커밋 금지)에 두 env를 주입하고 `docker compose up -d --build app`으로 재빌드 → 로컬 백엔드가 실서비스 Supabase를 실시간 조회(40,839 매장). `SUPABASE_DATABASE_URL`(SlotListener)·`DATABASE_URL`(users 등)은 로컬 db 유지(Supabase 직결은 IPv6 전용이라 불가).
+- 이유: 개발 중 백엔드 로그를 직접 볼 수 있고(디버깅), 시드/스냅샷 관리가 사라진다. 운영 URL(`http://54.116.107.78/api/v1`)은 교차 검증용.
+- 대안(버림): 운영 URL 직접 사용(로그 접근 불가·운영 상태 의존), 시드 유지(새 필드 없음·정합성 관리 부담).
+- 관련: [dev-build.md](./dev-build.md) D절, [home.md](./home.md) §4
+
 ## 2026-07-02 · 결정: 상세 빈자리 = slots API 3일치를 클라에서 구간 그룹핑
 - 맥락/문제: 디자인의 빈자리는 "앞으로 3일간" × 오전/오후/저녁 구간 구조인데, 백엔드 `GET /slots/shop/:id`는 flat `{date, startTime}` 배열(기본 3일치)만 준다. 상세 응답의 `slotSummary`(디자이너별 오늘 시각)와는 다른 소스.
 - 결정: 빈자리 섹션은 **slots API**를 쓰고, 클라 어댑터(`shopDetailToView.buildAvailability`)에서 오늘 기준 3일 고정 생성 → date별 그룹 → 오전(<12:00)/오후(12:00~18:00)/저녁(≥18:00) 분배, 빈 구간은 '마감되었습니다'.

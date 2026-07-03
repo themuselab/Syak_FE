@@ -1,5 +1,4 @@
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo, useRef, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
@@ -7,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSlotSearch } from '@/shared/domain/reservation/reservation.queries';
 import { useShops } from '@/shared/domain/shops/shops.queries';
+import { getCurrentCoords } from '@/shared/lib/location';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 
 import { CurrentLocationButton } from './components/CurrentLocationButton';
@@ -101,14 +101,8 @@ export function HomeScreen() {
 
   // 현재위치 → 지도 카메라 이동. 권한 거부·실패 시 조용히 무동작.
   const handleLocate = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-      const pos = await Location.getCurrentPositionAsync({});
-      mapRef.current?.moveTo(pos.coords.latitude, pos.coords.longitude);
-    } catch {
-      // 무시
-    }
+    const coords = await getCurrentCoords();
+    if (coords) mapRef.current?.moveTo(coords.lat, coords.lng);
   };
 
   return (

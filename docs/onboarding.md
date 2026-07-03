@@ -1,6 +1,6 @@
 # 온보딩 (스플래시 · 로그인 · 로그인 실패)
 
-> 상태: **UI/UX 구현 완료**, 소셜 로그인 백엔드 연동 대기.
+> 상태: **UI/UX + 소셜 로그인(카카오·네이버) 백엔드 연동·실기기 검증 완료.** 애플은 stub. 인증 상세는 [auth.md](./auth.md).
 > 디자인 원본: `designs/온보딩/` (`온보딩.png`·`온보딩-1.png`·`로그인 실패시.png`), `designs/design.pen` 프레임 `cJc0N`(스플래시)·`Z4fqD`(로그인)·`j3fVWH`(실패).
 
 ## 1. 범위
@@ -10,12 +10,13 @@
 ```
 앱 실행
   → 네이티브 스플래시(폰트 로드까지)         [app/_layout.tsx]
-  → splash 화면(브랜드 로딩, 1.5초)          [/splash]
-       └ TODO(백엔드): /users/me 세션 확인 → 로그인 상태면 /home
+  → splash 화면(GET /users/me 세션 확인, 최소 표시 1.2초)   [/splash]
+       ├ 세션 있음 → /home
+       └ 세션 없음(401) → /login
   → login 화면                               [/login]
-       ├ 소셜 버튼(Apple/카카오/네이버) → (임시)/home   [TODO: 실제 SDK 로그인]
+       ├ 소셜 버튼(카카오·네이버=실제 SDK, 애플=stub) → getSocialToken → useSocialLogin → /home
        ├ "비회원으로 둘러보기" → /home
-       └ 로그인 실패 시 하단 토스트 노출       [TODO: AUTH_SOCIAL_FAILED 연동]
+       └ 로그인 실패 시 하단 토스트 노출(취소는 토스트 생략), 애플은 "준비 중" 토스트
 ```
 
 ## 3. 라우팅
@@ -38,8 +39,8 @@ app/
   splash.tsx           # /splash 라우트
   login.tsx            # /login 라우트
 src/screens/onboarding/
-  SplashScreen.tsx     # 로고 + 태그라인, 1.5초 후 /login
-  LoginScreen.tsx      # 로고 + 소셜버튼 3 + 둘러보기 + 실패 토스트
+  SplashScreen.tsx     # 로고 + 태그라인, getMe 세션 확인 → /home or /login (최소 표시 1.2초)
+  LoginScreen.tsx      # 소셜버튼 3(getSocialToken → useSocialLogin) + 둘러보기 + 실패 토스트
   components/
     OnboardingBackground.tsx  # 전체화면 배경 이미지 래퍼
     SyakLogo.tsx              # 로고 이미지 (width/height props)
@@ -65,16 +66,14 @@ src/screens/onboarding/
 | `assets/images/onboarding-bg.png` | 사용자 제공(`designs/온보딩/온보딩2.png`) |
 | `assets/icons/social-apple.png` · `social-kakao.png` · `social-naver.png` | `design.pen`에서 export |
 
-## 8. 임시 동작 (UI 우선)
-- 소셜 버튼·둘러보기 → 모두 `router.replace('/home')`.
-- 스플래시 → 1.5초 타이머 후 `/login`.
-- 실패 토스트 → `errorVisible` 상태로 제어(현재 항상 false).
+## 8. 임시 동작 (남은 것만)
+- **애플 버튼**: 어댑터 stub — 탭 시 "준비 중" 토스트 (`socialAuth.ts` apple case 구현 시 자동 해소).
+- ~~소셜 버튼·둘러보기 임시 /home 이동, 스플래시 1.5초 타이머, 토스트 미연동~~ → **전부 실제 연동 완료(2026-07-03 확인)**: 카카오·네이버 SDK 로그인 + 세션 확인 + 실패 토스트 동작, 실기기 검증까지 끝남. 상세 [auth.md](./auth.md).
 
-## 9. 남은 작업 (백엔드 연동 단계)
-- 소셜 SDK(kakao/naver/apple) 토큰 획득 → `useSocialLogin` (`src/shared/domain/auth/auth.queries.ts`) 호출, `isNewUser` 분기.
-- 실패(`AUTH_SOCIAL_FAILED`) 시 `LoginErrorToast` 노출.
-- 스플래시: 세션(`/users/me`) 확인 → 로그인 상태면 `/home`, 아니면 `/login`.
-- 실기기 확인: SafeArea(노치), 폰트 렌더, 소셜 로그인(네이티브 전용 → dev 빌드 필요).
+## 9. 남은 작업
+- **애플 어댑터**: `expo-apple-authentication` 설치 + `socialAuth.ts` apple case (iOS 심사 필수) — [auth.md](./auth.md) §6과 동일 항목.
+- `isNewUser` 분기(신규 가입 닉네임 화면 — 디자인 확보 후).
+- iOS 실기기 확인(SafeArea·폰트·소셜 로그인) — iOS 빌드 마일스톤에서.
 
 ## 10. 검증
 - `npx tsc --noEmit`

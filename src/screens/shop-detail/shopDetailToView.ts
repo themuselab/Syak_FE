@@ -1,6 +1,7 @@
 import type { ShopSlot } from '@/shared/domain/reservation/reservation.types';
 import type { ShopDetail } from '@/shared/domain/shops/shops.types';
 import { toDateKey } from '@/shared/lib/date';
+import { formatDistrict } from '@/shared/lib/region';
 
 // 상세 화면 뷰모델. 백엔드 ShopDetail + 슬롯(3일치)을 각 섹션 컴포넌트가 쓰는 형태로 변환한다.
 // (디자인 문구·구조는 designs/상세페이지 캡처 및 design.pen(PA3vj) 기준 — 기존 mock 구조 계승)
@@ -101,10 +102,10 @@ export function toShopDetailView(
   const hasTodaySlot = availability[0].periods.some((p) => p.slots.length > 0);
 
   const info: InfoRow[] = [
-    // roadAddress는 시/구 포함 전체 주소로 옴 → 단독 사용, 없으면 region+district 폴백.
+    // roadAddress는 시/구 포함 전체 주소로 옴 → 단독 사용. 없으면 district 기반 폴백(region은 "서울" 고정이라 미사용).
     {
       label: '주소',
-      value: shop.roadAddress ?? [shop.region, shop.district].filter(Boolean).join(' '),
+      value: shop.roadAddress ?? formatDistrict(shop.district),
     },
     { label: '오늘 예약', value: hasTodaySlot ? '오늘 예약 가능해요' : '오늘은 예약 마감이에요' },
     ...(shop.phone ? [{ label: '전화', value: shop.phone }] : []),

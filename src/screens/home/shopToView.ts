@@ -1,4 +1,5 @@
 import type { ShopListItem } from '@/shared/domain/shops/shops.types';
+import { formatDistrict } from '@/shared/lib/region';
 
 // 지도 마커 종류(=핀 PNG). assets/icons/pin-{kind}.png와 직결. 우선순위 partner→discount→reservable.
 export type MarkerKind = 'partner' | 'discount' | 'reservable';
@@ -32,7 +33,8 @@ export function toShopCardView(item: ShopListItem, favoriteIds: Set<string>): Sh
     id: item.id,
     name: item.name,
     reviewCount: item.reviewCount,
-    address: [item.region, item.district].filter(Boolean).join(' '),
+    // region은 백엔드가 항상 "서울"로 보내는 부정확한 값이라 미사용 — district 기반 표기.
+    address: formatDistrict(item.district),
     badges,
     markerKind,
     favorite: favoriteIds.has(item.id),

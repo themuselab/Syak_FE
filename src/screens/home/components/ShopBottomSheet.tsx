@@ -22,6 +22,8 @@ type Props = {
   onRetry: () => void;
   onToggleFavorite: (id: string) => void;
   onReset: () => void;
+  onEndReached: () => void; // 리스트 끝 도달 → 다음 페이지 로드 (가드는 HomeScreen 담당)
+  isFetchingNextPage: boolean;
 };
 
 // 단일 바텀시트: activeFilter → 필터 화면 / selectedShop → 매장 미리보기 1개 / 그 외 → 칩바+목록.
@@ -35,6 +37,8 @@ export function ShopBottomSheet({
   onRetry,
   onToggleFavorite,
   onReset,
+  onEndReached,
+  isFetchingNextPage,
 }: Props) {
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<BottomSheet>(null);
@@ -100,6 +104,15 @@ export function ShopBottomSheet({
               data={shops}
               keyExtractor={(item) => item.id}
               contentContainerStyle={{ paddingTop: 13, paddingBottom: insets.bottom + 12 }}
+              onEndReached={onEndReached}
+              onEndReachedThreshold={0.5}
+              ListFooterComponent={
+                isFetchingNextPage ? (
+                  <View style={{ paddingVertical: 16 }}>
+                    <ActivityIndicator color={colors.primary[500]} />
+                  </View>
+                ) : null
+              }
               renderItem={({ item }) => (
                 <ShopListCard
                   shop={item}

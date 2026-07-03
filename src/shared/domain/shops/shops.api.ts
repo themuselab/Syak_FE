@@ -13,7 +13,7 @@ function buildShopQuery(params: ShopListParams): string {
   if (params.has_slot) sp.set('has_slot', 'true');
   if (params.slot_date) sp.set('slot_date', params.slot_date);
   sp.set('page', String(params.page ?? 1));
-  sp.set('limit', String(params.limit ?? 100)); // bounds 미지원이라 1차는 넉넉히 받아 클라에서 핀
+  sp.set('limit', String(params.limit ?? 20)); // 무한스크롤 기본 페이지 크기 20 (서버 최대 100)
   const qs = sp.toString();
   return qs ? `?${qs}` : '';
 }

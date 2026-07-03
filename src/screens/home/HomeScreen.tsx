@@ -48,10 +48,17 @@ export function HomeScreen() {
     [debouncedSearch, sort, regions, price, date, times, serviceFields, toggles],
   );
 
-  const { data, isLoading, isError, refetch } = useShops(params);
-
   // 시간 필터: 선택한 날짜×시간에 빈 슬롯 있는 샵을 /slots/search로 받아 목록과 교집합.
   const slotParams = useMemo(() => toSlotSearchParams({ date, times, regions }), [date, times, regions]);
+
+  // 시간 필터 중엔 교집합이 페이지 단위로 잘리지 않게 100개 단일 조회(무한스크롤 비활성).
+  const listParams = useMemo(
+    () => (slotParams !== null ? { ...params, limit: 100 } : params),
+    [params, slotParams],
+  );
+
+  const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useShops(listParams);
   const slotSearch = useSlotSearch(
     slotParams ?? { dates: [], times: [] },
     slotParams !== null,
@@ -61,7 +68,10 @@ export function HomeScreen() {
   const error = isError || (slotParams !== null && slotSearch.isError);
 
   const shops = useMemo(() => {
-    let items = data?.items ?? [];
+    // 페이지 누적 flat + id 중복 제거(offset 페이지네이션 특성상 페이지 간 중복 가능 — key 중복 경고 방지).
+    const flat = data?.pages.flatMap((p) => p.items) ?? [];
+    const seen = new Set<string>();
+    let items = flat.filter((it) => (seen.has(it.id) ? false : (seen.add(it.id), true)));
     if (slotParams !== null) {
       if (!slotSearch.data) return []; // 교집합 대상 미도착(로딩/에러) — 위 loading/error가 화면 처리
       const allowed = new Set(slotSearch.data.shops.map((s) => s.shopId));
@@ -75,6 +85,11 @@ export function HomeScreen() {
     () => shops.find((s) => s.id === selectedShopId) ?? null,
     [shops, selectedShopId],
   );
+
+  // 리스트 끝 도달 시 다음 페이지 로드. 시간 필터 중엔 비활성(100개 단일 조회).
+  const loadMore = () => {
+    if (slotParams === null && hasNextPage && !isFetchingNextPage) fetchNextPage();
+  };
 
   const toggleFavorite = (id: string) =>
     setFavoriteIds((prev) => {
@@ -136,6 +151,8 @@ export function HomeScreen() {
           }}
           onToggleFavorite={toggleFavorite}
           onReset={reset}
+          onEndReached={loadMore}
+          isFetchingNextPage={slotParams === null && isFetchingNextPage}
         />
       </View>
     </BottomSheetModalProvider>

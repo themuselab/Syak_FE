@@ -13,6 +13,13 @@
 
 ---
 
+## 2026-07-04 · 결정: 즐겨찾기 서버 연동 = 단일 캐시 + 낙관적 업데이트, 409/404는 성공 취급
+- 맥락/문제: 홈(로컬 Set)·상세(별개 boolean)의 별 상태가 화면별로 분리돼 비동기화. 샵 목록/상세 API에 `isFavorite` 필드가 없어 즐겨찾기 여부를 서버가 알려주지 않음. BE 문서(04-favorite.md)는 낙관적 업데이트+롤백을 명시 권장.
+- 결정: `['favorites','list']` 캐시(GET /favorites 응답 원형)를 **단일 소스**로 두고 별 여부는 `select` 파생 Set으로 판정(홈↔상세 자동 동기화). 토글은 `useToggleFavorite` — 낙관 반영 후 실패 시 **해당 샵만 역연산 롤백**, 409(이미 있음)/404(이미 없음)는 성공 취급(invalidate 1회), 같은 샵 연타는 in-flight 가드로 무시. 비회원 별 탭은 `LoginPromptModal`(로그인 이동은 모달 닫은 뒤 push). 로그아웃 시 favorites/notifications 캐시 제거(계정 교체 오염 방지).
+- 이유: isFavorite 부재 상황에서 전체 목록 1회 대조가 유일·충분한 방법(개인당 수십 개 수준). 낙관 업데이트로 기존 로컬 토글의 즉각 반응성 유지. 전체 스냅샷 롤백은 동시 토글을 덮어써서 샵 단위 역연산 채택.
+- 대안(버림): invalidate-only(별 반응 지연), 전체 스냅샷 롤백(동시 낙관 반영 덮어씀), 연타 큐잉(409/404 성공 처리와 얽혀 복잡도만 증가), 실패 토스트(인프라 부재 — 조용히 원복).
+- 관련: `src/shared/domain/favorite/*`, `HomeScreen.tsx`, `ShopDetailScreen.tsx`, `auth.queries.ts`, [home.md](./home.md) §3
+
 ## 2026-07-03 · 결정: 알림 연동 범위 = 목록+설정만, FCM 푸시 셋업은 백엔드 수정 후로 연기
 - 맥락/문제: 알림 기능 연동 시점에 백엔드 FCM이 Google이 2024-06 종료한 레거시 API(`fcm/send`)로 짜여 있어 푸시 발송 자체가 불가(syakBE 수정은 우리 범위 밖). 앱에도 푸시 인프라(expo-notifications·Firebase 설정) 전무.
 - 결정: 이번엔 GET /notifications 목록 + GET/PATCH settings 연동까지만. 앱 푸시 셋업(expo-notifications + google-services + EAS 재빌드)은 **백엔드 FCM v1 마이그레이션 일정이 잡히면 애플 로그인 어댑터 재빌드와 묶어** 진행. 읽음 처리는 BE API 미노출이라 미읽음 뱃지 표시만.
@@ -70,7 +77,7 @@
 - 대안(버림): 무한스크롤(지도 핀엔 전체가 필요해 부적합), 뷰포트 기반 재조회(백엔드 미지원).
 - 관련: `src/shared/domain/shops/`, [home.md](./home.md)
 
-## 2026-06-30 · 결정: 홈 즐겨찾기 1차 로컬 토글 (API는 로그인 후)
+## 2026-06-30 · 결정: 홈 즐겨찾기 1차 로컬 토글 (API는 로그인 후) — ✅ 2026-07-04 서버 연동으로 대체됨(맨 위 항목)
 - 맥락/문제: 홈은 **비회원 접근**(`GET /shops` 무인증)인데 `/favorites`는 **인증 필요**. 비회원이 별을 누르면 401.
 - 결정: 1차는 `favoriteIds`(로컬 Set) 토글만. `/favorites` 실연동은 소셜 로그인 dev build 이후, 비회원은 그때 `비회원로그인 알림` 모달로 유도.
 - 이유: 비회원 흐름을 깨지 않고 화면을 완성. 로그인 플로우가 갖춰진 뒤 연동이 자연스럽다.

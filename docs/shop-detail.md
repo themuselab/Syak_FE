@@ -52,7 +52,7 @@ src/screens/shop-detail/
   ShopDetailScreen.tsx        조립 + useShop/useShopSlots + 로딩/에러 + 스크롤스파이/스티키
   shopDetailToView.ts         ★ 뷰모델 타입 + toShopDetailView 어댑터 (슬롯 3일 그룹핑)
   components/
-    DetailHeader.tsx          뒤로가기 + 즐겨찾기 별 (로컬 토글 — API는 로그인 연동 후)
+    DetailHeader.tsx          뒤로가기 + 즐겨찾기 별 (/favorites 서버 연동 — 홈과 단일 캐시)
     ShopTitleBlock.tsx        이름·분류·리뷰수 + 배지
     Badge.tsx                 배지/태그 칩 (bg·color·fontSize props)
     ImageCarousel.tsx         실이미지(expo-image) 캐러셀, 없으면 placeholder
@@ -90,12 +90,12 @@ src/shared/domain/reservation/
 ## 임시 동작 / 참고
 - **'오늘 예약 가능해요' 문구**: 디자인엔 마감 상태 문구('오늘은 예약 마감이에요')만 있어 가능 상태는 대칭 문구로 채움 — 디자인 확정 시 교체.
 - **네이버 예약 라벨**: `bookingUrl`이 네이버가 아닐 수도 있음(인스타 등) — 사용자 확정으로 라벨 유지 + URL 열기. 없으면 비활성.
-- **헤더 즐겨찾기 별**: 로컬 토글(즐겨찾기 API는 로그인 연동 후 일괄).
+- **헤더 즐겨찾기 별**: `/favorites` 서버 연동 완료(2026-07-04) — 홈과 같은 `['favorites','list']` 캐시에서 파생(`useFavoriteShopIds`)이라 **홈↔상세 별 상태 자동 동기화**. 토글은 낙관적 업데이트(`useToggleFavorite`), 비회원 탭 시 `LoginPromptModal`(로딩/에러 화면 포함 모든 분기에서 동작). 저장 실패 시 안내 없이 별만 원복(토스트 인프라 부재). 상세는 [home.md](./home.md) §3 즐겨찾기.
 - 예약 생성 API 없음 — 예약 확정은 외부 링크(`bookingUrl`) 정책(백엔드 docs 명시).
 
 ## 남은 작업
 - **슬롯 API 백엔드 수정 후** 빈자리 실데이터 재검증(FE 코드 완료). 리뷰 작성일은 백엔드 노출 시 매핑만 추가.
-- 즐겨찾기 API 연동(로그인 후), 슬롯 탭 → 예약 플로우(정책 확정 후), iOS 빌드 확인.
+- 슬롯 탭 → 예약 플로우(정책 확정 후), iOS 빌드 확인.
 
 ## 검증
 - `npm run typecheck` / `npm run lint` 통과.

@@ -12,10 +12,15 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { router } from 'expo-router';
+
+import { useAuthStore } from '@/shared/domain/auth/auth.store';
+import { useFavoriteShopIds, useToggleFavorite } from '@/shared/domain/favorite/favorite.queries';
 import { postReservationClick } from '@/shared/domain/reservation/reservation.api';
 import { useShopSlots } from '@/shared/domain/reservation/reservation.queries';
 import { useShop } from '@/shared/domain/shops/shops.queries';
 import { colors } from '@/shared/theme/colors';
+import { LoginPromptModal } from '@/shared/ui/LoginPromptModal';
 
 import { AvailabilitySection } from './components/AvailabilitySection';
 import { DetailHeader } from './components/DetailHeader';
@@ -36,7 +41,7 @@ type Props = {
 const SPY_SECTIONS: TabKey[] = ['availability', 'menu', 'info', 'review'];
 
 // 샵 상세페이지. GET /shops/:id + GET /slots/shop/:id(3일치) → 뷰모델 어댑터로 각 섹션에 공급.
-// 탭 = 스크롤스파이 + sticky. 즐겨찾기는 1차 로컬(즐겨찾기 API는 로그인 연동 후).
+// 탭 = 스크롤스파이 + sticky. 즐겨찾기는 /favorites 서버 연동(홈과 단일 캐시) — 비회원은 LoginPromptModal 게이팅.
 export function ShopDetailScreen({ shopId }: Props) {
   const insets = useSafeAreaInsets();
 
@@ -49,7 +54,23 @@ export function ShopDetailScreen({ shopId }: Props) {
     [shopQuery.data, slotsQuery.data],
   );
 
-  const [favorite, setFavorite] = useState(false);
+  // 즐겨찾기: 홈과 같은 ['favorites','list'] 캐시에서 파생 — 화면 간 자동 동기화.
+  const user = useAuthStore((s) => s.user);
+  const isLoggedIn = user != null;
+  const favoriteIds = useFavoriteShopIds(isLoggedIn);
+  const favorite = shopId ? favoriteIds.has(shopId) : false;
+  const toggleFavoriteOnServer = useToggleFavorite();
+  const [loginModalVisible, setLoginModalVisible] = useState(false);
+
+  const onToggleFavorite = () => {
+    if (!shopId) return;
+    if (!isLoggedIn) {
+      setLoginModalVisible(true);
+      return;
+    }
+    toggleFavoriteOnServer(shopId);
+  };
+
   const [activeTab, setActiveTab] = useState<TabKey>('home');
   // 마지막 섹션도 탭바 바로 아래로 스크롤될 수 있도록 하단 여백을 동적으로 계산.
   const [viewportH, setViewportH] = useState(0);
@@ -96,7 +117,15 @@ export function ShopDetailScreen({ shopId }: Props) {
   if (!shop) {
     return (
       <View className="flex-1 bg-white">
-        <DetailHeader favorite={favorite} onToggleFavorite={() => setFavorite((v) => !v)} />
+        <DetailHeader favorite={favorite} onToggleFavorite={onToggleFavorite} />
+        <LoginPromptModal
+          visible={loginModalVisible}
+          onClose={() => setLoginModalVisible(false)}
+          onPressLogin={() => {
+            setLoginModalVisible(false);
+            router.push('/login');
+          }}
+        />
         {shopQuery.isError ? (
           <View className="flex-1 items-center justify-center gap-3">
             <Text className="text-body-m font-pretendard text-gray-600">
@@ -122,7 +151,15 @@ export function ShopDetailScreen({ shopId }: Props) {
 
   return (
     <View className="flex-1 bg-white">
-      <DetailHeader favorite={favorite} onToggleFavorite={() => setFavorite((v) => !v)} />
+      <DetailHeader favorite={favorite} onToggleFavorite={onToggleFavorite} />
+      <LoginPromptModal
+        visible={loginModalVisible}
+        onClose={() => setLoginModalVisible(false)}
+        onPressLogin={() => {
+          setLoginModalVisible(false);
+          router.push('/login');
+        }}
+      />
 
       <ScrollView
         ref={scrollRef}

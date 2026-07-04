@@ -4,10 +4,15 @@ import { useMemo, useRef, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { router } from 'expo-router';
+
+import { useAuthStore } from '@/shared/domain/auth/auth.store';
+import { useFavoriteShopIds, useToggleFavorite } from '@/shared/domain/favorite/favorite.queries';
 import { useSlotSearch } from '@/shared/domain/reservation/reservation.queries';
 import { useShops } from '@/shared/domain/shops/shops.queries';
 import { getCurrentCoords } from '@/shared/lib/location';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
+import { LoginPromptModal } from '@/shared/ui/LoginPromptModal';
 
 import { CurrentLocationButton } from './components/CurrentLocationButton';
 import { HomeHeader } from './components/HomeHeader';
@@ -19,14 +24,19 @@ import { toShopCardView } from './shopToView';
 import { useHomeFilterStore } from './useHomeFilterStore';
 
 // 홈(지도뷰). 네이버 지도 + GET /shops(비회원 가능).
-// 필터·검색·정렬은 전부 서버 파라미터(filtersToParams). 시간 필터만 /slots/search 교집합. 즐겨찾기는 1차 로컬.
+// 필터·검색·정렬은 전부 서버 파라미터(filtersToParams). 시간 필터만 /slots/search 교집합.
+// 즐겨찾기는 /favorites 서버 연동(단일 캐시, 낙관적 업데이트) — 비회원 별 탭은 LoginPromptModal 게이팅.
 // 핀 탭 → 바텀시트에 그 매장 미리보기(카드 1개), 지도 빈 곳 탭 → 해제.
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const mapRef = useRef<HomeMapRef>(null);
 
-  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set());
+  const user = useAuthStore((s) => s.user);
+  const isLoggedIn = user != null;
+  const favoriteIds = useFavoriteShopIds(isLoggedIn); // 비회원 → 빈 Set(별 항상 꺼짐)
+  const toggleFavoriteOnServer = useToggleFavorite();
+  const [loginModalVisible, setLoginModalVisible] = useState(false);
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
 
   const sort = useHomeFilterStore((s) => s.sort);
@@ -91,13 +101,14 @@ export function HomeScreen() {
     if (slotParams === null && hasNextPage && !isFetchingNextPage) fetchNextPage();
   };
 
-  const toggleFavorite = (id: string) =>
-    setFavoriteIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  // 비회원은 로그인 유도, 회원은 서버 토글(낙관적 업데이트라 즉시 반영).
+  const toggleFavorite = (id: string) => {
+    if (!isLoggedIn) {
+      setLoginModalVisible(true);
+      return;
+    }
+    toggleFavoriteOnServer(id);
+  };
 
   // 현재위치 → 지도 카메라 이동. 권한 거부·실패 시 조용히 무동작.
   const handleLocate = async () => {
@@ -147,6 +158,16 @@ export function HomeScreen() {
           onReset={reset}
           onEndReached={loadMore}
           isFetchingNextPage={slotParams === null && isFetchingNextPage}
+        />
+
+        {/* 비회원 별 탭 게이팅. 로그인 이동 전 모달을 먼저 닫아야 push된 로그인 화면을 안 덮는다. */}
+        <LoginPromptModal
+          visible={loginModalVisible}
+          onClose={() => setLoginModalVisible(false)}
+          onPressLogin={() => {
+            setLoginModalVisible(false);
+            router.push('/login');
+          }}
         />
       </View>
     </BottomSheetModalProvider>

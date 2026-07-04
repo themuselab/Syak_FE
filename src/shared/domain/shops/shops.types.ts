@@ -76,6 +76,8 @@ export type ShopListParams = {
   has_event?: boolean;
   has_slot?: boolean;
   slot_date?: string; // YYYY-MM-DD — 해당 날짜 슬롯 보유 샵만
+  lat?: number; // 내 주변 필터(bounding box) — lng와 함께 전송. radius는 안 보냄(서버 기본 5km — 사용자 확정)
+  lng?: number;
   page?: number;
   limit?: number;
 };

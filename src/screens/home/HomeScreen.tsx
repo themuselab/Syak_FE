@@ -38,6 +38,8 @@ export function HomeScreen() {
   const toggleFavoriteOnServer = useToggleFavorite();
   const [loginModalVisible, setLoginModalVisible] = useState(false);
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
+  // 내 주변 모드(현재위치 버튼 토글). 필터 화면과 무관한 홈 전용 상태라 필터 store가 아닌 로컬.
+  const [nearbyCoords, setNearbyCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   const sort = useHomeFilterStore((s) => s.sort);
   const regions = useHomeFilterStore((s) => s.regions);
@@ -62,10 +64,11 @@ export function HomeScreen() {
   const slotParams = useMemo(() => toSlotSearchParams({ date, times, regions }), [date, times, regions]);
 
   // 시간 필터 중엔 교집합이 페이지 단위로 잘리지 않게 100개 단일 조회(무한스크롤 비활성).
-  const listParams = useMemo(
-    () => (slotParams !== null ? { ...params, limit: 100 } : params),
-    [params, slotParams],
-  );
+  // 내 주변 모드면 lat/lng 병합(radius는 서버 기본 5km) — params가 queryKey라 토글 시 1페이지부터 리셋.
+  const listParams = useMemo(() => {
+    const base = slotParams !== null ? { ...params, limit: 100 } : params;
+    return nearbyCoords ? { ...base, lat: nearbyCoords.lat, lng: nearbyCoords.lng } : base;
+  }, [params, slotParams, nearbyCoords]);
 
   const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useShops(listParams);
@@ -110,10 +113,18 @@ export function HomeScreen() {
     toggleFavoriteOnServer(id);
   };
 
-  // 현재위치 → 지도 카메라 이동. 권한 거부·실패 시 조용히 무동작.
-  const handleLocate = async () => {
+  // 현재위치 버튼 = 내 주변 토글(사용자 확정): 켜면 카메라 이동 + 목록을 내 주변(서버 기본 5km)으로,
+  // 다시 누르면 해제(전체 목록, 카메라 유지·위치 재조회 없음). 권한 거부·실패 시 조용히 무동작(모드 안 켜짐).
+  // 모드 표시 UI 없음 — 사용자 확정(디자인 생기면 재검토, docs/home.md 임시 동작).
+  const handleNearbyToggle = async () => {
+    if (nearbyCoords) {
+      setNearbyCoords(null);
+      return;
+    }
     const coords = await getCurrentCoords();
-    if (coords) mapRef.current?.moveTo(coords.lat, coords.lng);
+    if (!coords) return;
+    mapRef.current?.moveTo(coords.lat, coords.lng);
+    setNearbyCoords(coords);
   };
 
   return (
@@ -142,7 +153,7 @@ export function HomeScreen() {
 
         {/* 현재위치 버튼 (지도 우하단, 바텀시트 위) */}
         <View className="absolute right-4" style={{ bottom: height * 0.42 + 12 }}>
-          <CurrentLocationButton onPress={handleLocate} />
+          <CurrentLocationButton onPress={handleNearbyToggle} />
         </View>
 
         <ShopBottomSheet

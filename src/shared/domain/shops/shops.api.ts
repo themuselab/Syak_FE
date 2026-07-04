@@ -12,6 +12,10 @@ function buildShopQuery(params: ShopListParams): string {
   if (params.has_event) sp.set('has_event', 'true');
   if (params.has_slot) sp.set('has_slot', 'true');
   if (params.slot_date) sp.set('slot_date', params.slot_date);
+  if (params.lat != null && params.lng != null) {
+    sp.set('lat', String(params.lat));
+    sp.set('lng', String(params.lng));
+  }
   sp.set('page', String(params.page ?? 1));
   sp.set('limit', String(params.limit ?? 20)); // 무한스크롤 기본 페이지 크기 20 (서버 최대 100)
   const qs = sp.toString();

@@ -7,7 +7,7 @@
 - **헤더**: 로고 + 알림/프로필. 벨 → `/notifications`, 유저 → `/my`.
 - **검색바**: pill, 핑크 테두리. 이름 검색(`store.search`) — **서버 `q` 파라미터**(ilike 부분검색). 타이핑마다 refetch하지 않도록 **300ms 디바운스**(`useDebouncedValue`).
 - **지도**: `HomeMap`(네이버지도 `NaverMapView`) + 샵 좌표 핀. **핀 탭 → 바텀시트에 그 매장 미리보기(카드 1개, 시트 40%로)** → 카드 탭 또는 시트를 위로 크게 올리면(90%) `/shop/:id` 상세 진입. **지도 빈 곳 탭 → 미리보기 해제**(전체 목록 복귀). web/Expo Go/키 없음은 회색 placeholder(`HomeMap.web.tsx` + 키 가드).
-- **현재위치 버튼**: 지도 우하단. `expo-location` 권한 → 좌표 → 지도 카메라 이동(`HomeMap` ref `moveTo`).
+- **현재위치 버튼 = 내 주변 토글(2026-07-05)**: 지도 우하단. 누르면 `expo-location` 권한 → 좌표 → 지도 카메라 이동(`HomeMap` ref `moveTo`) + **목록·핀을 내 주변 매장으로 필터**(`GET /shops?lat&lng`, 반경 서버 기본 5km). **다시 누르면 해제**(전체 목록, 카메라 유지). 모드 표시 UI 없음·권한 거부 시 무동작 — §임시 동작.
 - **바텀시트**: 드래그(40%↔90%), 칩바(고정) + 매장 목록 / 미리보기(핀 선택 시 카드 1개) / 로딩 / 에러 / 빈 상태. 목록 하단·필터 닫기 버튼은 **safe area bottom inset 반영**(안드 내비 바에 안 가림).
 - **매장 카드**: 썸네일(`photos[0]`) + 이름·**리뷰수(`리뷰 N`)**·주소·배지·즐겨찾기 별.
 - **필터**: 같은 바텀시트 안에서 내용 전환(별도 모달 아님). 칩 탭 → 필터 화면, 닫기 → 목록.
@@ -49,6 +49,9 @@ src/shared/domain/shops/
 
 - **예약시간(날짜+시간) 필터**: `times` 선택 시 `toSlotSearchParams` → `GET /slots/search?dates=&times=&districts=`(다중 시간 지원)로 가능 샵 ID를 받아 **목록과 클라 교집합**(HomeScreen). 시간 미선택(날짜만)은 `slot_date` 서버 필터로 충분해 호출 안 함. slots/search 로딩·에러는 목록 로딩·에러 상태에 합류(재시도 시 둘 다 refetch).
 
+- **내 주변(2026-07-05)**: 현재위치 버튼 토글. `nearbyCoords`는 **필터 store가 아닌 HomeScreen 로컬 state**(필터 화면과 무관한 홈 전용 상태) — `listParams` useMemo에서 `lat`/`lng`로 병합(`radius` 미전송 = 서버 기본 5km, 사용자 확정). params가 queryKey라 토글 시 1페이지 리셋, 무한스크롤·다른 모든 필터와 AND 조합(백엔드 bounding box + `count exact`)·핀·선택 해제까지 기존 로직 그대로 동작.
+  - **임시 동작**: 모드 on/off 표시 UI 없음(칩·버튼 상태 표시 없이 목록만 변경 — 사용자 확정, 디자인 나오면 재검토). 위치 권한 거부·실패 시 안내 없이 무동작(모드 안 켜짐).
+
 - **뷰모델 변환**(`shopToView.ts`): 주소=`formatDistrict(district)`(region은 백엔드 "서울" 고정 버그로 미사용 — 서울 구만 "서울 " 접두), badges=`eventDesc`+`priceTier`, markerKind=`isPartner→partner / eventDesc→event / else default`, favorite=`useFavoriteShopIds` 서버 캐시 파생 Set.
 - **즐겨찾기**: `/favorites` **서버 연동 완료(2026-07-04)** — `src/shared/domain/favorite/` (types/api/queries).
   - 상태 소스는 `['favorites','list']` 캐시 하나(GET 응답 원형). 별 여부는 `useFavoriteShopIds(isLoggedIn)`의 `select` 파생 Set으로 판정(샵 API에 isFavorite 없음 — §4-6). **홈↔상세가 같은 캐시라 자동 동기화.**
@@ -67,14 +70,14 @@ src/shared/domain/shops/
 | 2 | **세부 시술 필터** | 없음 | 보류(UI 유지) |
 | 3 | ~~`priceTier` 타입 표기 불일치~~ ✅해소 | BE 타입 `'4만원이상'`으로 정정 | FE는 원래 실데이터 기준 |
 | 4 | ~~`region` 항상 "서울" 하드코딩~~ ✅해소 | region null 반환으로 수정 | FE는 원래 region 미사용(`formatDistrict`) |
-| 5 | ~~위치 기반 조회(lat/lng/radius) 없음~~ ✅해소 | `GET /shops?lat&lng&radius`(km, 기본 5) + `available_within_days=N` 신규 | **"내 주변" 기능 미구현 — 노출 방식 기획/디자인 필요(남은 작업)** |
+| 5 | ~~위치 기반 조회(lat/lng/radius) 없음~~ ✅해소 | `GET /shops?lat&lng&radius`(km, 기본 5) + `available_within_days=N` 신규 | ~~"내 주변" 기능 미구현~~ → **2026-07-05 현재위치 버튼 토글로 연동 완료**(§3 내 주변). `available_within_days`는 미사용(대응 UI 없음) |
 | 6 | (선택) 목록 `isFavorite` / 주소 동(dong) / sameDay·available 구분 | 없음 | GET /favorites 대조 / 구까지 / 둘 다 has_slot |
 
 ## 5. 남은 작업
 - **네이버 지도 마무리**: 코드 완료. **NCP 키 발급**(console.ncloud.com Maps) → `.env`/EAS env `EXPO_PUBLIC_NAVER_MAP_CLIENT_ID` → **EAS 재빌드**(네이버·애플 로그인과 함께) → 실기기 검증. 절차 [dev-build.md](./dev-build.md) C-3.
   - ✅ **구현 완료(2026-07-03 확인)** — NCP 키 발급·`.env`/EAS env 주입·dev build 실기기 검증까지 전부 끝남(상단 상태 줄과 동일). 더 이상 남은 작업 아님.
 - ~~**슬롯 API 백엔드 수정(§4-1) 후**: 상세 빈자리·예약시간 필터 실동작 재검증(FE 코드는 완료).~~ → **2026-07-04 재검증 완료**(§6).
-- **"내 주변" 매장(§4-5 신규 `lat/lng/radius`) 연동** — 홈에서의 노출 방식(버튼/기본 동작) 기획·디자인 확정 후.
+- ~~**"내 주변" 매장(§4-5 신규 `lat/lng/radius`) 연동** — 홈에서의 노출 방식(버튼/기본 동작) 기획·디자인 확정 후.~~ → **2026-07-05 완료**(현재위치 버튼 토글 — 사용자 확정). 모드 표시 UI는 디자인 확정 대기.
 - 마커 클러스터링(핀 많아지면).
 
 ## 6. 검증
@@ -83,3 +86,4 @@ src/shared/domain/shops/
 - **예약시간 필터(2026-07-04, 백엔드 슬롯 수정 배포 후)**: 오늘+11:00 선택 → `GET /slots/search?dates=&times=` 200 + 교집합 목록 표시 확인(FE 무수정).
 - 즐겨찾기(로그인 세션 필요 — 웹은 `syak_access` 쿠키 주입): 별 탭 → 즉시 반영 + POST 201 → 새로고침 유지 → 재탭 DELETE 204. 홈에서 켠 샵 상세 진입 시 별 켜짐(단일 캐시). 연타 시 요청 1건. BE 중단 상태 탭 → 별 원복(롤백). 비회원 별 탭 → LoginPromptModal + GET /favorites 미발생.
 - 지도(dev build + NCP 키): 네이버 지도 렌더·샵 핀(좌표 null 제외)·partner/discount/reservable 3색 핀·핀탭 상세이동·현재위치 권한→카메라 이동·서울 초기 카메라.
+- **내 주변(2026-07-05, 웹 + geolocation 스텁 주입)**: 버튼 탭 → `GET /shops?lat&lng&page=1`(radius 미전송) + 목록이 강남 5km 매장만(강남·서초·송파 등) / 재탭 → lat/lng 없이 전체 복귀 / 할인·이벤트 필터와 조합 시 `has_event=true&lat&lng` 동시 전달 / 권한 거부 스텁 → 요청·목록 변화 없음. 실기기 GPS는 fast refresh로 확인 예정(재빌드 불필요).

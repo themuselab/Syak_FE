@@ -11,7 +11,7 @@ export type NotificationItem = {
   type: NotificationType;
   slotTime: string; // 'HH:mm'
   slotDate: string; // 'YYYY-MM-DD'
-  readAt: string | null; // null = 미읽음 (읽음 처리 API는 백엔드 미구현 — 표시만)
+  readAt: string | null; // null = 미읽음 (PATCH /notifications/:id/read로 읽음 처리 — 2026-07-04 백엔드 추가)
   createdAt: string;
 };
 

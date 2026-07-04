@@ -2,7 +2,10 @@ import { router } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
-import { useNotifications } from '@/shared/domain/notification/notification.queries';
+import {
+  useMarkNotificationRead,
+  useNotifications,
+} from '@/shared/domain/notification/notification.queries';
 import { colors } from '@/shared/theme/colors';
 import { BackHeader } from '@/shared/ui/BackHeader';
 import { LoginPromptModal } from '@/shared/ui/LoginPromptModal';
@@ -12,12 +15,13 @@ import { NotificationItem } from './components/NotificationItem';
 
 // 디자인: designs/알림/*, designs/design.pen (알림 페이지, frame SXtVD)
 // GET /notifications 연동 (오늘 생성분만, 인증 필요). 비회원은 LoginPromptModal 게이팅(쿼리 미발생).
-// 로딩/에러 상태는 디자인 미제공 — 임시 처리.
+// 탭 → 읽음 처리(미읽음만, fire-and-forget) + 샵 상세 이동. 로딩/에러 상태는 디자인 미제공 — 임시 처리.
 export function NotificationScreen() {
   const user = useAuthStore((s) => s.user);
   const isLoggedIn = user != null;
 
   const { data: notifications, isPending, isError, refetch } = useNotifications(isLoggedIn);
+  const markRead = useMarkNotificationRead();
 
   return (
     <View className="flex-1 bg-white">
@@ -56,7 +60,13 @@ export function NotificationScreen() {
           data={notifications}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <NotificationItem item={item} onPress={() => router.push(`/shop/${item.shopId}`)} />
+            <NotificationItem
+              item={item}
+              onPress={() => {
+                if (item.readAt === null) markRead(item.id); // 읽음 처리는 이동을 막지 않음
+                router.push(`/shop/${item.shopId}`);
+              }}
+            />
           )}
         />
       )}

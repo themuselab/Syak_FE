@@ -1,7 +1,7 @@
 # 알림 (알림 목록 · 비회원 로그인 유도 모달)
 
-> 상태: **백엔드 연동 완료(FCM 푸시 제외)** — GET /notifications 목록·미읽음 뱃지·탭→상세·비회원 게이팅 동작.
-> 단 **백엔드 FCM이 죽어 있어 실데이터가 안 쌓임**(§9) — 실사용자는 당분간 빈 상태를 보고, 백엔드 수정 시 FE 무수정으로 자동 동작.
+> 상태: **백엔드 연동 완료(FCM 푸시 제외)** — GET /notifications 목록·미읽음 뱃지·**탭 시 읽음 처리(2026-07-04)**·탭→상세·비회원 게이팅 동작.
+> 2026-07-04 백엔드 업데이트로 §9 전달사항 전부 해소(FCM v1·row 저장 분리·오늘만·읽음 API·문서 정정) — 이제 슬롯이 열리면 실데이터가 쌓인다. 남은 것은 **FE 쪽 FCM 푸시 셋업**(§9 계획)뿐.
 > 디자인 원본: `designs/알림/알림.png`, `designs/비회원로그인 알림/비회원 로그인 알림.png`,
 > `designs/design.pen` 프레임 `SXtVD`(알림), `B9m9C`(비회원 모달 — 카드 `KfxCM`, 딤 `JihSb`).
 
@@ -19,10 +19,13 @@
        ├ 로딩 → 중앙 스피너 (디자인 미제공, 임시)
        ├ 에러 → 안내 + "다시 시도"(refetch) (디자인 미제공, 임시)
        ├ 빈 목록 → "새로운 알림이 없습니다"
-       └ 목록 → 행 탭 시 router.push(`/shop/${shopId}`)
+       └ 목록 → 행 탭 시 [미읽음이면 읽음 처리(fire-and-forget)] + router.push(`/shop/${shopId}`)
 ```
 - 문구: 제목 `{shopName} {slotTime} 빈자리 알림!` + 고정 본문(캡처 그대로, **타입별 구분 없음 — 사용자 확정**).
-- 미읽음: `readAt === null`이면 제목 좌측 6px 핑크 도트(`primary.500`) — **디자인 미제공 임시안(사용자 확정)**, 읽음 처리는 BE API 미구현이라 표시만.
+- 미읽음: `readAt === null`이면 제목 좌측 6px 핑크 도트(`primary.500`) — **디자인 미제공 임시안(사용자 확정)**.
+- **읽음 처리(2026-07-04)**: **탭한 알림만** 읽음 — 사용자 확정(화면 진입 시 전체 읽음 아님). `useMarkNotificationRead()`가
+  `PATCH /notifications/:id/read`(항상 204·멱등)를 쏘며 **낙관 갱신**(도트 즉시 제거) + 실패 시 해당 항목만 원복.
+  요청은 상세 이동을 막지 않고(fire-and-forget), 이미 읽은 알림 재탭 시 요청 없음.
 - 시각: `createdAt` → `formatRelativeTime`(`src/shared/lib/date.ts`) '방금 전'/'N분전'/'N시간전'.
 
 ## 3. 라우팅
@@ -42,8 +45,8 @@ src/screens/notification/
     NotificationEmpty.tsx         # "새로운 알림이 없습니다" 중앙 정렬
 src/shared/domain/notification/
   notification.types.ts           # NotificationItem/NotificationSettings(+Patch) — BE 05-notification.md 기준
-  notification.api.ts             # getNotifications, getNotificationSettings, updateNotificationSettings
-  notification.queries.ts         # useNotifications(enabled)·useNotificationSettings(enabled)·useUpdateNotificationSettings
+  notification.api.ts             # getNotifications, markNotificationRead, getNotificationSettings, updateNotificationSettings
+  notification.queries.ts         # useNotifications(enabled)·useMarkNotificationRead·useNotificationSettings(enabled)·useUpdateNotificationSettings
 src/shared/ui/
     LoginPromptModal.tsx          # 비회원 로그인 유도 모달(재사용) — 알림 게이팅에 최초 연결
 ```
@@ -68,27 +71,30 @@ src/shared/ui/
 ## 8. 임시 동작 (남은 것만)
 - 로딩/에러 상태 UI는 디자인 미제공 — 스피너/문구+재시도로 임시 처리(코드 주석 명시).
 - 미읽음 도트는 디자인 미제공 임시안(6px 핑크) — 디자이너 확인 후 조정.
-- 읽음 처리 없음(BE API 미노출) — 뱃지 표시만.
+- ~~읽음 처리 없음(BE API 미노출) — 뱃지 표시만.~~ → **2026-07-04 연동 완료**(§2). 읽음 처리 실패 시 안내 UI 없이 도트만 원복(토스트 인프라 부재 — 즐겨찾기와 동일 정책).
 
 ## 9. ⚠️ 백엔드 현황 (2026-07-03 코드 조사 — syakBE는 우리가 수정 안 함)
 
 **동작하는 것**: `GET /notifications`(오늘 created_at 생성분만), `GET/PATCH /notifications/settings`(upsert, radiusKm 1~10 검증), near 대상 선정은 Haversine SQL로 실제 구현(마이페이지 반경 설정과 연동됨), favorite 대상은 favorites 조인.
 
-**문제 (백엔드 개발자 전달사항)**:
-1. **(급함) FCM 발송 불가** — `FcmPushService`가 Google이 2024-06 종료한 레거시 API(`fcm/send`+서버키) 사용. HTTP v1(firebase-admin) 마이그레이션 필요.
-2. **알림 row 저장이 푸시 성공 뒤** — `DispatchSlotNotificationsUseCase`에서 send 성공 후 insert라, FCM이 죽은 현재 **목록이 항상 빈 배열**. 저장을 푸시와 분리 요청.
-3. **"오늘 슬롯만 알림" 필터 없음** — DB 트리거·dispatch에 날짜 조건이 없어 모든 날짜 슬롯에 발송, 푸시 문구만 "오늘" 하드코딩. 정책이 "오늘만"이면 필터 추가 요청.
-4. **읽음 처리 API 미노출** — `markRead` 구현은 있으나 라우트 없음.
-5. **BE 문서 정정** — GET settings 미초기화 시 404(05-notification.md)가 아니라 실제는 기본값 자동 생성 후 200.
+**문제 (백엔드 개발자 전달사항)** — ✅ **2026-07-04 배포(`cd10fec`~)로 아래 5건 전부 해소 확인(코드 대조 완료)**:
+1. ~~**(급함) FCM 발송 불가** — `FcmPushService`가 Google이 2024-06 종료한 레거시 API(`fcm/send`+서버키) 사용. HTTP v1(firebase-admin) 마이그레이션 필요.~~ → firebase-admin v1로 마이그레이션 완료(`FCM_SERVICE_ACCOUNT_JSON` env, lazy init — 미설정이어도 서버 안 죽음). EC2 서버 설정까지 완료(백엔드 개발자 확인).
+2. ~~**알림 row 저장이 푸시 성공 뒤** — 목록이 항상 빈 배열.~~ → insert를 push와 분리 — 푸시 실패해도 알림 목록엔 남음.
+3. ~~**"오늘 슬롯만 알림" 필터 없음**~~ → dispatch에 `todayOnly=true` 기본값 — 오늘 날짜 슬롯만 발송.
+4. ~~**읽음 처리 API 미노출**~~ → `PATCH /notifications/:id/read` 라우트 노출(FE 연동 완료 §2).
+5. ~~**BE 문서 정정** — GET settings 404~~ → 코드 확인: 미초기화 시 기본값 자동 생성 후 200(FE는 원래 호환).
 
-**FCM 푸시 다음 단계 계획(앱 쪽)** — 백엔드 1번 수정 일정이 잡히면 진행:
+**신규 전달사항 (2026-07-04)**:
+- `PATCH /notifications/:id/read`가 **BE 문서(`05-notification.md`·`API_DOCS.md`)에 미기재** — 문서 갱신 요청. (계약은 코드로 확인: 인증 필요, 항상 204, `read_at IS NULL`일 때만 갱신하는 멱등 쿼리)
+
+**FCM 푸시 다음 단계 계획(앱 쪽)** — ~~백엔드 1번 수정 일정이 잡히면 진행~~ → **백엔드 준비 완료(2026-07-04), 이제 진행 가능.** Firebase 프로젝트는 뮤즈랩 지메일 계정에 생성돼 있음(백엔드 개발자) — FE는 거기에 Android/iOS 앱 등록 후 설정 파일만 받으면 됨:
 - `expo-notifications` + Firebase 프로젝트(`google-services.json`/iOS `GoogleService-Info.plist`) + `app.config.ts` plugin → **네이티브 모듈이라 EAS 재빌드 필수**(애플 로그인 어댑터와 묶어 빌드 절약).
 - 알림 권한 요청 → FCM 토큰 획득 → `PATCH /notifications/settings`의 `fcmToken`으로 등록(API는 이미 있음).
 - iOS는 Firebase에 **APNs 키 등록** 추가 필요(FCM이 APNs로 중계하므로 BE는 무수정). iOS 푸시 테스트는 실기기 필요.
 
 ## 10. 남은 작업
-- FCM 푸시 셋업(§9 계획) — 백엔드 FCM v1 마이그레이션 후.
-- 읽음 처리(백엔드 API 노출 후), 미읽음 도트·로딩/에러 상태 디자인 확정.
+- FCM 푸시 셋업(§9 계획) — ~~백엔드 FCM v1 마이그레이션 후~~ 백엔드 완료(2026-07-04), **바로 진행 가능**(EAS 재빌드 필요 — 애플 로그인과 묶기 추천).
+- ~~읽음 처리(백엔드 API 노출 후)~~ — **2026-07-04 완료.** 미읽음 도트·로딩/에러 상태 디자인 확정은 계속 대기.
 
 ## 11. 검증
 - `npm run typecheck`, `npm run lint`.
@@ -100,3 +106,4 @@ src/shared/ui/
   ```
   `created_at` 기본 NOW() → 오늘 필터 충족. INSERT 후 `/notifications`에서 목록·미읽음 도트·탭→상세 이동, 삭제 후 빈 상태 확인.
 - 비회원: 로그아웃 → `/notifications` → LoginPromptModal(딤/X → 홈 복귀, 버튼 → /login), 네트워크에 GET 미발생(enabled:false).
+- **읽음 처리(2026-07-04, 웹 + 로컬 BE + 쿠키 주입)**: 미읽음 2건 시드 → 도트 2개 → 탭 → 도트 즉시 제거 + `PATCH /:id/read` 204 + 상세 이동 → DB `read_at` 반영 → 새 세션 재진입에도 읽음 유지 → 읽은 항목 재탭 시 PATCH 미발생 → BE 중단 상태 탭 → 이동은 정상·복귀 시 도트 원복(롤백) 전부 확인.

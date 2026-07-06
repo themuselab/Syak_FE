@@ -9,10 +9,14 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.themuselab.syak"
+      "bundleIdentifier": "com.themuselab.syak",
+      "entitlements": {
+        "aps-environment": "production"
+      }
     },
     "android": {
       "package": "com.themuselab.syak",
+      "permissions": ["android.permission.POST_NOTIFICATIONS"],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

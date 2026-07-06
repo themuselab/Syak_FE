@@ -47,6 +47,7 @@ src/shared/domain/notification/
   notification.types.ts           # NotificationItem/NotificationSettings(+Patch) — BE 05-notification.md 기준
   notification.api.ts             # getNotifications, markNotificationRead, getNotificationSettings, updateNotificationSettings
   notification.queries.ts         # useNotifications(enabled)·useMarkNotificationRead·useNotificationSettings(enabled)·useUpdateNotificationSettings
+  push.ts                         # FCM: usePushSetup(로그인 시 토큰 등록)·탭 라우팅·deleteToken — dynamic import 가드(§9)
 src/shared/ui/
     LoginPromptModal.tsx          # 비회원 로그인 유도 모달(재사용) — 알림 게이팅에 최초 연결
 ```
@@ -71,6 +72,7 @@ src/shared/ui/
 ## 8. 임시 동작 (남은 것만)
 - 로딩/에러 상태 UI는 디자인 미제공 — 스피너/문구+재시도로 임시 처리(코드 주석 명시).
 - 미읽음 도트는 디자인 미제공 임시안(6px 핑크) — 디자이너 확인 후 조정.
+- **앱이 켜져 있을 때(포그라운드) 푸시 배너 미표시** — OS가 포그라운드에선 FCM 배너를 안 띄워줌(별도 로컬 알림 필요). 현재는 알림 목록 캐시만 갱신. 백그라운드·종료 상태에선 다른 앱과 동일하게 뜸.
 - ~~읽음 처리 없음(BE API 미노출) — 뱃지 표시만.~~ → **2026-07-04 연동 완료**(§2). 읽음 처리 실패 시 안내 UI 없이 도트만 원복(토스트 인프라 부재 — 즐겨찾기와 동일 정책).
 
 ## 9. ⚠️ 백엔드 현황 (2026-07-03 코드 조사 — syakBE는 우리가 수정 안 함)
@@ -87,14 +89,20 @@ src/shared/ui/
 **신규 전달사항 (2026-07-04)**:
 - `PATCH /notifications/:id/read`가 **BE 문서(`05-notification.md`·`API_DOCS.md`)에 미기재** — 문서 갱신 요청. (계약은 코드로 확인: 인증 필요, 항상 204, `read_at IS NULL`일 때만 갱신하는 멱등 쿼리)
 
-**FCM 푸시 다음 단계 계획(앱 쪽)** — ~~백엔드 1번 수정 일정이 잡히면 진행~~ → **백엔드 준비 완료(2026-07-04), 이제 진행 가능.** Firebase 프로젝트는 뮤즈랩 지메일 계정에 생성돼 있음(백엔드 개발자) — FE는 거기에 Android/iOS 앱 등록 후 설정 파일만 받으면 됨:
-- `expo-notifications` + Firebase 프로젝트(`google-services.json`/iOS `GoogleService-Info.plist`) + `app.config.ts` plugin → **네이티브 모듈이라 EAS 재빌드 필수**(애플 로그인 어댑터와 묶어 빌드 절약).
-- 알림 권한 요청 → FCM 토큰 획득 → `PATCH /notifications/settings`의 `fcmToken`으로 등록(API는 이미 있음).
-- iOS는 Firebase에 **APNs 키 등록** 추가 필요(FCM이 APNs로 중계하므로 BE는 무수정). iOS 푸시 테스트는 실기기 필요.
+**신규 전달사항 (2026-07-05)**:
+- **fcmToken 해제 수단 없음** — `PATCH /notifications/settings`의 upsert가 `COALESCE($8, fcm_token)`이라 `fcmToken: null`을 보내도 기존 값이 유지됨. 로그아웃·수신 거부 시 서버 토큰을 지울 방법이 없어 FE는 기기 측 `deleteToken()`으로 무효화 중(발송돼도 전달 안 됨). null 허용 또는 해제 API 검토 요청.
+
+**FCM 푸시 — 앱 구현 완료(2026-07-05)**. 라이브러리는 계획의 ~~expo-notifications~~가 아닌 **`@react-native-firebase/app`+`messaging`(v25)** — expo-notifications의 기기 토큰은 iOS에서 APNs 토큰이라 FCM 토큰으로 발송하는 백엔드와 안 맞음([decisions.md](./decisions.md)). 구조:
+- **`src/shared/domain/notification/push.ts`**: `usePushSetup()`(루트 레이아웃, 로그인 전환 감지) → `registerPushToken()` = 권한 요청(iOS `requestPermission` / 안드13+ `POST_NOTIFICATIONS`) → `getToken()` → `PATCH /notifications/settings { fcmToken }` + `onTokenRefresh` 재등록. 전부 dynamic import 가드(web·Expo Go·구 dev build 조용히 통과 — 카카오/네이버 패턴).
+- **알림 탭 라우팅**: 백그라운드(`onNotificationOpenedApp`)·종료 상태(`getInitialNotification`, 스플래시 replace와 경합 방지로 500ms 지연) → payload `data.shopId`로 `/shop/:id` 이동. 포그라운드 수신은 알림 목록 캐시 invalidate만(배너 미표시 — 임시 동작 §8).
+- **로그아웃**: `useSignOut`이 signOut 전 `deleteToken()`(기기 토큰 무효화) — 서버 토큰 삭제 API가 없어서(§9 신규 전달사항) 클라 측 대응.
+- **설정/빌드**: app.config.ts가 `google-services.json`/`GoogleService-Info.plist` **존재할 때만** firebase plugin·`googleServicesFile`·iOS static frameworks를 포함(파일은 .gitignore, EAS는 file 타입 env `GOOGLE_SERVICES_JSON`/`GOOGLE_SERVICE_INFO_PLIST`). `POST_NOTIFICATIONS` 권한·`aps-environment` entitlement는 app.json. **네이티브 모듈이라 EAS 재빌드 필수** — 구 dev build에선 푸시만 비활성(가드), 나머지 정상.
+- **iOS 잔여(코드 완료, 계정 대기)**: Apple Developer 유료 결제 후 APNs 키(.p8) 발급 → Firebase 콘솔 Cloud Messaging에 업로드 → iOS 빌드로 검증. 그 전까지 iOS 푸시만 미동작.
 
 ## 10. 남은 작업
-- FCM 푸시 셋업(§9 계획) — ~~백엔드 FCM v1 마이그레이션 후~~ 백엔드 완료(2026-07-04), **바로 진행 가능**(EAS 재빌드 필요 — 애플 로그인과 묶기 추천).
+- ~~FCM 푸시 셋업~~ — **2026-07-05 앱 구현 완료(§9).** 잔여: ① Firebase 콘솔에 앱 등록 후 설정 파일 2개 수령(사람) ② EAS file env 등록 + 안드 dev build 재빌드 ③ 실기기 검증 ④ iOS는 Apple Developer 결제 후 APNs 키 등록·검증.
 - ~~읽음 처리(백엔드 API 노출 후)~~ — **2026-07-04 완료.** 미읽음 도트·로딩/에러 상태 디자인 확정은 계속 대기.
+- 포그라운드 수신 시 배너 표시(현재 미표시 — §8) 정책·디자인 확정 시 로컬 알림 추가 검토.
 
 ## 11. 검증
 - `npm run typecheck`, `npm run lint`.
@@ -107,3 +115,4 @@ src/shared/ui/
   `created_at` 기본 NOW() → 오늘 필터 충족. INSERT 후 `/notifications`에서 목록·미읽음 도트·탭→상세 이동, 삭제 후 빈 상태 확인.
 - 비회원: 로그아웃 → `/notifications` → LoginPromptModal(딤/X → 홈 복귀, 버튼 → /login), 네트워크에 GET 미발생(enabled:false).
 - **읽음 처리(2026-07-04, 웹 + 로컬 BE + 쿠키 주입)**: 미읽음 2건 시드 → 도트 2개 → 탭 → 도트 즉시 제거 + `PATCH /:id/read` 204 + 상세 이동 → DB `read_at` 반영 → 새 세션 재진입에도 읽음 유지 → 읽은 항목 재탭 시 PATCH 미발생 → BE 중단 상태 탭 → 이동은 정상·복귀 시 도트 원복(롤백) 전부 확인.
+- **FCM 푸시(안드 실기기 — 새 dev build 필요)**: ① 로그인 → 권한 팝업 허용 → 개발 로그의 FCM 토큰 확인 + `PATCH /notifications/settings` 발생 ② Firebase 콘솔 > Messaging > 테스트 메시지에 토큰 입력 → 백그라운드/종료 상태 수신 ③ 테스트 메시지에 커스텀 데이터 `shopId` 추가 → 탭 → 샵 상세 이동 ④ 권한 거부 → PATCH 미발생·앱 정상 ⑤ 로그아웃→재로그인 → 새 토큰 재등록. 서버 발송 E2E는 운영 슬롯 오픈 시 자동 확인.

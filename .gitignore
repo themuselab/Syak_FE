@@ -34,6 +34,10 @@ yarn-error.*
 .env
 .env*.local
 
+# Firebase (FCM) — 커밋 금지, 로컬은 루트 파일·EAS 빌드는 file 타입 환경변수로 주입
+google-services.json
+GoogleService-Info.plist
+
 # typescript
 *.tsbuildinfo
 

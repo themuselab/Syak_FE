@@ -69,6 +69,22 @@
 
 ---
 
+## C-4. Firebase (FCM 푸시) — 2026-07-05 추가
+> 프로젝트는 **뮤즈랩 지메일 계정**의 Firebase 콘솔에 이미 생성돼 있음(백엔드 개발자). 서버 발송 설정(EC2 env)도 완료 — FE는 앱 등록만.
+1. Firebase 콘솔 → 프로젝트 → **Android 앱 추가**: 패키지명 `com.themuselab.syak` → `google-services.json` 다운로드 → **`syakFE/` 루트에 저장**.
+2. **iOS 앱 추가**: Bundle ID `com.themuselab.syak` → `GoogleService-Info.plist` 다운로드 → 루트에 저장.
+3. 두 파일은 **.gitignore 처리돼 있음**(커밋 금지). EAS 빌드용으로 file 타입 env 등록:
+   ```
+   eas env:create --scope project --name GOOGLE_SERVICES_JSON --type file --value ./google-services.json
+   eas env:create --scope project --name GOOGLE_SERVICE_INFO_PLIST --type file --value ./GoogleService-Info.plist
+   ```
+   (`app.config.ts`가 env 경로 → 없으면 루트 파일 순으로 찾고, **파일이 없으면 firebase plugin을 빼고 평가** — 빌드 안 깨짐, 푸시만 비활성.)
+4. **재빌드 필요** — 네이티브 모듈(`@react-native-firebase/*`). iOS는 static frameworks가 자동 활성(plist 있을 때).
+5. **(iOS 푸시 전제, 나중에)** Apple Developer 유료 계정에서 APNs 키(.p8) 발급 → Firebase 프로젝트 설정 > Cloud Messaging > Apple 앱 구성에 업로드. 이거 없으면 iOS만 발송 실패(안드 무관).
+- 수신 테스트: Firebase 콘솔 > Messaging > **테스트 메시지** → 앱 로그의 FCM 토큰 입력(권한 허용 후 `[push] FCM token:` 로그). 상세 시나리오는 [notification.md](./notification.md) §11.
+
+---
+
 ## D. 백엔드 로컬 (syakBE, 도커)
 카카오 로그인 검증/유저 저장에 백엔드+DB 필요. **Docker Desktop 실행** 후 `syakBE`에서:
 1. `docker compose up -d --build` (app:3000 / postgres:5432 / redis:6379).

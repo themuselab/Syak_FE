@@ -9,12 +9,16 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { usePushSetup } from '@/shared/domain/notification/push';
 import { queryClient } from '@/shared/lib/queryClient';
 
 // 하단 탭바 없음 → 루트 스택. '/' 진입은 app/index.tsx가 splash로 보낸다.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  // FCM 푸시: 로그인 전환 시 토큰 발급·서버 등록 (dev build 전용 — web/Expo Go는 내부 가드로 통과)
+  usePushSetup();
+
   // 폰트는 백그라운드로 로드한다. 로딩 완료를 기다리느라 화면을 막지 않는다
   // (기다리면 폰에서 네이티브 스플래시에 멈출 수 있어서). 폰트는 준비되는 대로 적용됨.
   useFonts({

@@ -13,6 +13,13 @@
 
 ---
 
+## 2026-07-05 · 결정: FCM 토큰 = @react-native-firebase/messaging (expo-notifications 아님)
+- 맥락/문제: 푸시 셋업 시 라이브러리 선택. 기존 계획(notification.md §9)은 Expo 생태계 기본인 expo-notifications였음. 백엔드는 `notification_settings.fcm_token`에 저장된 **FCM 등록 토큰**으로 firebase-admin이 직접 발송하는 구조(Expo push 서비스 미경유).
+- 결정: `@react-native-firebase/app` + `@react-native-firebase/messaging`(v25, config plugin + iOS static frameworks). 토큰 등록은 `push.ts`의 `usePushSetup()`(로그인 전환 시) → 권한 → `getToken()` → PATCH settings. 로그아웃은 `deleteToken()`으로 기기 무효화(서버 토큰 삭제 API 없음 — COALESCE 한계, BE 전달). google-services 파일은 .gitignore + EAS file env, app.config.ts에서 파일 존재 시에만 plugin 포함(조건부 패턴 유지).
+- 이유: expo-notifications의 `getDevicePushTokenAsync()`는 **iOS에서 APNs 토큰**을 반환 — 백엔드가 FCM 토큰으로 발송하므로 iOS 푸시가 불가능해짐. RNFirebase `getToken()`은 양 플랫폼 모두 FCM 토큰(백엔드 개발자 가이드와 일치).
+- 대안(버림): expo-notifications(iOS 토큰 불일치), Expo Push Service 경유(백엔드 재작업 필요 — BE는 이미 firebase-admin 완성), 포그라운드 배너용 notifee 추가(범위 외 — 디자인·정책 확정 후).
+- 관련: `src/shared/domain/notification/push.ts`, `app.config.ts`, [notification.md](./notification.md) §9
+
 ## 2026-07-05 · 결정: 내 주변 매장 = 현재위치 버튼 토글 + 서버 lat/lng, 모드 표시 UI 없음
 - 맥락/문제: 2026-07-04 백엔드 배포로 `GET /shops?lat&lng&radius`(bounding box, 기본 5km) 필터가 생김. 기존 현재위치 버튼은 지도 카메라만 이동하고 목록은 전국 그대로. "내 주변" 노출 방식에 대한 디자인 없음.
 - 결정(사용자 확정 3건): ① 현재위치 버튼을 **토글**로 — 누르면 카메라 이동+목록·핀을 내 주변으로, 다시 누르면 해제(카메라 유지·위치 재조회 없음) ② `radius` 미전송(서버 기본 5km) ③ 칩·버튼 상태 등 **모드 표시 UI 없음**(목록만 변경). `nearbyCoords`는 필터 store가 아닌 **HomeScreen 로컬 state**로 두고 `listParams`에 병합.

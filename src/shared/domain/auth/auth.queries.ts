@@ -30,6 +30,7 @@ export function useSignOut() {
       setUser(null);
       queryClient.removeQueries({ queryKey: ['favorites'] });
       queryClient.removeQueries({ queryKey: ['notifications'] });
+      queryClient.removeQueries({ queryKey: ['user'] });
     },
   });
 }

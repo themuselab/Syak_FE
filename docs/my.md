@@ -1,6 +1,6 @@
 # 마이페이지 (프로필 · 알림 설정)
 
-> 상태: **알림 설정 백엔드 연동 완료**(GET/PATCH /notifications/settings — 토글·반경·내 주변 좌표 저장). 유저 프로필(`/users/me`) 연동 대기.
+> 상태: **알림 설정 + 유저 프로필 백엔드 연동 완료** — 알림 설정(GET/PATCH /notifications/settings)은 2026-07-03, **닉네임은 2026-07-07부터 서버 파생**(`useMe` → GET /users/me, 진입 시 최신 값·조회 중 auth store 스냅샷 폴백).
 > 디자인 원본: `designs/마이페이지/마이페이지.png`(회원·OFF), `마이페이지-1.png`(회원·ON+반경), `마이페이지-로그인전.png`(비회원),
 > `designs/design.pen` 프레임 `M6Lry`·`y1ARc`(회원), `nnRIy`(비회원).
 
@@ -67,9 +67,9 @@ assets/icons/
 - ~~설정 토글/반경 로컬 useState, 로그아웃 setUser(null)~~ → **연동 완료(2026-07-03)**: 설정은 GET/PATCH, 로그아웃은 useSignOut.
 
 ## 9. 남은 작업 (백엔드 연동)
-- `GET /users/me` 닉네임/프로필 표시(닉네임 null → "닉네임 미설정", 프로필 null → 기본 아바타), 소셜 연동 현황(`linkedProviders`).
-- FCM 토큰 등록(`PATCH settings`의 `fcmToken`) — 푸시 셋업 단계에서([notification.md](./notification.md) §9 계획).
-- `DELETE /users/me` 회원탈퇴(재확인 모달).
+- ~~`GET /users/me` 닉네임 표시~~ → **2026-07-07 완료**: 닉네임은 `useMe(isLoggedIn)` 서버 파생(`me?.nickname ?? store.nickname ?? '닉네임 미설정'`), 로그아웃 시 `['user']` 캐시 제거(계정 교체 잔상 방지). **프로필 사진·소셜 연동 현황(`linkedProviders`) 표시는 디자인에 없어 미구현** — 디자인 확보 후(사용자 확정).
+- ~~FCM 토큰 등록~~ → **2026-07-05 완료**([notification.md](./notification.md) §9 — 마이페이지가 아닌 로그인 전환 시 자동 등록).
+- **`DELETE /users/me` 회원탈퇴 — 디자인 대기(사용자 확정 "나중에"). ⚠️ 구글플레이·앱스토어 정책상 계정 삭제 기능은 출시 전 필수** — 디자이너에게 탈퇴 버튼·확인 모달 디자인 요청 필요.
 - 위치 권한 토글: 실제 디바이스 권한 상태 연동(권한 훅 + 설정 딥링크).
 - 즐겨찾기 메뉴 → 즐겨찾기 목록 화면(디자인 확보 후).
 
@@ -77,3 +77,5 @@ assets/icons/
 - `npm run typecheck`, `npm run lint`.
 - 웹 실행 → `/my` 진입. 비회원 화면을 `마이페이지-로그인전.png`와 대조. 임시 `setUser(목 유저)`로 회원 화면을 `마이페이지.png`(OFF)·`마이페이지-1.png`(ON+슬라이더)와 대조 후 임시 제거.
 - 인터랙션: 토글 ON/OFF, 내 주변 알림 ON 시 슬라이더 노출/드래그(km 갱신), 로그인/로그아웃 이동. 알림 페이지(`/notifications`) 헤더 회귀 확인.
+- **닉네임 서버 파생(2026-07-07, 웹 + 로컬 BE(3001) + 쿠키 주입)**: `/my` 진입 → `GET /users/me` + 닉네임 표시 → DB에서 닉네임 변경 → 재진입 시 새 값 반영(스냅샷이면 불가능한 동작) → 로그아웃 → 비회원 문구·`users/me` 요청 없음·이전 닉네임 잔상 없음 확인.
+  - 참고: 로컬 3000 포트를 다른 프로세스가 쓸 때가 있어 syakBE 로컬 전용 override로 **3001 포트** 노출 중(`docker-compose.override.yml`, 미커밋).

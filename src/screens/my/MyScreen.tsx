@@ -10,6 +10,7 @@ import {
   useNotificationSettings,
   useUpdateNotificationSettings,
 } from '@/shared/domain/notification/notification.queries';
+import { useMe } from '@/shared/domain/user/user.queries';
 import { getCurrentCoords } from '@/shared/lib/location';
 import { colors } from '@/shared/theme/colors';
 import { BackHeader } from '@/shared/ui/BackHeader';
@@ -30,6 +31,10 @@ export function MyScreen() {
   const user = useAuthStore((s) => s.user);
   const signOut = useSignOut();
   const isLoggedIn = user != null;
+
+  // 프로필은 서버 파생(GET /users/me) — 로그인 시점 스냅샷(auth store)이 아닌 최신 값 표시.
+  // 조회 중엔 store 값 폴백(깜빡임 방지). 프로필 사진·연동 현황은 디자인 부재로 미표시(docs/my.md §9).
+  const { data: me } = useMe(isLoggedIn);
 
   // 위치 권한 토글: BE 대응 필드가 없어 로컬 UI 상태 유지 (실권한 연동은 남은 작업 — docs/my.md).
   const [locationPermission, setLocationPermission] = useState(false);
@@ -59,7 +64,9 @@ export function MyScreen() {
     update.mutate({ nearEnabled: true, nearLat: coords.lat, nearLng: coords.lng });
   };
 
-  const subtitle = isLoggedIn ? (user.nickname ?? '닉네임 미설정') : '로그인하고 편리하게 샥-';
+  const subtitle = isLoggedIn
+    ? (me?.nickname ?? user.nickname ?? '닉네임 미설정')
+    : '로그인하고 편리하게 샥-';
 
   const handleLogout = () => {
     // useSignOut이 onSettled에서 로컬 세션을 비운다(성공/실패 모두). 이동만 처리.

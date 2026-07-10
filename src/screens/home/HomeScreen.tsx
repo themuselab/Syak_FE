@@ -115,7 +115,7 @@ export function HomeScreen() {
 
   // 현재위치 버튼 = 내 주변 토글(사용자 확정): 켜면 카메라 이동 + 목록을 내 주변(서버 기본 5km)으로,
   // 다시 누르면 해제(전체 목록, 카메라 유지·위치 재조회 없음). 권한 거부·실패 시 조용히 무동작(모드 안 켜짐).
-  // 모드 표시 UI 없음 — 사용자 확정(디자인 생기면 재검토, docs/home.md 임시 동작).
+  // 모드 표시 = 지도 내 위치 마커 + 버튼 아이콘 파랑(토글 시점 좌표 1회 고정 — 목록 검색 기준과 일치, 사용자 확정).
   const handleNearbyToggle = async () => {
     if (nearbyCoords) {
       setNearbyCoords(null);
@@ -135,6 +135,7 @@ export function HomeScreen() {
           shops={shops}
           onMarkerPress={setSelectedShopId}
           onMapPress={() => setSelectedShopId(null)}
+          myLocation={nearbyCoords}
         />
 
         {/* 상단 핑크 그라데이션 */}
@@ -153,7 +154,7 @@ export function HomeScreen() {
 
         {/* 현재위치 버튼 (지도 우하단, 바텀시트 위) */}
         <View className="absolute right-4" style={{ bottom: height * 0.42 + 12 }}>
-          <CurrentLocationButton onPress={handleNearbyToggle} />
+          <CurrentLocationButton onPress={handleNearbyToggle} active={nearbyCoords !== null} />
         </View>
 
         <ShopBottomSheet

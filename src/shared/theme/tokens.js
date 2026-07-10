@@ -29,6 +29,8 @@ const colors = {
     900: '#212529',
   },
   white: '#FFFFFF',
+  // 내 위치 파랑 (design.pen 내위치 마크업 wMGlf — 마커·현재위치 버튼 활성 상태 공용)
+  myLocation: '#007AFF',
   success: { 100: '#E6FCF5', 500: '#2FB344' },
   warning: { 100: '#FFF4E6', 500: '#F5B301' },
   error: { 100: '#FFF5F5', 500: '#E03131' },

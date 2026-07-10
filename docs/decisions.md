@@ -13,6 +13,13 @@
 
 ---
 
+## 2026-07-10 · 결정: 내 주변 모드 표시 = locationOverlay 마커(토글 시점 1회 고정) + 버튼 아이콘 #007AFF
+- 맥락/문제: 내 주변 토글(2026-07-05)은 모드 표시 UI 없이 목록만 바뀌어 "내 위치 기준 탐색 중"임을 알 수 없다는 피드백. 디자인 도착(`design.pen` `wMGlf` 내위치 마크업 — 파란 점 마커 32px). 단, 버튼 활성 상태 색은 디자인에 정의 없음.
+- 결정(사용자 확정): ① 마커는 `NaverMapView` 내장 **`locationOverlay`**로 표시(커스텀 PNG `assets/icons/marker-my-location.png`, pen 노드 3배수 export) ② 좌표는 **토글 시점 1회 고정**(실시간 추적 안 함) ③ 버튼 활성 색 = **#007AFF**(마커와 통일, `colors.myLocation` 토큰 신설, 아이콘만 변경) ④ 해제 시 마커 숨김·색 원복.
+- 이유: locationOverlay는 SDK가 "사용자 현재 위치" 용도로 제공하는 전용 오버레이(지도당 1개 보장, 샵 핀과 z-순서 충돌 없음). 토글 시점 고정은 목록 검색 기준 좌표(`nearbyCoords`)와 마커가 항상 일치 — 실시간 추적이면 마커와 검색 기준이 어긋나고 watchPosition 배터리 비용 발생. #007AFF는 마커 색과 동일해 "내 위치" 계열로 직관적(iOS 표준 위치 색).
+- 대안(버림): 일반 `NaverMapMarkerOverlay`로 직접 렌더(전용 오버레이가 있는데 중복), 실시간 추적(검색 기준 불일치·배터리), 브랜드 핑크 활성 색(즐겨찾기·강조 요소와 겹침 — 사용자 확정으로 파랑).
+- 관련: `HomeMap.tsx`, `CurrentLocationButton.tsx`, `tokens.js`, [home.md](./home.md) §3 내 주변
+
 ## 2026-07-05 · 결정: FCM 토큰 = @react-native-firebase/messaging (expo-notifications 아님)
 - 맥락/문제: 푸시 셋업 시 라이브러리 선택. 기존 계획(notification.md §9)은 Expo 생태계 기본인 expo-notifications였음. 백엔드는 `notification_settings.fcm_token`에 저장된 **FCM 등록 토큰**으로 firebase-admin이 직접 발송하는 구조(Expo push 서비스 미경유).
 - 결정: `@react-native-firebase/app` + `@react-native-firebase/messaging`(v25, config plugin + iOS static frameworks). 토큰 등록은 `push.ts`의 `usePushSetup()`(로그인 전환 시) → 권한 → `getToken()` → PATCH settings. 로그아웃은 `deleteToken()`으로 기기 무효화(서버 토큰 삭제 API 없음 — COALESCE 한계, BE 전달). google-services 파일은 .gitignore + EAS file env, app.config.ts에서 파일 존재 시에만 plugin 포함(조건부 패턴 유지).
@@ -20,7 +27,7 @@
 - 대안(버림): expo-notifications(iOS 토큰 불일치), Expo Push Service 경유(백엔드 재작업 필요 — BE는 이미 firebase-admin 완성), 포그라운드 배너용 notifee 추가(범위 외 — 디자인·정책 확정 후).
 - 관련: `src/shared/domain/notification/push.ts`, `app.config.ts`, [notification.md](./notification.md) §9
 
-## 2026-07-05 · 결정: 내 주변 매장 = 현재위치 버튼 토글 + 서버 lat/lng, 모드 표시 UI 없음
+## 2026-07-05 · 결정: 내 주변 매장 = 현재위치 버튼 토글 + 서버 lat/lng, 모드 표시 UI 없음 (→ 표시 UI는 2026-07-10 항목으로 대체)
 - 맥락/문제: 2026-07-04 백엔드 배포로 `GET /shops?lat&lng&radius`(bounding box, 기본 5km) 필터가 생김. 기존 현재위치 버튼은 지도 카메라만 이동하고 목록은 전국 그대로. "내 주변" 노출 방식에 대한 디자인 없음.
 - 결정(사용자 확정 3건): ① 현재위치 버튼을 **토글**로 — 누르면 카메라 이동+목록·핀을 내 주변으로, 다시 누르면 해제(카메라 유지·위치 재조회 없음) ② `radius` 미전송(서버 기본 5km) ③ 칩·버튼 상태 등 **모드 표시 UI 없음**(목록만 변경). `nearbyCoords`는 필터 store가 아닌 **HomeScreen 로컬 state**로 두고 `listParams`에 병합.
 - 이유: 새 화면·디자인 없이 기존 버튼의 자연스러운 확장. params가 queryKey라 병합 한 줄로 1페이지 리셋·무한스크롤·필터 AND 조합·핀 갱신이 전부 기존 로직으로 동작. 필터 store 편입은 필터 화면과 무관한 상태라 과함(초기화 버튼과 얽히는 의미 결정도 불필요해짐 — 해제는 버튼으로만).

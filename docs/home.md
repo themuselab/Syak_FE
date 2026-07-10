@@ -6,7 +6,7 @@
 ## 1. 구성
 - **헤더**: 로고 + 알림/프로필. 벨 → `/notifications`, 유저 → `/my`.
 - **검색바**: pill, 핑크 테두리. 이름 검색(`store.search`) — **서버 `q` 파라미터**(ilike 부분검색). 타이핑마다 refetch하지 않도록 **300ms 디바운스**(`useDebouncedValue`).
-- **지도**: `HomeMap`(네이버지도 `NaverMapView`) + 샵 좌표 핀. **핀 탭 → 바텀시트에 그 매장 미리보기(카드 1개, 시트 40%로)** → 카드 탭 또는 시트를 위로 크게 올리면(90%) `/shop/:id` 상세 진입. **지도 빈 곳 탭 → 미리보기 해제**(전체 목록 복귀). web/Expo Go/키 없음은 회색 placeholder(`HomeMap.web.tsx` + 키 가드).
+- **지도**: `HomeMap`(네이버지도 `NaverMapView`) + 샵 좌표 핀. **핀/카드 탭 → 특정샵 포커스(2026-07-10)**: 탭된 핀은 포커스 핀(56px)으로 교체 + 시트 35%에 **인라인 상세**(`ShopDetailSheet`) 표시 → 시트를 올리면 **라우트 이동 없이 풀스크린(100%) 확장**(헤더·sticky 탭·예약바 = 상세 화면과 동일). **지도 빈 곳 탭 → 포커스 해제**(전체 목록 복귀). web/Expo Go/키 없음은 회색 placeholder(`HomeMap.web.tsx` + 키 가드). — §3 특정샵 포커스.
 - **현재위치 버튼 = 내 주변 토글(2026-07-05)**: 지도 우하단. 누르면 `expo-location` 권한 → 좌표 → 지도 카메라 이동(`HomeMap` ref `moveTo`) + **목록·핀을 내 주변 매장으로 필터**(`GET /shops?lat&lng`, 반경 서버 기본 5km). **다시 누르면 해제**(전체 목록, 카메라 유지). **모드 표시(2026-07-10 피드백 반영)**: 지도에 내 위치 마커(파란 점, `locationOverlay`) + 버튼 아이콘 파랑(`#007AFF`) 전환, 해제 시 원복. 권한 거부 시 무동작 — §임시 동작.
 - **바텀시트**: 드래그(40%↔90%), 칩바(고정) + 매장 목록 / 미리보기(핀 선택 시 카드 1개) / 로딩 / 에러 / 빈 상태. 목록 하단·필터 닫기 버튼은 **safe area bottom inset 반영**(안드 내비 바에 안 가림).
 - **매장 카드**: 썸네일(`photos[0]`) + 이름·**리뷰수(`리뷰 N`)**·주소·배지·즐겨찾기 별.
@@ -31,6 +31,7 @@ src/shared/domain/shops/
 ```
 - 마커 핀 PNG: `assets/icons/pin-{partner,discount,reservable}.png`. `shopToView.markerKind`(isPartner→partner / eventDesc→discount / else reservable)와 직결.
 - 내 위치 마커 PNG: `assets/icons/marker-my-location.png` — `design.pen` 프레임 `wMGlf`(내위치 마크업)의 `markup_my` 노드를 3배수 export(102px, 그림자 여백 포함). 지도에는 `NaverMapView`의 `locationOverlay`(SDK 내 위치 전용 오버레이, 지도당 1개)로 32dp 표시.
+- 포커스 핀 PNG: `assets/icons/pin-focused.png` — `design.pen` 프레임 `euK3A`(특정샵 포커스)의 `b6WWf` 노드 3배수 export(168px). 선택된 핀만 56dp + `zIndex 1`로 교체 표시.
 
 ## 3. 데이터/필터 로직
 - **목록**: `useShops(params)` — `params`는 `filtersToParams(store)`. **무한스크롤**: `useInfiniteQuery`(`limit:20`, `getNextPageParam`은 서버 응답 `total/page/limit`로 계산) + 리스트 `onEndReached`(threshold 0.5)로 다음 페이지 누적, footer 스피너. 지도 핀도 로드된 페이지까지의 샵만 표시. params(page 제외)가 queryKey라 필터 변경 시 1페이지부터 리셋. 페이지 flat 후 id 중복 제거(offset 페이지네이션 중복 대비). **예외**: 시간 필터 활성 시 `/slots/search` 교집합이 페이지 단위로 잘리지 않게 `limit:100` 단일 조회(무한스크롤 비활성 — 100개 초과 결과 미표시는 기존과 동일 한계).
@@ -54,6 +55,11 @@ src/shared/domain/shops/
   - **모드 표시(2026-07-10, 피드백 디자인 반영)**: ~~표시 UI 없음~~ → 지도에 **내 위치 마커**(`locationOverlay`, 토글 시점 좌표 1회 고정 — 실시간 추적 안 함, 목록 검색 기준과 항상 일치·사용자 확정) + **버튼 아이콘 파랑 `colors.myLocation`(#007AFF, 마커 색과 통일 — 사용자 확정)**. 해제 시 마커 숨김·색 원복. 디자인: `design.pen` `wMGlf` + `designs/피드백반영 디자인/내위치 마크업.png`(단, 버튼 활성 색은 디자인에 정의 없어 사용자 확정 값).
   - **임시 동작**: 위치 권한 거부·실패 시 안내 없이 무동작(모드 안 켜짐 — 마커·색상 변화 없음).
 
+- **특정샵 포커스(2026-07-10, 피드백 디자인 euK3A 반영)**: 핀 탭 또는 목록 카드 탭 → `selectedShopId` 세팅(카드 탭은 카메라도 해당 매장으로 이동 — 사용자 확정 "핀과 동일 플로우").
+  - **시트 35%**(디자인 285/812): `ShopDetailSheet`(shop-detail 폴더 — 홈이 유일하게 import하는 화면 간 예외)가 `useShop`+`useShopSlots`로 인라인 상세 표시. 타이틀 행 오른쪽 별(35% 디자인) 포함.
+  - **풀스크린(100%)**: 시트를 올리면 라우트 이동 없이 확장 — `expanded` 상태에서 핸들 숨김·라운드 제거 + `DetailHeader`(뒤로=시트 접힘)·`ReservationBar` 표시. 라우트 `/shop/:id`는 알림 딥링크용으로 유지(같은 쿼리키 = 캐시 공유).
+  - **뒤로가기 매트릭스**: 헤더 뒤로/안드 물리 뒤로(풀스크린) → 35% 접힘 / 안드 물리 뒤로(35%) → 포커스 해제 / 지도 빈 곳 탭 → 포커스 해제(핀 원복). 스냅은 포커스 `['35%','100%']` ↔ 목록 `['40%','90%']`.
+  - 필터 변경으로 포커스 매장이 목록에서 빠지면 자동 해제(기존 로직 유지). 풀스크린에서 헤더 별+타이틀 별이 동시 노출 — 각각 해당 디자인과 일치해 유지(**디자이너 확인 항목**).
 - **뷰모델 변환**(`shopToView.ts`): 주소=`formatDistrict(district)`(region은 백엔드 "서울" 고정 버그로 미사용 — 서울 구만 "서울 " 접두), badges=`eventDesc`+`priceTier`, markerKind=`isPartner→partner / eventDesc→event / else default`, favorite=`useFavoriteShopIds` 서버 캐시 파생 Set.
 - **즐겨찾기**: `/favorites` **서버 연동 완료(2026-07-04)** — `src/shared/domain/favorite/` (types/api/queries).
   - 상태 소스는 `['favorites','list']` 캐시 하나(GET 응답 원형). 별 여부는 `useFavoriteShopIds(isLoggedIn)`의 `select` 파생 Set으로 판정(샵 API에 isFavorite 없음 — §4-6). **홈↔상세가 같은 캐시라 자동 동기화.**
@@ -90,3 +96,4 @@ src/shared/domain/shops/
 - 지도(dev build + NCP 키): 네이버 지도 렌더·샵 핀(좌표 null 제외)·partner/discount/reservable 3색 핀·핀탭 상세이동·현재위치 권한→카메라 이동·서울 초기 카메라.
 - **내 주변(2026-07-05, 웹 + geolocation 스텁 주입)**: 버튼 탭 → `GET /shops?lat&lng&page=1`(radius 미전송) + 목록이 강남 5km 매장만(강남·서초·송파 등) / 재탭 → lat/lng 없이 전체 복귀 / 할인·이벤트 필터와 조합 시 `has_event=true&lat&lng` 동시 전달 / 권한 거부 스텁 → 요청·목록 변화 없음. 실기기 GPS는 fast refresh로 확인 예정(재빌드 불필요).
 - **내 위치 마커 + 버튼 활성 색(2026-07-10)**: 웹은 버튼 색만 검증 가능(지도 placeholder) — 버튼 탭 → 아이콘 #007AFF, 재탭 → 회색 원복. 마커는 실기기(dev build + Metro, `locationOverlay`는 JS prop이라 재빌드 불필요) — 버튼 탭 → 파란 마커 표시 + 카메라 이동, 재탭 → 마커 숨김.
+- **특정샵 포커스(2026-07-10, 웹)**: 카드 탭 → 라우트 이동 없이 35% 시트에 타이틀+별+배지+캐러셀 / 드래그 업 → 풀스크린(헤더·sticky 탭·예약바·핸들 숨김) / 헤더 뒤로 → 35% 복귀 / 목록·필터 모드 회귀 정상. 라우트 `/shop/:id` 회귀(스크롤스파이·탭 점프) 확인. **실기기 잔여**: 핀 탭 → 포커스 핀 56px 교체·zIndex, 안드 물리 뒤로 매트릭스, 시트 드래그 제스처↔내부 스크롤 전환, 알림 딥링크.

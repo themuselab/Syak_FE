@@ -5,12 +5,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ShopDetailSheet } from '@/screens/shop-detail/ShopDetailSheet';
 import { colors } from '@/shared/theme/colors';
+import { ShopListCard } from '@/shared/ui/ShopListCard';
 
 import type { ShopCardView } from '../shopToView';
 import { useHomeFilterStore } from '../useHomeFilterStore';
 import { FilterChipBar } from './FilterChipBar';
 import { FilterView } from './filters/FilterView';
-import { ShopListCard } from './ShopListCard';
 import { ShopListEmpty } from './ShopListEmpty';
 import { ShopListError } from './ShopListError';
 

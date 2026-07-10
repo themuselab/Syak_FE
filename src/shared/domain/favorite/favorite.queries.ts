@@ -22,6 +22,17 @@ function optimisticFavorite(shopId: string): Favorite {
   };
 }
 
+// 즐겨찾기 원형 목록(서버 정렬 created_at DESC). 인증 필요 — enabled로 게이팅.
+// useToggleFavorite·useFavoriteShopIds와 같은 캐시라 별 토글 낙관 반영이 자동 공유된다.
+export function useFavorites(enabled: boolean) {
+  return useQuery({
+    queryKey: FAVORITES_KEY,
+    queryFn: getFavorites,
+    enabled,
+    staleTime: 60_000,
+  });
+}
+
 // 즐겨찾기 샵 ID Set. 인증 필요 — 호출부에서 로그인 여부를 enabled로 전달.
 // 비회원일 땐 잔존 캐시가 있어도 항상 빈 Set (로그아웃 직후 이전 계정 별 노출 방지).
 // select 결과는 react-query가 메모하므로 참조 안정 — useMemo deps에 그대로 사용 가능.

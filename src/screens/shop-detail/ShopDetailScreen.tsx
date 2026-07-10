@@ -1,16 +1,6 @@
 import { RotateCcw } from 'lucide-react-native';
-import { useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  type LayoutChangeEvent,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { router } from 'expo-router';
 
@@ -22,29 +12,19 @@ import { useShop } from '@/shared/domain/shops/shops.queries';
 import { colors } from '@/shared/theme/colors';
 import { LoginPromptModal } from '@/shared/ui/LoginPromptModal';
 
-import { AvailabilitySection } from './components/AvailabilitySection';
 import { DetailHeader } from './components/DetailHeader';
-import { ImageCarousel } from './components/ImageCarousel';
-import { InfoSection } from './components/InfoSection';
-import { MenuSection } from './components/MenuSection';
 import { ReservationBar } from './components/ReservationBar';
-import { ReviewSection } from './components/ReviewSection';
-import { SectionTabs, type TabKey } from './components/SectionTabs';
-import { ShopTitleBlock } from './components/ShopTitleBlock';
+import { ShopDetailBody } from './ShopDetailBody';
 import { toShopDetailView } from './shopDetailToView';
 
 type Props = {
   shopId?: string;
 };
 
-// 스크롤스파이 대상 섹션 (홈은 맨 위 = offset 0). 탭 순서와 동일.
-const SPY_SECTIONS: TabKey[] = ['availability', 'menu', 'info', 'review'];
-
-// 샵 상세페이지. GET /shops/:id + GET /slots/shop/:id(3일치) → 뷰모델 어댑터로 각 섹션에 공급.
-// 탭 = 스크롤스파이 + sticky. 즐겨찾기는 /favorites 서버 연동(홈과 단일 캐시) — 비회원은 LoginPromptModal 게이팅.
+// 샵 상세페이지(라우트 /shop/:id). GET /shops/:id + GET /slots/shop/:id(3일치) → 뷰모델 어댑터로 각 섹션에 공급.
+// 본문(타이틀·캐러셀·sticky 탭·스크롤스파이·섹션)은 ShopDetailBody — 홈 포커스 시트와 공유.
+// 즐겨찾기는 /favorites 서버 연동(홈과 단일 캐시) — 비회원은 LoginPromptModal 게이팅.
 export function ShopDetailScreen({ shopId }: Props) {
-  const insets = useSafeAreaInsets();
-
   const shopQuery = useShop(shopId ?? '', !!shopId);
   const slotsQuery = useShopSlots(shopId ?? '', !!shopId);
 
@@ -69,48 +49,6 @@ export function ShopDetailScreen({ shopId }: Props) {
       return;
     }
     toggleFavoriteOnServer(shopId);
-  };
-
-  const [activeTab, setActiveTab] = useState<TabKey>('home');
-  // 마지막 섹션도 탭바 바로 아래로 스크롤될 수 있도록 하단 여백을 동적으로 계산.
-  const [viewportH, setViewportH] = useState(0);
-  const [lastSectionH, setLastSectionH] = useState(0);
-
-  const scrollRef = useRef<ScrollView>(null);
-  const offsets = useRef<Partial<Record<TabKey, number>>>({});
-  const tabBarHeight = useRef(41);
-
-  const onSectionLayout = (key: TabKey) => (e: LayoutChangeEvent) => {
-    offsets.current[key] = e.nativeEvent.layout.y;
-    if (key === 'review') setLastSectionH(e.nativeEvent.layout.height);
-  };
-
-  // 마지막 섹션(리뷰)이 탭바 바로 아래까지 올라올 만큼의 스크롤 여유를 확보.
-  const bottomPad = Math.max(
-    insets.bottom + 96,
-    viewportH - tabBarHeight.current - lastSectionH + insets.bottom + 24,
-  );
-
-  const onPressTab = (key: TabKey) => {
-    setActiveTab(key);
-    if (key === 'home') {
-      scrollRef.current?.scrollTo({ y: 0, animated: true });
-      return;
-    }
-    const y = offsets.current[key];
-    if (y !== undefined) {
-      scrollRef.current?.scrollTo({ y: y - tabBarHeight.current, animated: true });
-    }
-  };
-
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const y = e.nativeEvent.contentOffset.y + tabBarHeight.current + 1;
-    let next: TabKey = 'home';
-    for (const key of SPY_SECTIONS) {
-      const top = offsets.current[key];
-      if (top !== undefined && y >= top) next = key;
-    }
-    if (next !== activeTab) setActiveTab(next);
   };
 
   // 로딩 / 에러 (헤더는 유지해 뒤로가기 가능).
@@ -161,40 +99,12 @@ export function ShopDetailScreen({ shopId }: Props) {
         }}
       />
 
-      <ScrollView
-        ref={scrollRef}
-        scrollEventThrottle={16}
-        onScroll={onScroll}
-        onLayout={(e) => setViewportH(e.nativeEvent.layout.height)}
-        showsVerticalScrollIndicator={false}
-        stickyHeaderIndices={[1]}
-        contentContainerStyle={{ paddingBottom: bottomPad }}
-      >
-        {/* index 0: 홈 영역 (타이틀 + 캐러셀) */}
-        <View className="gap-5 pt-4">
-          <ShopTitleBlock shop={shop} />
-          <ImageCarousel photos={shop.photos} />
-        </View>
-
-        {/* index 1: sticky 탭바 */}
-        <View onLayout={(e) => (tabBarHeight.current = e.nativeEvent.layout.height)}>
-          <SectionTabs active={activeTab} onPressTab={onPressTab} />
-        </View>
-
-        {/* index 2~5: 섹션 (각 onLayout으로 스크롤 오프셋 수집) */}
-        <View className="px-5 pt-7" onLayout={onSectionLayout('availability')}>
-          <AvailabilitySection availability={shop.availability} />
-        </View>
-        <View className="px-5 pt-8" onLayout={onSectionLayout('menu')}>
-          <MenuSection menus={shop.menus} />
-        </View>
-        <View className="px-5 pt-8" onLayout={onSectionLayout('info')}>
-          <InfoSection info={shop.info} />
-        </View>
-        <View className="px-5 pt-8" onLayout={onSectionLayout('review')}>
-          <ReviewSection reviewCount={shop.reviewCount} reviews={shop.reviews} />
-        </View>
-      </ScrollView>
+      <ShopDetailBody
+        shop={shop}
+        renderScroll={(scrollProps, ref) => (
+          <ScrollView {...scrollProps} ref={ref} scrollEventThrottle={16} />
+        )}
+      />
 
       <ReservationBar
         phone={shop.phone}

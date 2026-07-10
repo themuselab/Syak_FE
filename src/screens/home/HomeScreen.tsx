@@ -26,7 +26,7 @@ import { useHomeFilterStore } from './useHomeFilterStore';
 // 홈(지도뷰). 네이버 지도 + GET /shops(비회원 가능).
 // 필터·검색·정렬은 전부 서버 파라미터(filtersToParams). 시간 필터만 /slots/search 교집합.
 // 즐겨찾기는 /favorites 서버 연동(단일 캐시, 낙관적 업데이트) — 비회원 별 탭은 LoginPromptModal 게이팅.
-// 핀 탭 → 바텀시트에 그 매장 미리보기(카드 1개), 지도 빈 곳 탭 → 해제.
+// 핀/카드 탭 → 특정샵 포커스(포커스 핀 + 시트 35% 인라인 상세, 올리면 풀스크린), 지도 빈 곳 탭 → 해제.
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
@@ -93,11 +93,18 @@ export function HomeScreen() {
     return items.map((it) => toShopCardView(it, favoriteIds));
   }, [data, slotParams, slotSearch.data, favoriteIds]);
 
-  // 핀 탭으로 선택된 매장. 필터 변경으로 목록에서 빠지면 자동 해제(null).
+  // 핀/카드 탭으로 포커스된 매장. 필터 변경으로 목록에서 빠지면 자동 해제(null).
   const selectedShop = useMemo(
     () => shops.find((s) => s.id === selectedShopId) ?? null,
     [shops, selectedShopId],
   );
+
+  // 목록 카드 탭 → 핀 탭과 동일한 포커스 플로우(사용자 확정). 화면 밖 매장일 수 있어 카메라도 이동.
+  const selectShop = (id: string) => {
+    setSelectedShopId(id);
+    const shop = shops.find((s) => s.id === id);
+    if (shop?.lat != null && shop.lng != null) mapRef.current?.moveTo(shop.lat, shop.lng);
+  };
 
   // 리스트 끝 도달 시 다음 페이지 로드. 시간 필터 중엔 비활성(100개 단일 조회).
   const loadMore = () => {
@@ -136,6 +143,7 @@ export function HomeScreen() {
           onMarkerPress={setSelectedShopId}
           onMapPress={() => setSelectedShopId(null)}
           myLocation={nearbyCoords}
+          selectedShopId={selectedShopId}
         />
 
         {/* 상단 핑크 그라데이션 */}
@@ -170,6 +178,8 @@ export function HomeScreen() {
           onReset={reset}
           onEndReached={loadMore}
           isFetchingNextPage={slotParams === null && isFetchingNextPage}
+          onSelectShop={selectShop}
+          onDeselect={() => setSelectedShopId(null)}
         />
 
         {/* 비회원 별 탭 게이팅. 로그인 이동 전 모달을 먼저 닫아야 push된 로그인 화면을 안 덮는다. */}

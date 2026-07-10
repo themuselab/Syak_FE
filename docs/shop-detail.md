@@ -1,6 +1,6 @@
 # 샵 상세페이지 (shop-detail)
 
-홈 지도뷰 매장 목록에서 카드를 탭하면 진입하는 매장 상세 화면.
+매장 상세 화면. **진입 경로 2개(2026-07-10 특정샵 포커스 반영)**: ① 홈에서 핀/카드 탭 → **바텀시트 인라인 상세**(`ShopDetailSheet`, 라우트 이동 없음 — [home.md](./home.md) §3 특정샵 포커스) ② 라우트 `/shop/:id`(알림 딥링크 등 홈 외 진입). 본문은 `ShopDetailBody`로 공유.
 **상태: 백엔드 연동 완료(실시간 Supabase)** — `GET /shops/:id`(상세) + `GET /slots/shop/:id`(빈자리 3일치). 메뉴·리뷰·도로명주소·다중 사진 **실데이터 표시**. ~~단 빈자리는 **백엔드 슬롯 API 버그(42703)로 수정 대기**(§백엔드 갭).~~ → **2026-07-04 백엔드 수정 배포로 해소 — 빈자리 실데이터 재검증 완료(§검증).**
 
 ## 디자인 출처
@@ -8,9 +8,9 @@
 - Pencil: `designs/design.pen` 프레임 `PA3vj`("샵 상세 (수정)"). 모든 수치/색은 pen에서 확인한 디자인 원값 그대로 사용.
 
 ## 라우팅 / 진입
-- 라우트: `app/shop/[id].tsx` → `useLocalSearchParams`로 `id` 추출 → `<ShopDetailScreen shopId={id} />`.
-- 진입: 홈 `ShopBottomSheet`의 매장 카드 `onPress` → `router.push('/shop/<id>')`.
-- 뒤로가기: 상세 헤더 좌측 화살표 → `router.back()`.
+- **홈(주 경로, 2026-07-10~)**: 핀/카드 탭 → `ShopBottomSheet` 안 `ShopDetailSheet` 인라인 표시(35%↔100%, push 없음). 뒤로가기 = 시트 접힘(`onBack` 주입).
+- **라우트**: `app/shop/[id].tsx` → `useLocalSearchParams`로 `id` 추출 → `<ShopDetailScreen shopId={id} />`. 알림 딥링크(`push.ts`) 등 홈 외 진입용으로 유지. 뒤로가기 = `router.back()`(기본값).
+- 두 경로는 같은 쿼리키(`['shops',id]`/`['slots',id]`)를 공유 — 시트에서 본 샵은 라우트 진입 시 캐시 재사용.
 
 ## 화면 구조
 ```
@@ -29,6 +29,7 @@
 - "홈"은 화면 최상단(offset 0). 빈자리/메뉴·가격/정보/리뷰는 각 섹션 `View`의 `onLayout.y`를 `offsets` ref에 수집.
 - 탭 press → `scrollTo(offset - 탭바높이)` (홈은 0). 스크롤 시 `onScroll`에서 현재 위치로 활성 탭 자동 갱신.
 - 탭바는 `stickyHeaderIndices={[1]}`로 상단 고정. 고정 시 흰 배경, 활성 탭 밑줄(`#d23e6a`)·핑크 텍스트(`#b32f58`).
+- **공유 구조(2026-07-10)**: 위 로직은 `useSectionSpy` 훅 + `ShopDetailBody`(섹션 조립, `renderScroll` render prop으로 스크롤 컨테이너 주입)로 추출 — 라우트는 RN `ScrollView`, 홈 시트는 `BottomSheetScrollView`(시트 드래그 제스처 연동, `scrollEventThrottle`은 gorhom 내부 관리라 미전달). sticky는 children이 스크롤뷰 직계 배열이어야 동작(프래그먼트 래핑 금지).
 
 ## 데이터 흐름 (백엔드 연동)
 ```
@@ -49,11 +50,14 @@ toShopDetailView(shop, slots)   ★ 뷰모델 어댑터 (shopDetailToView.ts)
 ## 파일 구조
 ```
 src/screens/shop-detail/
-  ShopDetailScreen.tsx        조립 + useShop/useShopSlots + 로딩/에러 + 스크롤스파이/스티키
+  ShopDetailScreen.tsx        라우트 화면 조립 + useShop/useShopSlots + 로딩/에러 (본문은 Body 위임)
+  ShopDetailSheet.tsx         홈 포커스 시트용 인라인 상세 — expanded 시 헤더·예약바 표시, onCollapse 주입
+  ShopDetailBody.tsx          공유 본문(타이틀·캐러셀·sticky 탭·섹션 4개) — renderScroll로 컨테이너 주입
+  useSectionSpy.ts            스크롤스파이 훅(activeTab·offsets·bottomPad·reset) — 구조적 scrollTo 타입
   shopDetailToView.ts         ★ 뷰모델 타입 + toShopDetailView 어댑터 (슬롯 3일 그룹핑)
   components/
-    DetailHeader.tsx          뒤로가기 + 즐겨찾기 별 (/favorites 서버 연동 — 홈과 단일 캐시)
-    ShopTitleBlock.tsx        이름·분류·리뷰수 + 배지
+    DetailHeader.tsx          뒤로가기(onBack 주입 가능, 기본 router.back) + 즐겨찾기 별
+    ShopTitleBlock.tsx        이름·분류·리뷰수 + 배지 (+옵션 별 — 포커스 시트 35% 디자인)
     Badge.tsx                 배지/태그 칩 (bg·color·fontSize props)
     ImageCarousel.tsx         실이미지(expo-image) 캐러셀, 없으면 placeholder
     SectionTabs.tsx           탭바 (TabKey, TABS export)

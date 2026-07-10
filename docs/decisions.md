@@ -13,6 +13,13 @@
 
 ---
 
+## 2026-07-10 · 결정: 특정샵 포커스 = 시트 인라인 상세 + 풀스크린 확장(라우트 push 제거), 본문은 render prop 공유
+- 맥락/문제: 핀 탭 → 목록 카드 1개 미리보기 → 90% 올리거나 카드 탭 시 `/shop/:id` push. 피드백 디자인(euK3A)은 핀 탭 시 시트에 상세 상단부(타이틀+별+배지+캐러셀)를 바로 보여주는 구조. 화면 전환 없이 "끌어올리면 상세가 덮는" UX 요구.
+- 결정(사용자 확정): ① 핀/카드 탭 → 시트 **35%**(디자인 285/812)에 `ShopDetailSheet` 인라인 상세 ② 올리면 **시트 자체가 100% 확장**(push 없음) — expanded에서 핸들 숨김·라운드 0 + `DetailHeader`(뒤로=접힘)·`ReservationBar` 표시 ③ 탭된 핀은 포커스 핀(56px, `pin-focused.png`, zIndex 1) ④ 카드 탭도 동일 플로우(+카메라 이동) ⑤ `/shop/:id` 라우트는 알림 딥링크용 유지. 본문 공유는 `useSectionSpy` 훅 + `ShopDetailBody`의 **`renderScroll` render prop**(라우트=ScrollView, 시트=BottomSheetScrollView — 같은 쿼리키로 캐시도 공유). 안드 물리 뒤로: 풀스크린→접힘→해제. 풀스크린에서 헤더 별+타이틀 별 중복은 각 디자인과 일치해 유지(디자이너 확인 항목).
+- 이유: gorhom v5는 최대 스냅 이전 콘텐츠 팬이 시트를 끌어올리므로 35%↔100%↔내부 스크롤이 기본 동작으로 성립. BottomSheetScrollView가 `onScroll`·`stickyHeaderIndices`·`scrollTo`를 지원해 스크롤스파이 로직을 그대로 공유 가능(단 `scrollEventThrottle`은 내부 관리라 render prop으로 컨테이너별 분리). 인라인이라 지도 맥락 유지 + 시트에서 본 데이터가 라우트 캐시로 재사용.
+- 대안(버림): 90% 도달 시 push 유지(화면 전환 UX — 사용자가 시트 확장 확정), `BottomSheetFooter`로 예약바(조건부 렌더로 충분), 섹션 컴포넌트 `shared/ui` 이동(도메인 응집 깨짐 — 홈→shop-detail import 예외로 기록), 스크롤 컨테이너 ComponentType 주입(TS strict 변성 문제).
+- 관련: `ShopDetailSheet.tsx`, `ShopDetailBody.tsx`, `useSectionSpy.ts`, `ShopBottomSheet.tsx`, `HomeMap.tsx`, [home.md](./home.md) §3 특정샵 포커스, [shop-detail.md](./shop-detail.md)
+
 ## 2026-07-10 · 결정: 내 주변 모드 표시 = locationOverlay 마커(토글 시점 1회 고정) + 버튼 아이콘 #007AFF
 - 맥락/문제: 내 주변 토글(2026-07-05)은 모드 표시 UI 없이 목록만 바뀌어 "내 위치 기준 탐색 중"임을 알 수 없다는 피드백. 디자인 도착(`design.pen` `wMGlf` 내위치 마크업 — 파란 점 마커 32px). 단, 버튼 활성 상태 색은 디자인에 정의 없음.
 - 결정(사용자 확정): ① 마커는 `NaverMapView` 내장 **`locationOverlay`**로 표시(커스텀 PNG `assets/icons/marker-my-location.png`, pen 노드 3배수 export) ② 좌표는 **토글 시점 1회 고정**(실시간 추적 안 함) ③ 버튼 활성 색 = **#007AFF**(마커와 통일, `colors.myLocation` 토큰 신설, 아이콘만 변경) ④ 해제 시 마커 숨김·색 원복.

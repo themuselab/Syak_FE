@@ -79,12 +79,32 @@ export function MyScreen() {
 
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20 }}>
         <View style={{ gap: 20 }}>
-          <Text
-            className="font-pretendard-semibold text-black"
-            style={{ fontSize: 18, letterSpacing: -0.36 }}
-          >
-            {subtitle}
-          </Text>
+          {/* 이름 행: 좌 닉네임 + 우 '계정 관리'(회원만 — 사용자 확정). pill 스타일은 pen 미반영이라
+              기존 칩 패턴 준용(r999·회색 테두리) — 디자이너 확인 항목(docs/account.md). */}
+          <View className="flex-row items-center justify-between">
+            <Text
+              className="font-pretendard-semibold text-black"
+              style={{ fontSize: 18, letterSpacing: -0.36 }}
+            >
+              {subtitle}
+            </Text>
+            {isLoggedIn && (
+              <Pressable
+                onPress={() => router.push('/account')}
+                className="rounded-full"
+                style={{
+                  paddingVertical: 8,
+                  paddingHorizontal: 12,
+                  borderWidth: 1,
+                  borderColor: '#e6e6e6',
+                }}
+              >
+                <Text className="font-pretendard-medium" style={{ fontSize: 13, color: '#555555' }}>
+                  계정 관리
+                </Text>
+              </Pressable>
+            )}
+          </View>
 
           <View style={{ gap: 16 }}>
             {/* 즐겨찾기 목록으로 이동. 비회원 게이팅은 즐겨찾기 화면이 담당(알림과 동일 정책). */}

@@ -16,6 +16,9 @@ const PIN: Record<MarkerKind, MapImageProp> = {
   reservable: require('../../../../assets/icons/pin-reservable.png') as MapImageProp,
 };
 
+// 내 위치 마커 (design.pen 내위치 마크업 wMGlf > markup_my — 파란 점 + 후광, 3배수 export).
+const MY_LOCATION = require('../../../../assets/icons/marker-my-location.png') as MapImageProp;
+
 // 초기 카메라 = 서울 중심 (백엔드 region 항상 "서울").
 const SEOUL = { latitude: 37.5665, longitude: 126.978, zoom: 12 };
 
@@ -25,11 +28,12 @@ type Props = {
   shops: ShopCardView[];
   onMarkerPress: (id: string) => void;
   onMapPress?: () => void; // 핀 없는 빈 곳 탭 (미리보기 해제)
+  myLocation?: { lat: number; lng: number } | null; // 내 주변 모드의 토글 시점 좌표 (null = 마커 숨김)
 };
 
 // 네이버 지도 + 샵 좌표 핀. 네이티브 전용(web/Expo Go는 HomeMap.web.tsx placeholder).
 // 키(EXPO_PUBLIC_NAVER_MAP_CLIENT_ID) 미발급 dev build에서도 안전하게 placeholder로 폴백.
-export const HomeMap = forwardRef<HomeMapRef, Props>(({ shops, onMarkerPress, onMapPress }, ref) => {
+export const HomeMap = forwardRef<HomeMapRef, Props>(({ shops, onMarkerPress, onMapPress, myLocation }, ref) => {
   const mapRef = useRef<NaverMapViewRef>(null);
 
   useImperativeHandle(ref, () => ({
@@ -46,6 +50,14 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(({ shops, onMarkerPress, on
       style={StyleSheet.absoluteFill}
       initialCamera={SEOUL}
       onTapMap={onMapPress}
+      // 내 위치 = SDK 전용 오버레이(지도당 1개). anchor 기본 중앙 — 점형 마커에 적합.
+      locationOverlay={{
+        isVisible: myLocation != null,
+        ...(myLocation ? { position: { latitude: myLocation.lat, longitude: myLocation.lng } } : {}),
+        image: MY_LOCATION,
+        imageWidth: 32,
+        imageHeight: 32,
+      }}
     >
       {shops
         .filter((s) => s.lat != null && s.lng != null)

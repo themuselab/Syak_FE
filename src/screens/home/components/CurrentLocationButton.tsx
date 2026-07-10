@@ -4,7 +4,8 @@ import { Pressable } from 'react-native';
 import { colors } from '@/shared/theme/colors';
 
 // 현재위치 버튼: 40×40 원형, 흰 배경, 회색 테두리. (지도 우하단)
-export function CurrentLocationButton({ onPress }: { onPress?: () => void }) {
+// active = 내 주변 모드 on — 아이콘만 파랑(#007AFF, 마커와 동일)으로 표시(사용자 확정, 배경·테두리 유지).
+export function CurrentLocationButton({ onPress, active }: { onPress?: () => void; active?: boolean }) {
   return (
     <Pressable
       onPress={onPress}
@@ -18,7 +19,7 @@ export function CurrentLocationButton({ onPress }: { onPress?: () => void }) {
         elevation: 2,
       }}
     >
-      <LocateFixed size={22} color={colors.gray[700]} />
+      <LocateFixed size={22} color={active ? colors.myLocation : colors.gray[700]} />
     </Pressable>
   );
 }

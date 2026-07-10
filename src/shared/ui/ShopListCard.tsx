@@ -3,9 +3,19 @@ import { Star } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 
 import { colors } from '@/shared/theme/colors';
-import type { ShopCardView } from '../shopToView';
 
 const FAVORITE_COLOR = '#FFC107';
+
+// 카드가 실제로 쓰는 필드만의 구조적 타입 — 홈 ShopCardView(지도 필드 포함)와
+// 즐겨찾기 화면의 상세 파생 카드가 모두 이 형태를 만족한다.
+export type ShopCardInfo = {
+  name: string;
+  reviewCount: number | null; // null이면 숨김
+  address: string;
+  badges: string[];
+  favorite: boolean;
+  photo: string | null;
+};
 
 function Badge({ label }: { label: string }) {
   const isDeal = label.includes('특가') || label.includes('이벤트');
@@ -26,12 +36,12 @@ function Badge({ label }: { label: string }) {
 }
 
 type Props = {
-  shop: ShopCardView;
+  shop: ShopCardInfo;
   onPress?: () => void;
   onToggleFavorite?: () => void;
 };
 
-// 매장 카드: 썸네일 + 이름/리뷰/주소/배지 + 즐겨찾기 별.
+// 매장 카드: 썸네일 + 이름/리뷰/주소/배지 + 즐겨찾기 별. (홈 목록·즐겨찾기 목록 공용)
 export function ShopListCard({ shop, onPress, onToggleFavorite }: Props) {
   return (
     <Pressable

@@ -13,6 +13,13 @@
 
 ---
 
+## 2026-07-10 · 결정: 즐겨찾기 목록 = shopId별 상세 N+1 병렬 조회 + 진입 시점 스냅샷(별 해제 시 카드 유지)
+- 맥락/문제: 즐겨찾기 목록 디자인(lCEKa)은 홈과 동일한 카드(사진·주소·배지·리뷰수)+카테고리 필터인데, `GET /favorites`는 shopId·이름 스냅샷·지역만 반환(Supabase/RDS DB 분리로 JOIN 불가 — BE 문서 명시). 별 해제 시 목록에서 즉시 사라지면 실수 복구가 어려움.
+- 결정(사용자 확정 2건 포함): ① 카드 정보는 **shopId별 `GET /shops/:id` `useQueries` 병렬 조회**(쿼리키 `['shops',id]` = 상세 화면과 캐시 공유, 페이지네이션 없는 개인 수십 개 수준) ② **별 탭 = 별만 꺼지고 카드 유지** — 진입 시점 favorites를 state 스냅샷으로 고정, 별 상태만 라이브 캐시(`useFavoriteShopIds`)로 표시(재탭 복구, 재진입 시 제거 반영) ③ 필터 결과 빈 상태 = 문구만(버튼 없음) ④ `ShopListCard`를 `shared/ui`로 이동(홈+즐겨찾기 2곳 사용 — CLAUDE.md §3 규칙) + props를 구조적 타입 `ShopCardInfo`로 축소.
+- 이유: BE 응답 확장은 DB 분리 구조상 즉시 불가(개선 요청은 전달사항으로 별도) — 디자인 충족 경로가 N+1뿐. 스냅샷 방식은 낙관 캐시(단일 소스)를 건드리지 않고 화면 로컬에서만 유지돼 홈·상세 별 동기화에 영향 없음.
+- 대안(버림): 이름·지역만 표시(디자인 위반), BE 응답 확장 대기(차단됨), 별 탭 즉시 제거(실수 복구 불가 — 사용자가 유지 확정), 전용 카드 신규 작성(기존 카드 재사용으로 충분).
+- 관련: `src/screens/favorite/*`, `src/shared/ui/ShopListCard.tsx`, `favorite.queries.ts`(useFavorites), [favorite.md](./favorite.md)
+
 ## 2026-07-10 · 결정: 특정샵 포커스 = 시트 인라인 상세 + 풀스크린 확장(라우트 push 제거), 본문은 render prop 공유
 - 맥락/문제: 핀 탭 → 목록 카드 1개 미리보기 → 90% 올리거나 카드 탭 시 `/shop/:id` push. 피드백 디자인(euK3A)은 핀 탭 시 시트에 상세 상단부(타이틀+별+배지+캐러셀)를 바로 보여주는 구조. 화면 전환 없이 "끌어올리면 상세가 덮는" UX 요구.
 - 결정(사용자 확정): ① 핀/카드 탭 → 시트 **35%**(디자인 285/812)에 `ShopDetailSheet` 인라인 상세 ② 올리면 **시트 자체가 100% 확장**(push 없음) — expanded에서 핸들 숨김·라운드 0 + `DetailHeader`(뒤로=접힘)·`ReservationBar` 표시 ③ 탭된 핀은 포커스 핀(56px, `pin-focused.png`, zIndex 1) ④ 카드 탭도 동일 플로우(+카메라 이동) ⑤ `/shop/:id` 라우트는 알림 딥링크용 유지. 본문 공유는 `useSectionSpy` 훅 + `ShopDetailBody`의 **`renderScroll` render prop**(라우트=ScrollView, 시트=BottomSheetScrollView — 같은 쿼리키로 캐시도 공유). 안드 물리 뒤로: 풀스크린→접힘→해제. 풀스크린에서 헤더 별+타이틀 별 중복은 각 디자인과 일치해 유지(디자이너 확인 항목).

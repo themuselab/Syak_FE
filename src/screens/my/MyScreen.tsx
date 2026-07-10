@@ -87,13 +87,17 @@ export function MyScreen() {
           </Text>
 
           <View style={{ gap: 16 }}>
-            {/* 즐겨찾기 메뉴 (탭 동작은 즐겨찾기 화면 확보 후 연결 예정) */}
-            <View className="flex-row items-center gap-2" style={{ paddingVertical: 12 }}>
+            {/* 즐겨찾기 목록으로 이동. 비회원 게이팅은 즐겨찾기 화면이 담당(알림과 동일 정책). */}
+            <Pressable
+              onPress={() => router.push('/favorites')}
+              className="flex-row items-center gap-2"
+              style={{ paddingVertical: 12 }}
+            >
               <Star size={16} color={FAVORITE_COLOR} fill={FAVORITE_COLOR} />
               <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: '#555555' }}>
                 즐겨찾기
               </Text>
-            </View>
+            </Pressable>
 
             <View style={{ height: 1, backgroundColor: '#f3f3f3' }} />
 

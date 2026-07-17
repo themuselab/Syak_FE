@@ -24,11 +24,13 @@ function DayChip({ label, selected, onPress }: { label: string; selected: boolea
   );
 }
 
+// 정보성 표시 전용(탭 불가). 테두리 버튼형이면 선택 가능해 보여(QA #56) 플랫 배경으로 톤 다운
+// — 배경은 날짜 칩 비선택(#f3f1f2)과 동일 계열. 확정 스타일은 디자이너 확인 항목.
 function TimeChip({ time }: { time: string }) {
   return (
     <View
       className="items-center justify-center rounded-full"
-      style={{ paddingVertical: 8, paddingHorizontal: 10, borderWidth: 1, borderColor: '#e6e6e6' }}
+      style={{ paddingVertical: 8, paddingHorizontal: 10, backgroundColor: '#f3f1f2' }}
     >
       <Text className="font-pretendard-medium text-[14px]" style={{ color: '#555555' }}>
         {time}

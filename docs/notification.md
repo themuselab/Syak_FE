@@ -12,9 +12,12 @@
 ```
 /notifications (알림)                      [src/screens/notification/NotificationScreen.tsx]
   ├ 헤더: 뒤로가기(←) + "알림" 타이틀
-  ├ 비회원 → LoginPromptModal (쿼리 enabled:false — 401 요청 자체가 안 나감)
-  │    ├ 딤/X 탭 → canGoBack ? back() : replace('/home') (히스토리 없는 직접 진입 시 back이 no-op이라 홈 대체)
-  │    └ "로그인하러 가기" → replace('/login') — push면 이 화면(모달 포함)이 스택에 남아 로그인 화면을 계속 덮음
+  ├ 비회원 → 인화면 안내(GuestNotificationView — 쿼리 enabled:false, 401 요청 자체가 안 나감)
+  │    ├ 2026-07-14 QA 비로그인 #5: LoginPromptModal 차단 → 중앙 안내 문구 + 하단 "로그인 하러가기" 버튼으로 변경
+  │    │  (팝업이 화면을 막지 않음. 문구·레이아웃 디자인 부재 — 임시, 디자이너 확인 항목)
+  │    ├ 뒤로는 BackHeader(기존 스택 뒤로가기 그대로)
+  │    └ "로그인 하러가기" → replace('/login') — push면 이 화면이 스택에 남아 로그인 화면을 계속 덮음
+  │    └ "앱 소식" 목록 노출은 BE 알림 타입(favorite/near뿐) 신설 후 — BE 전달사항
   └ 회원 → useNotifications (GET /notifications, 오늘 생성분만)
        ├ 로딩 → 중앙 스피너 (디자인 미제공, 임시)
        ├ 에러 → 안내 + "다시 시도"(refetch) (디자인 미제공, 임시)

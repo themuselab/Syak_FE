@@ -1,7 +1,7 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Star } from 'lucide-react-native';
-import { useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSignOut } from '@/shared/domain/auth/auth.queries';
@@ -11,7 +11,11 @@ import {
   useUpdateNotificationSettings,
 } from '@/shared/domain/notification/notification.queries';
 import { useMe } from '@/shared/domain/user/user.queries';
-import { getCurrentCoords } from '@/shared/lib/location';
+import {
+  getCurrentCoords,
+  getLocationPermission,
+  requestLocationPermission,
+} from '@/shared/lib/location';
 import { colors } from '@/shared/theme/colors';
 import { BackHeader } from '@/shared/ui/BackHeader';
 
@@ -36,8 +40,35 @@ export function MyScreen() {
   // 조회 중엔 store 값 폴백(깜빡임 방지). 프로필 사진·연동 현황은 디자인 부재로 미표시(docs/my.md §9).
   const { data: me } = useMe(isLoggedIn);
 
-  // 위치 권한 토글: BE 대응 필드가 없어 로컬 UI 상태 유지 (실권한 연동은 남은 작업 — docs/my.md).
+  // 위치 권한 토글 = 실제 OS 권한 상태(QA 비로그인 #3 — 표시 불일치 해소). 계정 무관이라 비회원도 동작.
+  // 화면 포커스마다 재조회 — 설정 앱에서 바꾸고 돌아온 경우 반영.
   const [locationPermission, setLocationPermission] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      getLocationPermission().then(({ granted }) => setLocationPermission(granted));
+    }, []),
+  );
+
+  // ON: OS 권한 요청 → 재요청 불가('다시 묻지 않음' 상태)면 설정 이동 안내.
+  // OFF: 앱에서 권한 회수는 불가 — 설정으로 안내(복귀 시 포커스 재조회로 반영).
+  const handleLocationToggle = async (next: boolean) => {
+    if (!next) {
+      Linking.openSettings().catch(() => {});
+      return;
+    }
+    const granted = await requestLocationPermission();
+    if (granted) {
+      setLocationPermission(true);
+      return;
+    }
+    const { canAskAgain } = await getLocationPermission();
+    if (!canAskAgain) {
+      Alert.alert('위치 권한이 꺼져 있어요', '설정에서 위치 권한을 허용해 주세요.', [
+        { text: '취소', style: 'cancel' },
+        { text: '설정으로 이동', onPress: () => Linking.openSettings().catch(() => {}) },
+      ]);
+    }
+  };
 
   // 알림 설정: 서버 값 파생. 로딩 중엔 조작 차단.
   const { data: settings } = useNotificationSettings(isLoggedIn);
@@ -125,8 +156,7 @@ export function MyScreen() {
               icon={iconLocation}
               label="위치 권한"
               value={locationPermission}
-              onValueChange={setLocationPermission}
-              disabled={!isLoggedIn}
+              onValueChange={handleLocationToggle}
             />
             <SettingToggleRow
               icon={iconNear}

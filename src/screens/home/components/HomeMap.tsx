@@ -9,7 +9,8 @@ import { StyleSheet, View } from 'react-native';
 
 import type { MarkerKind, ShopCardView } from '../shopToView';
 
-// 마커 종류별 핀 PNG (assets/icons/pin-{kind}.png). require(png)는 로컬 리소스 이미지로 전달된다.
+// 마커 종류별 핀 PNG (assets/icons/pin-{kind}.png, 96×120 — 투명 여백 크롭본이라 34×42 렌더와 비율 일치).
+// require(png)는 로컬 리소스 이미지로 전달된다.
 const PIN: Record<MarkerKind, MapImageProp> = {
   partner: require('../../../../assets/icons/pin-partner.png') as MapImageProp,
   discount: require('../../../../assets/icons/pin-discount.png') as MapImageProp,

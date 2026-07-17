@@ -36,11 +36,11 @@ export function RegionFilterContent() {
         </View>
         <View className="flex-1 flex-row flex-wrap content-start gap-[5px] py-2.5">
           {REGION_GROUPS.find((g) => g.sido === sido)!.items.map((d) => (
-            // 그리드 칩은 선택 표시 안 함(디자인). 선택은 아래 칩으로 노출.
+            // 그리드 칩에도 선택 상태 표시(QA #54 — 기존엔 아래 선택 칩으로만 노출돼 안 보인다는 피드백).
             <SelectChip
               key={d.value}
               label={d.label}
-              selected={false}
+              selected={regions.includes(d.value)}
               onPress={() => toggleRegion(d.value)}
             />
           ))}

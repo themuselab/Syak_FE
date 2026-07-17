@@ -1,6 +1,6 @@
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -40,10 +40,21 @@ export function HomeScreen() {
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
   // 내 주변 모드(현재위치 버튼 토글). 필터 화면과 무관한 홈 전용 상태라 필터 store가 아닌 로컬.
   const [nearbyCoords, setNearbyCoords] = useState<{ lat: number; lng: number } | null>(null);
+  // 헤더+검색바 오버레이 높이(onLayout 측정) — 시트 최대 확장 한계 계산용 (QA #50).
+  const [headerHeight, setHeaderHeight] = useState(0);
+
+  // 홈 최초 진입 시 위치 권한 즉시 요청(QA #40·#52 — 사용자 확정: 온보딩 화면 대신 이 방식).
+  // 허용 시 지도 카메라만 내 위치로 이동 — 내 주변 모드(목록 필터·버튼 활성)는 버튼 탭으로만 켜짐.
+  // 거부 시 조용히 무시(서울 초기 카메라 유지).
+  useEffect(() => {
+    getCurrentCoords().then((coords) => {
+      if (coords) mapRef.current?.moveTo(coords.lat, coords.lng);
+    });
+  }, []);
 
   const sort = useHomeFilterStore((s) => s.sort);
   const regions = useHomeFilterStore((s) => s.regions);
-  const price = useHomeFilterStore((s) => s.price);
+  const prices = useHomeFilterStore((s) => s.prices);
   const date = useHomeFilterStore((s) => s.date);
   const times = useHomeFilterStore((s) => s.times);
   const serviceFields = useHomeFilterStore((s) => s.serviceFields);
@@ -56,8 +67,8 @@ export function HomeScreen() {
 
   const params = useMemo(
     () =>
-      filtersToParams({ search: debouncedSearch, sort, regions, price, date, times, serviceFields, toggles }),
-    [debouncedSearch, sort, regions, price, date, times, serviceFields, toggles],
+      filtersToParams({ search: debouncedSearch, sort, regions, prices, date, times, serviceFields, toggles }),
+    [debouncedSearch, sort, regions, prices, date, times, serviceFields, toggles],
   );
 
   // 시간 필터: 선택한 날짜×시간에 빈 슬롯 있는 샵을 /slots/search로 받아 목록과 교집합.
@@ -152,8 +163,11 @@ export function HomeScreen() {
           style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top + 150 }}
         />
 
-        {/* 헤더 + 검색 */}
-        <View style={{ paddingTop: insets.top + 8 }}>
+        {/* 헤더 + 검색. 높이를 측정해 시트 최대 확장이 검색바 아래에서 멈추게 한다(QA #50). */}
+        <View
+          style={{ paddingTop: insets.top + 8 }}
+          onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
+        >
           <HomeHeader />
           <View className="px-5 pt-3">
             <SearchBar />
@@ -180,6 +194,7 @@ export function HomeScreen() {
           isFetchingNextPage={slotParams === null && isFetchingNextPage}
           onSelectShop={selectShop}
           onDeselect={() => setSelectedShopId(null)}
+          topOffset={headerHeight}
         />
 
         {/* 비회원 별 탭 게이팅. 로그인 이동 전 모달을 먼저 닫아야 push된 로그인 화면을 안 덮는다. */}

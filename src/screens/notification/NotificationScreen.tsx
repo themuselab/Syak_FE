@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import {
@@ -8,13 +9,37 @@ import {
 } from '@/shared/domain/notification/notification.queries';
 import { colors } from '@/shared/theme/colors';
 import { BackHeader } from '@/shared/ui/BackHeader';
-import { LoginPromptModal } from '@/shared/ui/LoginPromptModal';
 
 import { NotificationEmpty } from './components/NotificationEmpty';
 import { NotificationItem } from './components/NotificationItem';
 
+// 비회원: 팝업 차단 대신 화면 자체를 보여주고 하단에 로그인 유도(QA 비로그인 #5 개선 요청).
+// 문구·레이아웃은 디자인 부재 — 임시(디자이너 확인 항목). "앱 소식" 목록 노출은 BE 알림 타입 신설 후.
+function GuestNotificationView() {
+  const insets = useSafeAreaInsets();
+  return (
+    <View className="flex-1">
+      <View className="flex-1 items-center justify-center px-5">
+        <Text className="text-center text-body-m font-pretendard text-gray-500">
+          로그인하면 즐겨찾는 샵의{'\n'}빈자리·소식 알림을 받아볼 수 있어요
+        </Text>
+      </View>
+      <View style={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 24 }}>
+        <Pressable
+          onPress={() => router.replace('/login')}
+          className="h-12 items-center justify-center rounded-sm bg-primary-500"
+        >
+          <Text className="font-pretendard-semibold text-white" style={{ fontSize: 16 }}>
+            로그인 하러가기
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 // 디자인: designs/알림/*, designs/design.pen (알림 페이지, frame SXtVD)
-// GET /notifications 연동 (오늘 생성분만, 인증 필요). 비회원은 LoginPromptModal 게이팅(쿼리 미발생).
+// GET /notifications 연동 (오늘 생성분만, 인증 필요). 비회원은 인화면 안내(쿼리 미발생).
 // 탭 → 읽음 처리(미읽음만, fire-and-forget) + 샵 상세 이동. 로딩/에러 상태는 디자인 미제공 — 임시 처리.
 export function NotificationScreen() {
   const user = useAuthStore((s) => s.user);
@@ -27,14 +52,7 @@ export function NotificationScreen() {
     <View className="flex-1 bg-white">
       <BackHeader title="알림" />
       {!isLoggedIn ? (
-        // 비회원: 빈 배경 + 로그인 유도. 닫으면 진입 전 화면으로 복귀.
-        // 딥링크 등 히스토리 없이 진입하면 back()이 no-op이라 모달이 안 닫힘 → 홈으로 대체.
-        // 로그인 이동은 push가 아니라 replace — push면 이 화면(과 모달)이 스택에 남아 로그인 화면을 계속 덮는다.
-        <LoginPromptModal
-          visible
-          onClose={() => (router.canGoBack() ? router.back() : router.replace('/home'))}
-          onPressLogin={() => router.replace('/login')}
-        />
+        <GuestNotificationView />
       ) : isPending ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color={colors.primary[500]} />

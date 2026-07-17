@@ -1,6 +1,6 @@
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, BackHandler, View } from 'react-native';
+import { ActivityIndicator, BackHandler, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ShopDetailSheet } from '@/screens/shop-detail/ShopDetailSheet';
@@ -26,6 +26,7 @@ type Props = {
   isFetchingNextPage: boolean;
   onSelectShop: (id: string) => void; // 목록 카드 탭 → 핀과 동일한 포커스 플로우
   onDeselect: () => void; // 물리 뒤로가기 등에서 포커스 해제
+  topOffset: number; // 헤더+검색바 오버레이 높이 — 목록 모드 최대 확장이 검색바를 가리지 않게 (QA #50)
 };
 
 // 단일 바텀시트: activeFilter → 필터 화면 / selectedShop → 인라인 상세(특정샵 포커스) / 그 외 → 칩바+목록.
@@ -44,15 +45,21 @@ export function ShopBottomSheet({
   isFetchingNextPage,
   onSelectShop,
   onDeselect,
+  topOffset,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const sheetRef = useRef<BottomSheet>(null);
   const activeFilter = useHomeFilterStore((s) => s.activeFilter);
   const setActiveFilter = useHomeFilterStore((s) => s.setActiveFilter);
 
   const focused = selectedShop != null;
-  // 포커스 접힘 높이는 디자인 285/812 ≈ 35%(euK3A). 목록 모드는 기존 40/90 유지.
-  const snapPoints = useMemo(() => (focused ? ['35%', '100%'] : ['40%', '90%']), [focused]);
+  // 포커스 접힘 높이는 디자인 285/812 ≈ 35%(euK3A), 확장은 100% 풀스크린(의도된 동작).
+  // 목록 모드 최대 확장은 검색바 바로 아래까지만(QA #50) — 측정 전(topOffset 0)엔 기존 90% 폴백.
+  const snapPoints = useMemo(() => {
+    if (focused) return ['35%', '100%'];
+    return ['40%', topOffset > 0 ? windowHeight - topOffset - 8 : '90%'];
+  }, [focused, topOffset, windowHeight]);
 
   // 풀스크린 여부. onChange(settle 시점) 기준 — 확장 중 애니메이션 동안은 접힘 취급.
   const [expanded, setExpanded] = useState(false);
@@ -86,6 +93,9 @@ export function ShopBottomSheet({
       ref={sheetRef}
       index={0}
       snapPoints={snapPoints}
+      // v5 기본값(true)이면 콘텐츠 높이 스냅포인트가 추가돼, 칩 토글로 목록이 로딩 스피너로
+      // 교체되는 순간 시트가 최소 높이로 줄어든다(QA #53) — 지정 스냅포인트만 사용.
+      enableDynamicSizing={false}
       onChange={handleChange}
       // 풀스크린에선 핸들을 숨기고 라운드를 없애 라우트 상세 화면과 동일하게 보이게.
       handleComponent={expanded ? null : undefined}

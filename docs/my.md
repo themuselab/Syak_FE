@@ -13,11 +13,12 @@
   ├ 헤더: 뒤로가기(←) + "마이"  (공용 BackHeader)
   ├ 부제: 회원=닉네임 / 비회원="로그인하고 편리하게 샥-"
   ├ ⭐ 즐겨찾기 (탭 → /favorites 목록 — favorite.md)
-  ├ 설정: 위치 권한(로컬 UI만) / 내 주변 알림 [→ ON 시 알림 반경 슬라이더(1~10km)] / 즐겨찾기 알림 / 앱 소식
+  ├ 설정: 위치 권한(실제 OS 권한 연동 — 2026-07-14) / 내 주변 알림 [→ ON 시 알림 반경 슬라이더(1~10km)] / 즐겨찾기 알림 / 앱 소식
   │    └ 서버 연동(GET/PATCH /notifications/settings): 값은 서버 파생, 토글 탭 → PATCH → 응답으로 캐시 교체
   └ 하단: 회원="로그아웃"(useSignOut) / 비회원="로그인"(채움) → /login
 ```
-- 회원/비회원은 `useAuthStore.user`로 자동 분기. 비회원·설정 로딩 중엔 토글 비활성(disabled).
+- 회원/비회원은 `useAuthStore.user`로 자동 분기. 비회원·설정 로딩 중엔 알림 토글 비활성(disabled). **위치 권한 토글은 예외 — 계정 무관이라 비회원도 동작**(2026-07-14 QA 비로그인 #3).
+- **위치 권한 토글(2026-07-14, QA 비로그인 #3 — 실권한 연동)**: 화면 포커스마다 `getLocationPermission()`(조회 전용)으로 실제 OS 권한 표시. ON 시도 → `requestLocationPermission()`(OS 팝업), 재요청 불가('다시 묻지 않음')면 Alert + `Linking.openSettings()`. OFF 시도 → 앱에서 회수 불가라 설정 앱으로 이동(복귀 시 포커스 재조회로 반영).
 - **내 주변 알림 ON**: `getCurrentCoords()`(위치 권한 요청) → 허용 시 `{ nearEnabled:true, nearLat, nearLng }` PATCH / 거부 시 `Alert` 안내 후 미전송(값이 서버 파생이라 토글은 OFF에 머묾 — 롤백 불필요). OFF는 `{ nearEnabled:false }`만.
 - **반경 슬라이더**: 드래그 중엔 로컬 draft 표시만, **손 뗄 때 1회 PATCH**(`RadiusSlider onRelease`) — 드래그 중 요청 폭주 방지.
 - "앱 소식" 라벨 ↔ BE `shopNewsEnabled` 필드 매핑.
@@ -62,7 +63,7 @@ assets/icons/
 | `assets/icons/my-location-permission.png` · `my-near-alarm.png` · `my-app-news.png` | `design.pen` 아이콘 노드 export(64px, fill `#e6e6e6`) |
 
 ## 8. 임시 동작 (남은 것만)
-- **위치 권한 토글**: BE 대응 필드가 없어 로컬 UI 토글 유지(실권한 상태 연동은 남은 작업). 실제 권한 요청은 "내 주변 알림" ON 시점에 발생.
+- ~~**위치 권한 토글**: BE 대응 필드가 없어 로컬 UI 토글 유지(실권한 상태 연동은 남은 작업).~~ → **2026-07-14 실권한 연동 완료**(§2 — QA 비로그인 #3).
 - ~~즐겨찾기 메뉴 탭 비활성(no-op).~~ → **2026-07-10 연결 완료**: `/favorites` push ([favorite.md](./favorite.md)).
 - ~~설정 토글/반경 로컬 useState, 로그아웃 setUser(null)~~ → **연동 완료(2026-07-03)**: 설정은 GET/PATCH, 로그아웃은 useSignOut.
 
@@ -70,7 +71,7 @@ assets/icons/
 - ~~`GET /users/me` 닉네임 표시~~ → **2026-07-07 완료**: 닉네임은 `useMe(isLoggedIn)` 서버 파생(`me?.nickname ?? store.nickname ?? '닉네임 미설정'`), 로그아웃 시 `['user']` 캐시 제거(계정 교체 잔상 방지). **프로필 사진·소셜 연동 현황(`linkedProviders`) 표시는 디자인에 없어 미구현** — 디자인 확보 후(사용자 확정).
 - ~~FCM 토큰 등록~~ → **2026-07-05 완료**([notification.md](./notification.md) §9 — 마이페이지가 아닌 로그인 전환 시 자동 등록).
 - ~~**`DELETE /users/me` 회원탈퇴 — 디자인 대기.** ⚠️ 스토어 정책상 출시 전 필수~~ → **2026-07-10 완료**: 이름 행 우측 '계정 관리' 버튼(회원만) → 계정 관리 화면(닉네임·연결된 계정·탈퇴 모달) — [account.md](./account.md). 닉네임 저장만 BE `PATCH /users/me` 배포 대기.
-- 위치 권한 토글: 실제 디바이스 권한 상태 연동(권한 훅 + 설정 딥링크).
+- ~~위치 권한 토글: 실제 디바이스 권한 상태 연동(권한 훅 + 설정 딥링크).~~ → **2026-07-14 완료**.
 - ~~즐겨찾기 메뉴 → 즐겨찾기 목록 화면(디자인 확보 후).~~ → **2026-07-10 완료**([favorite.md](./favorite.md)).
 
 ## 10. 검증

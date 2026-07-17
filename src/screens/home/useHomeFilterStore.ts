@@ -2,7 +2,8 @@ import { create } from 'zustand';
 
 // 홈 필터 상태 (순수 클라 상태 → Zustand). 칩바 활성 표시 + 목록 필터링 구동.
 export type SortKey = 'default' | 'price_asc' | 'price_desc' | 'partner';
-export type PriceKey = 'all' | '1' | '2' | '3';
+// 가격대는 복수 선택(QA #14 — BE price_tiers 콤마 구분 지원). 빈 배열 = 전체.
+export type PriceKey = '1' | '2' | '3';
 export type DateKey = 'today' | 'tomorrow' | 'day_after';
 // 바텀시트에서 열려있는 필터 (null = 매장 목록). 시트 내용 전환에 사용.
 export type FilterKey = 'sort' | 'region' | 'price' | 'time' | 'service';
@@ -16,7 +17,7 @@ export type HomeFilterState = {
   search: string;
   sort: SortKey;
   regions: string[];
-  price: PriceKey;
+  prices: PriceKey[];
   date: DateKey | null;
   times: string[];
   serviceFields: string[];
@@ -26,7 +27,7 @@ export type HomeFilterState = {
   setSearch: (v: string) => void;
   setSort: (v: SortKey) => void;
   setRegions: (v: string[]) => void;
-  setPrice: (v: PriceKey) => void;
+  setPrices: (v: PriceKey[]) => void;
   setDate: (v: DateKey | null) => void;
   setTimes: (v: string[]) => void;
   setServiceFields: (v: string[]) => void;
@@ -39,7 +40,7 @@ const initial = {
   search: '',
   sort: 'default' as SortKey,
   regions: [] as string[],
-  price: 'all' as PriceKey,
+  prices: [] as PriceKey[],
   date: null as DateKey | null,
   times: [] as string[],
   serviceFields: [] as string[],
@@ -54,7 +55,7 @@ export const useHomeFilterStore = create<HomeFilterState>((set) => ({
   setSearch: (v) => set({ search: v }),
   setSort: (v) => set({ sort: v }),
   setRegions: (v) => set({ regions: v }),
-  setPrice: (v) => set({ price: v }),
+  setPrices: (v) => set({ prices: v }),
   setDate: (v) => set({ date: v }),
   setTimes: (v) => set({ times: v }),
   setServiceFields: (v) => set({ serviceFields: v }),

@@ -92,6 +92,7 @@ src/shared/domain/reservation/
 - 폰트: 전부 Pretendard. SemiBold=`font-pretendard-semibold`, Medium=`font-pretendard-medium`, Regular=`font-pretendard`.
 
 ## 임시 동작 / 참고
+- **빈자리 시간 칩 톤(2026-07-14, QA #56)**: 버튼형(rounded-full+테두리 #e6e6e6)이 선택 가능해 보인다는 QA 지적 → 테두리 제거 + 배경 `#f3f1f2`(날짜 칩 비선택과 동일 계열) 정보성 톤으로 변경. **확정 스타일은 디자이너 확인 항목.**
 - **'오늘 예약 가능해요' 문구**: 디자인엔 마감 상태 문구('오늘은 예약 마감이에요')만 있어 가능 상태는 대칭 문구로 채움 — 디자인 확정 시 교체.
 - **예약 버튼 라벨 분기 (2026-07-14, QA #32)**: `bookingUrl` 종류별로 라벨·열기 방식 분기 — 네이버(naver.com/naver.me) → "네이버 예약" / instagram.com → "인스타 예약" / **전화번호 문자열**(운영 데이터에 다수 — "0507-…") → "전화로 예약" + `tel:` 변환(기존엔 openURL 조용히 실패) / 그 외 URL → "예약하기" / 없으면 비활성. 버튼 색은 전 종류 네이버 그린 유지 — **종류별 디자인 부재, 디자이너 확인 항목**. BE에 bookingUrl 데이터 정리 요청 전달.
 - **헤더 즐겨찾기 별**: `/favorites` 서버 연동 완료(2026-07-04) — 홈과 같은 `['favorites','list']` 캐시에서 파생(`useFavoriteShopIds`)이라 **홈↔상세 별 상태 자동 동기화**. 토글은 낙관적 업데이트(`useToggleFavorite`), 비회원 탭 시 `LoginPromptModal`(로딩/에러 화면 포함 모든 분기에서 동작). 저장 실패 시 안내 없이 별만 원복(토스트 인프라 부재). 상세는 [home.md](./home.md) §3 즐겨찾기.

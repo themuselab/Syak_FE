@@ -14,7 +14,7 @@ const SORT_LABEL: Record<SortKey, string> = {
 
 // 칩바: 좌측 고정 정렬칩(divider) + 가로 스크롤 필터칩. 칩 탭 → activeFilter 전환/토글.
 export function FilterChipBar() {
-  const { sort, regions, price, date, times, serviceFields, services, toggles, toggle, setActiveFilter } =
+  const { sort, regions, prices, date, times, serviceFields, services, toggles, toggle, setActiveFilter } =
     useHomeFilterStore();
 
   return (
@@ -56,7 +56,7 @@ export function FilterChipBar() {
         />
         <FilterChip
           label="가격"
-          selected={price !== 'all'}
+          selected={prices.length > 0}
           rightIcon={(c) => <ChevronDown size={14} color={c} />}
           onPress={() => setActiveFilter('price')}
         />

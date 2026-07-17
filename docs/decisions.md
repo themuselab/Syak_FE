@@ -13,6 +13,13 @@
 
 ---
 
+## 2026-07-14 · 결정: QA 2차(UX 10건) — 시트 dynamicSizing off·topOffset 확장 한계·필터 초기화는 현재 필터만·가격 복수화
+- 맥락/문제: 안드 태블릿 QA Fail 잔여 10건. 핵심 원인 발견: gorhom bottom-sheet **v5는 `enableDynamicSizing` 기본 true**라 칩 토글 → 목록이 로딩 스피너로 교체되는 순간 콘텐츠 높이 스냅포인트로 시트가 축소(#53). 가격 복수 선택(#14)은 BE(price_tiers 콤마)·API·타입이 이미 지원 — store 단일 타입만 병목.
+- 결정(사용자 확정 2건 포함): ① `enableDynamicSizing={false}` — 지정 스냅포인트만 사용 ② 목록 최대 확장 = `화면높이 - 헤더높이(onLayout 측정) - 8`(#50, 포커스 100%는 유지) ③ 필터 초기화 버튼 = **열려있는 필터만 해제**(사용자 확정 — QA 문구 "모든 선택 해제"는 모달 내 선택으로 해석) ④ `price: PriceKey` → `prices: PriceKey[]`(빈 배열 = 전체, '전체' 탭 = 클리어, 즉시 닫힘 제거) ⑤ 홈 진입 시 위치 권한 즉시 요청 + 허용 시 **카메라만 이동**(사용자 확정 — 내 주변 모드는 버튼으로만) ⑥ 마이 위치 권한 토글 실연동(`getForegroundPermissionsAsync` 조회 전용 함수 신설, OFF는 설정 이동) ⑦ 알림 비로그인 = 팝업 차단 → 인화면 안내+하단 로그인 버튼.
+- 이유: dynamicSizing off가 #53의 근본 수정(스냅 유지 로직 추가는 증상 대응). 픽셀 스냅포인트는 % 지정으로는 "검색바 바로 아래"를 표현할 수 없어서. per-filter 초기화가 일반적 필터 UX(전체 해제는 의도치 않은 손실).
+- 대안(버림): 칩 토글 시 snapToIndex 재호출(경합·깜빡임), topInset prop(포커스 100% 풀스크린까지 깎임), 전체 필터 초기화(QA 문구 직역), 온보딩 화면 신설(디자인 부재 — 도착 후 별도).
+- 관련: `ShopBottomSheet.tsx`, `FilterView.tsx`, `useHomeFilterStore.ts`, `location.ts`, [home.md](./home.md) §3, [my.md](./my.md), [notification.md](./notification.md)
+
 ## 2026-07-14 · 결정: 예약 버튼 = bookingUrl 종류별 라벨·열기 분기(전화번호 데이터 포함) + 핀 PNG 크롭
 - 맥락/문제: QA(안드 태블릿)에서 ① "네이버 예약" 버튼이 인스타로 연결되는 샵 발견(#32) ② 지도 핀 찌그러짐(#4). 운영 데이터 조사 결과 `bookingUrl`에 네이버 외 값이 대량 — 표본 40곳 중 인스타 2·전화번호 문자열 25("0507-…", openURL 조용히 실패)·네이버 10. 핀 PNG는 정사각 캔버스+불균일 여백인데 34×42로 렌더해 비율 왜곡.
 - 결정: ① `resolveBooking(bookingUrl)`로 분기 — naver.com/naver.me→"네이버 예약", instagram.com→"인스타 예약", 전화번호 패턴→"전화로 예약"+`tel:` 변환, 그 외 URL→"예약하기", 없으면 비활성. 버튼 색은 전부 네이버 그린 유지(종류별 디자인 부재 — 디자이너 확인 항목) ② 핀 PNG 3종을 보이는 영역(96×120 = 34:42)으로 크롭, 렌더 크기 유지 — 코드 무수정 + 핀 꼭짓점 anchor도 정확해짐.

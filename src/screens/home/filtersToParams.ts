@@ -25,7 +25,7 @@ const DATE_OFFSET: Record<DateKey, number> = { today: 0, tomorrow: 1, day_after:
 // 세부 services는 백엔드 미지원(전달 안 함). 시간(times)은 /slots/search 교집합(toSlotSearchParams)으로 처리.
 type FilterSnapshot = Pick<
   HomeFilterState,
-  'search' | 'sort' | 'regions' | 'price' | 'date' | 'times' | 'serviceFields' | 'toggles'
+  'search' | 'sort' | 'regions' | 'prices' | 'date' | 'times' | 'serviceFields' | 'toggles'
 >;
 
 // 시간만 선택하고 날짜가 없으면 '오늘'로 간주 (/slots/search는 dates 필수).
@@ -44,7 +44,7 @@ export function filtersToParams(s: FilterSnapshot): ShopListParams {
   if (s.sort !== 'default') params.sort = s.sort;
   if (categories.length) params.categories = categories;
   if (s.regions.length) params.districts = s.regions;
-  if (s.price !== 'all') params.price_tiers = [`${s.price}만원대` as ShopPriceTier];
+  if (s.prices.length) params.price_tiers = s.prices.map((p) => `${p}만원대` as ShopPriceTier);
   if (s.toggles.discount) params.has_event = true;
   // "당일 예약"·"예약 가능" 둘 다 오늘 슬롯 유무(has_slot)로 매핑 — 백엔드에 구분 파라미터 없음.
   if (s.toggles.sameDay || s.toggles.available) params.has_slot = true;

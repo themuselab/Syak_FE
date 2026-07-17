@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, View } from 'react-native';
 
 import { ApiError, ErrorCode } from '@/shared/api/errors';
 import { useSocialLogin } from '@/shared/domain/auth/auth.queries';
@@ -56,14 +56,17 @@ export function LoginScreen() {
 
         <View className="gap-3">
           <View className="gap-2">
-            <SocialLoginButton
-              label="Apple로 계속하기"
-              backgroundColor="#000000"
-              textColor="#ffffff"
-              icon={appleIcon}
-              onPress={() => handleSocial('apple')}
-              disabled={busy}
-            />
+            {/* Apple 로그인은 iOS 전용(앱스토어 심사 필수) — 안드로이드에선 숨김 (QA #0) */}
+            {Platform.OS === 'ios' && (
+              <SocialLoginButton
+                label="Apple로 계속하기"
+                backgroundColor="#000000"
+                textColor="#ffffff"
+                icon={appleIcon}
+                onPress={() => handleSocial('apple')}
+                disabled={busy}
+              />
+            )}
             <SocialLoginButton
               label="카카오로 계속하기"
               backgroundColor="#ffee01"

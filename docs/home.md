@@ -30,6 +30,7 @@ src/shared/domain/shops/
   shops.queries.ts                   # useShops(params)·useShop(id)
 ```
 - 마커 핀 PNG: `assets/icons/pin-{partner,discount,reservable}.png`. `shopToView.markerKind`(isPartner→partner / eventDesc→discount / else reservable)와 직결.
+  - **2026-07-14 (QA #4)**: 원본이 정사각 캔버스+불균일 투명 여백이라 34×42 렌더 시 찌그러짐 → 3종 모두 보이는 영역(96×120, 34:42 비율)으로 크롭. 렌더 크기(34×42)는 유지.
 - 내 위치 마커 PNG: `assets/icons/marker-my-location.png` — `design.pen` 프레임 `wMGlf`(내위치 마크업)의 `markup_my` 노드를 3배수 export(102px, 그림자 여백 포함). 지도에는 `NaverMapView`의 `locationOverlay`(SDK 내 위치 전용 오버레이, 지도당 1개)로 32dp 표시.
 - 포커스 핀 PNG: `assets/icons/pin-focused.png` — `design.pen` 프레임 `euK3A`(특정샵 포커스)의 `b6WWf` 노드 3배수 export(168px). 선택된 핀만 56dp + `zIndex 1`로 교체 표시.
 
@@ -97,3 +98,4 @@ src/shared/domain/shops/
 - **내 주변(2026-07-05, 웹 + geolocation 스텁 주입)**: 버튼 탭 → `GET /shops?lat&lng&page=1`(radius 미전송) + 목록이 강남 5km 매장만(강남·서초·송파 등) / 재탭 → lat/lng 없이 전체 복귀 / 할인·이벤트 필터와 조합 시 `has_event=true&lat&lng` 동시 전달 / 권한 거부 스텁 → 요청·목록 변화 없음. 실기기 GPS는 fast refresh로 확인 예정(재빌드 불필요).
 - **내 위치 마커 + 버튼 활성 색(2026-07-10)**: 웹은 버튼 색만 검증 가능(지도 placeholder) — 버튼 탭 → 아이콘 #007AFF, 재탭 → 회색 원복. 마커는 실기기(dev build + Metro, `locationOverlay`는 JS prop이라 재빌드 불필요) — 버튼 탭 → 파란 마커 표시 + 카메라 이동, 재탭 → 마커 숨김.
 - **특정샵 포커스(2026-07-10, 웹)**: 카드 탭 → 라우트 이동 없이 35% 시트에 타이틀+별+배지+캐러셀 / 드래그 업 → 풀스크린(헤더·sticky 탭·예약바·핸들 숨김) / 헤더 뒤로 → 35% 복귀 / 목록·필터 모드 회귀 정상. 라우트 `/shop/:id` 회귀(스크롤스파이·탭 점프) 확인. **실기기 잔여**: 핀 탭 → 포커스 핀 56px 교체·zIndex, 안드 물리 뒤로 매트릭스, 시트 드래그 제스처↔내부 스크롤 전환, 알림 딥링크.
+- **QA 1차 수정(2026-07-14, 웹)**: 배지 flex-wrap(카드 컬럼 flex-1 폭 제약 + 이름 numberOfLines=1) / 빈 상태 문구 w-full+text-center(커스텀 폰트+이모지 Android 폭 측정 오차 방어 — QA #11) / 핀 크롭은 실기기 재확인 필요(웹 지도는 placeholder).

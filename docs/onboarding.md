@@ -67,7 +67,7 @@ src/screens/onboarding/
 | `assets/icons/social-apple.png` · `social-kakao.png` · `social-naver.png` | `design.pen`에서 export |
 
 ## 8. 임시 동작 (남은 것만)
-- **애플 버튼**: 어댑터 stub — 탭 시 "준비 중" 토스트 (`socialAuth.ts` apple case 구현 시 자동 해소).
+- **애플 버튼**: 어댑터 stub — 탭 시 "준비 중" 토스트 (`socialAuth.ts` apple case 구현 시 자동 해소). **iOS에서만 렌더**(2026-07-14, QA #0 — 안드로이드 노출 제거, `Platform.OS === 'ios'` 분기).
 - ~~소셜 버튼·둘러보기 임시 /home 이동, 스플래시 1.5초 타이머, 토스트 미연동~~ → **전부 실제 연동 완료(2026-07-03 확인)**: 카카오·네이버 SDK 로그인 + 세션 확인 + 실패 토스트 동작, 실기기 검증까지 끝남. 상세 [auth.md](./auth.md).
 
 ## 9. 남은 작업

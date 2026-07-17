@@ -59,9 +59,16 @@ export function ShopListCard({ shop, onPress, onToggleFavorite }: Props) {
         <View className="h-[60px] w-[60px] rounded-md" style={{ backgroundColor: '#e3e3e3' }} />
       )}
       <View className="flex-1 flex-row items-center justify-between">
-        <View className="gap-1">
+        {/* flex-1: 배지 줄바꿈(flex-wrap)이 동작하려면 컬럼에 폭 제약이 필요 (QA #46) */}
+        <View className="flex-1 gap-1 pr-2">
           <View className="flex-row items-center gap-2">
-            <Text className="text-heading-m font-pretendard-semibold text-gray-900">{shop.name}</Text>
+            <Text
+              className="text-heading-m font-pretendard-semibold text-gray-900"
+              numberOfLines={1}
+              style={{ flexShrink: 1 }}
+            >
+              {shop.name}
+            </Text>
             {/* 리뷰수는 목록 응답 미제공 → 값이 있을 때만 표시 (백엔드 추가 시 자동 노출) */}
             {shop.reviewCount != null && (
               <Text className="text-caption-m font-pretendard-medium" style={{ color: '#adb5bd' }}>
@@ -70,7 +77,7 @@ export function ShopListCard({ shop, onPress, onToggleFavorite }: Props) {
             )}
           </View>
           <Text className="text-body-m font-pretendard text-gray-600">{shop.address}</Text>
-          <View className="flex-row gap-1">
+          <View className="flex-row flex-wrap gap-1">
             {shop.badges.map((b) => (
               <Badge key={b} label={b} />
             ))}

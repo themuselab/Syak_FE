@@ -7,9 +7,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSignOut } from '@/shared/domain/auth/auth.queries';
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import {
+  getAppNewsEnabled,
+  setAppNewsEnabled,
+} from '@/shared/domain/notification/appNewsLocal';
+import {
   useNotificationSettings,
   useUpdateNotificationSettings,
 } from '@/shared/domain/notification/notification.queries';
+import { registerDeviceForAppNews } from '@/shared/domain/notification/push';
 import { useMe } from '@/shared/domain/user/user.queries';
 import {
   getCurrentCoords,
@@ -48,6 +53,19 @@ export function MyScreen() {
       getLocationPermission().then(({ granted }) => setLocationPermission(granted));
     }, []),
   );
+
+  // 앱 소식 토글 = 디바이스 단위 설정(2026-07-18 BE 개편, QA 비로그인 #4 — 비회원도 동작).
+  // 로컬 저장값이 원본, 변경 시 POST /notifications/devices 재등록으로 서버 반영.
+  const [appNews, setAppNews] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      getAppNewsEnabled().then(setAppNews);
+    }, []),
+  );
+  const handleAppNewsToggle = (next: boolean) => {
+    setAppNews(next);
+    setAppNewsEnabled(next).then(() => registerDeviceForAppNews());
+  };
 
   // ON: OS 권한 요청 → 재요청 불가('다시 묻지 않음' 상태)면 설정 이동 안내.
   // OFF: 앱에서 권한 회수는 불가 — 설정으로 안내(복귀 시 포커스 재조회로 반영).
@@ -180,13 +198,12 @@ export function MyScreen() {
               onValueChange={(next) => update.mutate({ favoriteEnabled: next })}
               disabled={settingsDisabled}
             />
-            {/* "앱 소식" ↔ BE shopNewsEnabled 매핑 */}
+            {/* 앱 소식 = 디바이스 단위(계정 무관) — 위치 권한 토글처럼 비회원도 활성 */}
             <SettingToggleRow
               icon={iconAppNews}
               label="앱 소식"
-              value={settings?.shopNewsEnabled ?? false}
-              onValueChange={(next) => update.mutate({ shopNewsEnabled: next })}
-              disabled={settingsDisabled}
+              value={appNews}
+              onValueChange={handleAppNewsToggle}
             />
           </View>
         </View>

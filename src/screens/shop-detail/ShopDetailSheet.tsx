@@ -80,7 +80,7 @@ export function ShopDetailSheet({ shopId, favorite, onToggleFavorite, expanded, 
       {expanded && (
         <ReservationBar
           phone={shop.phone}
-          bookingUrl={shop.bookingUrl}
+          route={shop.bookingRoute}
           onReserveClick={() => {
             // 클릭 애널리틱스 — 실패해도 무시(fire-and-forget)
             postReservationClick(shop.id).catch(() => {});

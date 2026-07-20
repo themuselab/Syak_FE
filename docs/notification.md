@@ -8,22 +8,24 @@
 ## 1. 범위
 알림 목록 화면(`/notifications`) 백엔드 연동 + 비회원 로그인 유도 게이팅. FCM 푸시 수신은 다음 단계(§9).
 
-## 2. 화면 & 흐름
+## 2. 화면 & 흐름 (2026-07-18 BE 개편 — 알림 2갈래 병합, docs/09 §3-5)
 ```
 /notifications (알림)                      [src/screens/notification/NotificationScreen.tsx]
   ├ 헤더: 뒤로가기(←) + "알림" 타이틀
-  ├ 비회원 → 인화면 안내(GuestNotificationView — 쿼리 enabled:false, 401 요청 자체가 안 나감)
-  │    ├ 2026-07-14 QA 비로그인 #5: LoginPromptModal 차단 → 중앙 안내 문구 + 하단 "로그인 하러가기" 버튼으로 변경
-  │    │  (팝업이 화면을 막지 않음. 문구·레이아웃 디자인 부재 — 임시, 디자이너 확인 항목)
-  │    ├ 뒤로는 BackHeader(기존 스택 뒤로가기 그대로)
-  │    └ "로그인 하러가기" → replace('/login') — push면 이 화면이 스택에 남아 로그인 화면을 계속 덮음
-  │    └ "앱 소식" 목록 노출은 BE 알림 타입(favorite/near뿐) 신설 후 — BE 전달사항
-  └ 회원 → useNotifications (GET /notifications, 오늘 생성분만)
-       ├ 로딩 → 중앙 스피너 (디자인 미제공, 임시)
-       ├ 에러 → 안내 + "다시 시도"(refetch) (디자인 미제공, 임시)
-       ├ 빈 목록 → "새로운 알림이 없습니다"
-       └ 목록 → 행 탭 시 [미읽음이면 읽음 처리(fire-and-forget)] + router.push(`/shop/${shopId}`)
+  ├ 피드 = 매장 알림(GET /notifications, 로그인 필요) + 앱 소식(GET /notifications/app-news, 로그인 무관)
+  │    createdAt/publishedAt 병합 시간순(최신 우선). 앱 소식 조회 실패는 soft-fail(병합에서만 빠짐).
+  ├ 비회원 → 앱 소식만 노출(QA 비로그인 #5 완성형) + 화면 하단 "로그인 하러가기"(replace('/login'))
+  │    └ 소식 0건이면 중앙 안내 문구("로그인하면 즐겨찾는 샵의…"). 문구·카드 디자인 부재 — 임시, 디자이너 확인 항목
+  ├ 회원 → 병합 피드. 빈 목록 → "새로운 알림이 없습니다" / 에러(매장 알림 기준) → 안내+다시 시도
+  ├ 매장 알림 행 탭 → [미읽음이면 서버 읽음 처리(fire-and-forget)] + router.push(`/shop/${shopId}`)
+  └ 앱 소식 행(AppNewsCard) 탭 → 로컬 읽음 저장 + link 있으면 Linking.openURL
 ```
+- **앱 소식 읽음은 서버 미관리(BE 공지)** → 기기 로컬(`appNewsLocal.ts`, AsyncStorage — 최신 200개 유지). 도트 표시 기준.
+- **앱 소식 카드**: 매장 알림 행 레이아웃 준용 — imageUrl 있으면 썸네일, 없으면 확성기 아이콘(#fdeef2 배경). 디자인 부재 — 임시.
+- **디바이스 등록**: 앱 실행 시 `usePushSetup`이 로그인 무관 1회 `POST /notifications/devices`
+  `{deviceId, fcmToken, platform, appNewsEnabled}`(204, 업서트) — 이게 있어야 비로그인도 앱 소식 푸시 수신(QA 비로그인 #4).
+  deviceId = 최초 실행 시 UUID 생성·영구 저장(`src/shared/lib/deviceId.ts`), FCM 토큰 갱신 시 재호출.
+  알림 권한 팝업 시점이 로그인 후 → **앱 시작 시**로 앞당겨짐.
 - 문구: 제목 `{shopName} {slotTime} 빈자리 알림!` + 고정 본문(캡처 그대로, **타입별 구분 없음 — 사용자 확정**).
 - 미읽음: `readAt === null`이면 제목 좌측 6px 핑크 도트(`primary.500`) — **디자인 미제공 임시안(사용자 확정)**.
 - **읽음 처리(2026-07-04)**: **탭한 알림만** 읽음 — 사용자 확정(화면 진입 시 전체 읽음 아님). `useMarkNotificationRead()`가

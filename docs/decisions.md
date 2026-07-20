@@ -13,6 +13,13 @@
 
 ---
 
+## 2026-07-18 · 결정: BE 개편 반영 — 예약 라우트 서버 판별·앱 소식 이원화·디바이스 ID = UUID+AsyncStorage
+- 맥락/문제: BE가 QA 잔여분을 반영해 배포 — ① `GET /shops/:id`에 `bookingType`+`reservationRoutes`(라벨 포함) ② `GET /notifications/app-news`(비로그인 가능) + `POST /notifications/devices`(익명 디바이스 등록). 로컬 syakBE가 구버전이라 `git show origin/master:`로 계약 확정(작업 트리 미변경 — 로컬 수정분 보존).
+- 결정: ① 예약 바는 **대표 라우트 1개**(사용자 확정 — 2버튼 디자인 유지), 라벨은 서버 제공값 그대로, URL 추측(resolveBooking) 제거 ② 알림 탭 = 매장 알림+앱 소식 **병합 피드**(비로그인은 앱 소식만+하단 로그인 유도), 앱 소식 읽음은 AsyncStorage 로컬(서버 미관리 — BE 공지) ③ **deviceId = 최초 실행 UUID(expo-crypto) + AsyncStorage 영구 저장** ④ 마이 앱 소식 토글을 shopNewsEnabled(서버·로그인 필요) → 디바이스 appNewsEnabled(로컬+재등록, 비로그인 포함)로 전환 ⑤ 프로젝트 첫 AsyncStorage 도입(deviceId·앱소식 읽음·토글 — 토큰 저장 금지 규칙과 무관한 비민감 데이터).
+- 이유: 서버가 type·label을 주므로 FE 추측은 이제 이중 관리(2026-07-14 resolveBooking 결정을 BE 개편으로 대체). deviceId를 expo-application 대신 UUID로 한 건 "설치마다 고유" 계약과 정확히 일치 + AsyncStorage를 어차피 읽음 관리에 도입하기 때문(라이브러리 1개 절약 아님 — expo-crypto 필요하나 randomUUID 표준 API라 유지비 낮음).
+- 대안(버림): reservationRoutes 전부 렌더(디자인 부재 — 디자이너 확인 후), expo-application 기기 ID(재설치에도 유지돼 계약과 다름), 앱 소식 읽음 서버 관리 요청(BE가 미관리 확정), GuestNotificationView 유지(앱 소식 노출 불가).
+- 관련: `ReservationBar.tsx`, `shopDetailToView.ts`, `push.ts`, `appNewsLocal.ts`, `deviceId.ts`, `NotificationScreen.tsx`, [notification.md](./notification.md), [shop-detail.md](./shop-detail.md)
+
 ## 2026-07-14 · 결정: QA 2차(UX 10건) — 시트 dynamicSizing off·topOffset 확장 한계·필터 초기화는 현재 필터만·가격 복수화
 - 맥락/문제: 안드 태블릿 QA Fail 잔여 10건. 핵심 원인 발견: gorhom bottom-sheet **v5는 `enableDynamicSizing` 기본 true**라 칩 토글 → 목록이 로딩 스피너로 교체되는 순간 콘텐츠 높이 스냅포인트로 시트가 축소(#53). 가격 복수 선택(#14)은 BE(price_tiers 콤마)·API·타입이 이미 지원 — store 단일 타입만 병목.
 - 결정(사용자 확정 2건 포함): ① `enableDynamicSizing={false}` — 지정 스냅포인트만 사용 ② 목록 최대 확장 = `화면높이 - 헤더높이(onLayout 측정) - 8`(#50, 포커스 100%는 유지) ③ 필터 초기화 버튼 = **열려있는 필터만 해제**(사용자 확정 — QA 문구 "모든 선택 해제"는 모달 내 선택으로 해석) ④ `price: PriceKey` → `prices: PriceKey[]`(빈 배열 = 전체, '전체' 탭 = 클리어, 즉시 닫힘 제거) ⑤ 홈 진입 시 위치 권한 즉시 요청 + 허용 시 **카메라만 이동**(사용자 확정 — 내 주변 모드는 버튼으로만) ⑥ 마이 위치 권한 토글 실연동(`getForegroundPermissionsAsync` 조회 전용 함수 신설, OFF는 설정 이동) ⑦ 알림 비로그인 = 팝업 차단 → 인화면 안내+하단 로그인 버튼.

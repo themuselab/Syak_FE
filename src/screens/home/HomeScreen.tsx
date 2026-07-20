@@ -42,6 +42,9 @@ export function HomeScreen() {
   const [nearbyCoords, setNearbyCoords] = useState<{ lat: number; lng: number } | null>(null);
   // 헤더+검색바 오버레이 높이(onLayout 측정) — 시트 최대 확장 한계 계산용 (QA #50).
   const [headerHeight, setHeaderHeight] = useState(0);
+  // 루트 컨테이너 실측 높이 — 시트 snapPoint('40%')와 같은 기준. useWindowDimensions는
+  // 안드 상태바 처리에 따라 이 값과 어긋나 내 위치 버튼이 시트와 겹칠 수 있다(사용자 피드백).
+  const [containerHeight, setContainerHeight] = useState(0);
 
   // 홈 최초 진입 시 위치 권한 즉시 요청(QA #40·#52 — 사용자 확정: 온보딩 화면 대신 이 방식).
   // 허용 시 지도 카메라만 내 위치로 이동 — 내 주변 모드(목록 필터·버튼 활성)는 버튼 탭으로만 켜짐.
@@ -147,7 +150,10 @@ export function HomeScreen() {
 
   return (
     <BottomSheetModalProvider>
-      <View className="flex-1 bg-white">
+      <View
+        className="flex-1 bg-white"
+        onLayout={(e) => setContainerHeight(e.nativeEvent.layout.height)}
+      >
         <HomeMap
           ref={mapRef}
           shops={shops}
@@ -174,8 +180,12 @@ export function HomeScreen() {
           </View>
         </View>
 
-        {/* 현재위치 버튼 (지도 우하단, 바텀시트 위) */}
-        <View className="absolute right-4" style={{ bottom: height * 0.42 + 12 }}>
+        {/* 현재위치 버튼 (지도 우하단, 첫 진입 시트 40% 상단 위 16px — 컨테이너 실측 기준이라 안 겹침).
+            시트를 위로 올리면 버튼이 가려지는 것은 확정 정책(#45 — 버튼 고정). */}
+        <View
+          className="absolute right-4"
+          style={{ bottom: (containerHeight > 0 ? containerHeight : height) * 0.4 + 16 }}
+        >
           <CurrentLocationButton onPress={handleNearbyToggle} active={nearbyCoords !== null} />
         </View>
 

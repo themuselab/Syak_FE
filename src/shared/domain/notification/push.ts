@@ -3,9 +3,11 @@ import { useEffect, useRef } from 'react';
 import { PermissionsAndroid, Platform } from 'react-native';
 
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
+import { getDeviceId } from '@/shared/lib/deviceId';
 import { queryClient } from '@/shared/lib/queryClient';
 
-import { updateNotificationSettings } from './notification.api';
+import { getAppNewsEnabled } from './appNewsLocal';
+import { registerDevice, updateNotificationSettings } from './notification.api';
 
 // FCM 푸시 토큰 등록 (dev build 전용 — 네이티브 모듈).
 // 카카오/네이버 SDK 초기화와 같은 dynamic import 가드 — web·Expo Go·google-services 미포함 구 빌드에선
@@ -55,13 +57,15 @@ export async function registerPushToken(): Promise<void> {
 
     if (!listenersAttached) {
       listenersAttached = true;
-      // 토큰 로테이션 시 서버 재등록 (best-effort)
+      // 토큰 로테이션 시 서버 재등록 (best-effort) — 유저 설정(fcmToken) + 디바이스(앱 소식) 둘 다
       m.onTokenRefresh(messaging, (t) => {
         updateNotificationSettings({ fcmToken: t }).catch(() => {});
+        registerDeviceWithToken(t).catch(() => {});
       });
       // 포그라운드 수신: OS가 배너를 안 띄우므로(임시 동작 — docs/notification.md) 알림 목록 캐시만 갱신
       m.onMessage(messaging, async () => {
         queryClient.invalidateQueries({ queryKey: ['notifications', 'list'] });
+        queryClient.invalidateQueries({ queryKey: ['notifications', 'app-news'] });
       });
       // 백그라운드에서 알림 탭 → 샵 상세
       m.onNotificationOpenedApp(messaging, openShopFromMessage);
@@ -70,6 +74,28 @@ export async function registerPushToken(): Promise<void> {
         if (msg) setTimeout(() => openShopFromMessage(msg), 500);
       });
     }
+  } catch {
+    // 네이티브 모듈/Firebase 설정 없는 환경(web·Expo Go·구 dev build) — 조용히 통과
+  }
+}
+
+// deviceId + 로컬 appNewsEnabled로 디바이스 업서트 (POST /notifications/devices, 204).
+async function registerDeviceWithToken(token: string): Promise<void> {
+  const [deviceId, appNewsEnabled] = await Promise.all([getDeviceId(), getAppNewsEnabled()]);
+  await registerDevice({ deviceId, fcmToken: token, platform: Platform.OS, appNewsEnabled });
+}
+
+// 앱 실행 시 호출(로그인 무관 — docs/09 §3-5): 권한 요청 → FCM 토큰 → 디바이스 등록.
+// 이게 있어야 비로그인 유저도 앱 소식 푸시를 받는다(QA 비로그인 #4). 실패 시 조용히 종료.
+// 마이 "앱 소식" 토글 변경 시에도 재호출해 appNewsEnabled를 서버에 반영한다.
+export async function registerDeviceForAppNews(): Promise<void> {
+  if (Platform.OS === 'web') return;
+  try {
+    const m: Messaging = await import('@react-native-firebase/messaging');
+    const messaging = m.getMessaging();
+    if (!(await requestNotificationPermission(m))) return;
+    const token = await m.getToken(messaging);
+    if (token) await registerDeviceWithToken(token);
   } catch {
     // 네이티브 모듈/Firebase 설정 없는 환경(web·Expo Go·구 dev build) — 조용히 통과
   }
@@ -87,11 +113,16 @@ export async function unregisterPushToken(): Promise<void> {
   }
 }
 
-// 루트 레이아웃에서 호출. 로그인 전환(스플래시 세션 복원·소셜 로그인 둘 다) 시 토큰 등록 1회.
-// 계정이 바뀌면(id 변경) 새 계정으로 재등록.
+// 루트 레이아웃에서 호출.
+// ① 앱 시작 시 디바이스 등록 1회(로그인 무관 — 앱 소식 푸시용, 알림 권한 팝업도 이 시점).
+// ② 로그인 전환(스플래시 세션 복원·소셜 로그인) 시 유저 토큰 등록 1회. 계정 변경(id) 시 재등록.
 export function usePushSetup() {
   const user = useAuthStore((s) => s.user);
   const prevIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    registerDeviceForAppNews();
+  }, []);
 
   useEffect(() => {
     const id = user?.id ?? null;

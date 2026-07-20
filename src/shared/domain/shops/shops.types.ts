@@ -35,10 +35,22 @@ export type ShopReview = {
   ownerReply: string | null;
 };
 
+// 예약 수단 (2026-07-18 BE 개편 — syakBE docs/09 §3-4). naver만 실제 온라인 예약, 나머지는 문의/전화.
+export type BookingRouteType = 'naver' | 'talktalk' | 'instagram' | 'kakao' | 'phone';
+
+// 서버가 라벨까지 내려줌("네이버로 예약"/"인스타로 문의" 등) — FE는 URL 추측 없이 그대로 사용.
+export type ReservationRoute = {
+  type: BookingRouteType;
+  label: string;
+  value: string; // URL 또는 전화번호(type='phone')
+};
+
 // 상세 = 목록 필드 + 추가 필드. photos는 상세에서 갤러리 전체(여러 장).
 export type ShopDetail = ShopListItem & {
   bizId: string | null;
-  bookingUrl: string | null;
+  bookingUrl: string | null; // 하위호환용 대표 링크 — 신규 코드는 reservationRoutes 사용
+  bookingType: BookingRouteType | null; // 대표 링크의 수단 (naver 있으면 naver 최우선)
+  reservationRoutes: ReservationRoute[];
   phone: string | null;
   roadAddress: string | null;
   menus: ShopMenu[];

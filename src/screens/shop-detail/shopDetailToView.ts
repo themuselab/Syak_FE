@@ -1,5 +1,5 @@
 import type { ShopSlot } from '@/shared/domain/reservation/reservation.types';
-import type { ShopDetail } from '@/shared/domain/shops/shops.types';
+import type { ReservationRoute, ShopDetail } from '@/shared/domain/shops/shops.types';
 import { toDateKey } from '@/shared/lib/date';
 import { formatDistrict } from '@/shared/lib/region';
 
@@ -47,7 +47,7 @@ export type ShopDetailView = {
   badges: string[];
   photos: string[];
   phone: string | null;
-  bookingUrl: string | null;
+  bookingRoute: ReservationRoute | null; // 대표 예약 수단 — 예약 바 우측 버튼 (2버튼 유지, 사용자 확정)
   availability: DayAvailability[];
   menus: MenuItem[]; // 비어 있으면 섹션 빈 상태 문구
   info: InfoRow[];
@@ -119,7 +119,12 @@ export function toShopDetailView(
     badges,
     photos: shop.photos,
     phone: shop.phone,
-    bookingUrl: shop.bookingUrl,
+    // 대표 라우트 = bookingType과 일치하는 항목(BE가 naver 최우선으로 지정) → 없으면 첫 항목.
+    // 구 응답(필드 부재) 방어로 ?? [] — 그 경우 bookingUrl 기반 폴백은 두지 않음(BE 배포 완료 확인).
+    bookingRoute:
+      (shop.reservationRoutes ?? []).find((r) => r.type === shop.bookingType) ??
+      (shop.reservationRoutes ?? [])[0] ??
+      null,
     availability,
     // 가격 없는 메뉴는 이름만(리더선 유지). recommend는 디자인에 표시 요소가 없어 미사용.
     menus: shop.menus.map((m) => ({

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
+  getAppNews,
   getNotifications,
   getNotificationSettings,
   markNotificationRead,
@@ -15,6 +16,16 @@ export function useNotifications(enabled: boolean) {
     queryFn: getNotifications,
     enabled,
     select: (d) => d.notifications,
+  });
+}
+
+// 앱 소식 목록 (전역 피드, 로그인 불필요 — 비회원도 조회).
+export function useAppNews() {
+  return useQuery({
+    queryKey: ['notifications', 'app-news'],
+    queryFn: getAppNews,
+    select: (d) => d.items,
+    staleTime: 60_000,
   });
 }
 

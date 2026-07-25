@@ -70,10 +70,12 @@ export function ShopDetailSheet({ shopId, favorite, onToggleFavorite, expanded, 
         <DetailHeader favorite={favorite} onToggleFavorite={onToggleFavorite} onBack={onCollapse} />
       )}
 
+      {/* 별은 항상 1개만. 풀스크린은 위 DetailHeader의 별을 쓰므로 타이틀 별을 끄고,
+          헤더가 없는 접힘(35%)에서만 타이틀 별을 노출한다(QA #58 — 중복 노출 수정). */}
       <ShopDetailBody
         shop={shop}
         favorite={favorite}
-        onToggleFavorite={onToggleFavorite}
+        onToggleFavorite={expanded ? undefined : onToggleFavorite}
         renderScroll={(scrollProps, ref) => <BottomSheetScrollView {...scrollProps} ref={ref} />}
       />
 

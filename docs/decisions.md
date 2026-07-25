@@ -13,6 +13,21 @@
 
 ---
 
+## 2026-07-25 · 결정: 홈 세로 좌표는 단일 상수 모듈 + 컨테이너 실측 기준으로 통일 (QA 2차 #54·#55·#61)
+- 맥락/문제: QA 2차에서 ① 시트를 끝까지 내려도 화면 1/3을 차지 ② 지도 확대/축소(+/-) 버튼이 내 위치 버튼과 겹침 ③ 상단 헤더가 과도하게 큼 이 접수됨. 조사 결과 세 증상이 같은 뿌리 — 시트 위치를 기준으로 지도 오버레이가 배치되는데 **계산 기준이 파일마다 달랐다**(시트=`useWindowDimensions`, 내 위치 버튼=`containerHeight` 실측, 지도 컨트롤=기준 없음). +/- 버튼은 아예 앱 코드에 없는 **네이버 SDK 기본 컨트롤**이었고(`isShow*` 미지정 → 전부 기본값 true), `mapPadding`이 없어 지도 뷰(absoluteFill) 최하단에 밀착해 있었다.
+- 결정(사용자 확정 3건 포함): ① 목록 시트를 **3단 스냅(96px / 40% / 검색바 아래)** 으로 — 최소만 추가하고 **기본 진입은 40% 유지**(디자인 불변) ② 최소 높이는 **핸들+칩바(96px)** — 사용자가 세 선택지 중 확정 ③ **+/- 버튼은 유지**(사용자 확정)하고 `mapPadding={{top: headerHeight, bottom: 시트40%+64}}`로 위치만 조정, 중복인 SDK 현위치 버튼과 디자인에 없는 나침반·축척바·실내층은 끔 ④ **내 위치 버튼은 디자인 위치(시트 40% 위 16px) 그대로** 두고 SDK 컨트롤을 그 위로 올림 ⑤ 헤더 `insets.top+104` → **`insets.top+88`**(래퍼 pt 8→4, 아이콘 p-2→p-1.5, 검색 pt 12→8, 검색바 44→40) ⑥ 모든 상수를 `src/screens/home/homeLayout.ts`에 모으고 시트 최대 높이 기준을 `containerHeight` 실측으로 교체.
+- 이유: gorhom은 스냅포인트를 **자기 컨테이너 실측 높이**로 정규화(`normalizeSnapPoint`)하므로 창 높이를 쓰면 안드 상태바 처리에 따라 시트가 검색바를 덮거나 틈이 생긴다 — 이 버그는 2026-07-18에 내 위치 버튼만 고쳐졌고 시트에 남아 있었다. 상수를 한곳에 모아야 "시트를 내리면 컨트롤도 따라 내려간다" 같은 후속 변경에서 다시 어긋나지 않는다. 기본 40%를 유지한 건 QA 요청이 "최하단으로 내렸을 때"로 한정돼 첫 진입 디자인까지 바꿀 근거가 없기 때문.
+- 대안(버림): SDK 컨트롤 전부 숨김(사용자가 +/- 유지 확정), 기본 스냅을 96px로 변경(첫 진입 화면이 디자인과 달라짐), 내 위치 버튼을 컨트롤 위로 올림(디자인 위치 변경 — 요청은 "+/- 위치만 조정"), 시트를 `mapPadding`에 실시간 연동(스냅 애니메이션마다 네이티브 패딩 갱신 = 비용·깜빡임).
+- 부수 처리: 최소 높이(96px)에서 필터 칩을 탭하면 필터 화면(제목·콘텐츠·버튼)이 다 가려지는 회귀가 생겨, **그 경우에만** 기본 40%로 올리고 닫을 때 되돌린다. "필터를 열거나 닫아도 스냅 이동하지 않는다"는 기존 정책은 40%보다 위에 둔 경우에 한해 유지. 네이버 로고가 시트 뒤에 완전히 가려져 있던 SDK 약관 위반도 `mapPadding`으로 함께 해소.
+- 관련: `homeLayout.ts`, `HomeScreen.tsx`, `ShopBottomSheet.tsx`, `HomeMap.tsx`, `HomeHeader.tsx`, `SearchBar.tsx`, [home.md](./home.md)
+
+## 2026-07-25 · 결정: 비회원 알림 토글은 disabled가 아니라 로그인 유도 (QA 2차 #59)
+- 맥락/문제: 마이페이지 '내 주변 알림'·'즐겨찾기 알림'은 비회원일 때 `disabled`로 막혀 있었다. `Toggle`이 `!disabled && onValueChange(...)`로 무시하고 **disabled 시각 표현조차 없어**, 비회원에겐 눌러도 아무 일 없는 "고장난 토글"로 보였다.
+- 결정: 비회원도 탭 가능하게 두고 `LoginPromptModal`을 띄운다. `disabled`는 **로그인 상태에서 설정 로딩 중**(`settings == null`)에만 건다. 로그인 이동 전 모달을 먼저 닫는다(안 닫으면 push된 로그인 화면을 덮음).
+- 이유: `LoginPromptModal`은 `visible` 불리언만 받는 재사용형이고 홈 즐겨찾기 별 탭이 이미 같은 패턴이다. 프로젝트의 `Alert.alert` 3곳은 전부 OS 권한/실패 안내 전용이라 로그인 유도에 섞지 않는다.
+- 대안(버림): `Alert.alert`로 안내(패턴 불일치), disabled 유지 + 회색 처리(왜 막혔는지 설명이 없어 여전히 불친절), 토글을 비회원에게 숨김(설정 항목 존재 자체를 못 알림).
+- 관련: `MyScreen.tsx`, `LoginPromptModal.tsx`, [my.md](./my.md)
+
 ## 2026-07-18 · 결정: BE 개편 반영 — 예약 라우트 서버 판별·앱 소식 이원화·디바이스 ID = UUID+AsyncStorage
 - 맥락/문제: BE가 QA 잔여분을 반영해 배포 — ① `GET /shops/:id`에 `bookingType`+`reservationRoutes`(라벨 포함) ② `GET /notifications/app-news`(비로그인 가능) + `POST /notifications/devices`(익명 디바이스 등록). 로컬 syakBE가 구버전이라 `git show origin/master:`로 계약 확정(작업 트리 미변경 — 로컬 수정분 보존).
 - 결정: ① 예약 바는 **대표 라우트 1개**(사용자 확정 — 2버튼 디자인 유지), 라벨은 서버 제공값 그대로, URL 추측(resolveBooking) 제거 ② 알림 탭 = 매장 알림+앱 소식 **병합 피드**(비로그인은 앱 소식만+하단 로그인 유도), 앱 소식 읽음은 AsyncStorage 로컬(서버 미관리 — BE 공지) ③ **deviceId = 최초 실행 UUID(expo-crypto) + AsyncStorage 영구 저장** ④ 마이 앱 소식 토글을 shopNewsEnabled(서버·로그인 필요) → 디바이스 appNewsEnabled(로컬+재등록, 비로그인 포함)로 전환 ⑤ 프로젝트 첫 AsyncStorage 도입(deviceId·앱소식 읽음·토글 — 토큰 저장 금지 규칙과 무관한 비민감 데이터).
@@ -50,7 +65,7 @@
 
 ## 2026-07-10 · 결정: 특정샵 포커스 = 시트 인라인 상세 + 풀스크린 확장(라우트 push 제거), 본문은 render prop 공유
 - 맥락/문제: 핀 탭 → 목록 카드 1개 미리보기 → 90% 올리거나 카드 탭 시 `/shop/:id` push. 피드백 디자인(euK3A)은 핀 탭 시 시트에 상세 상단부(타이틀+별+배지+캐러셀)를 바로 보여주는 구조. 화면 전환 없이 "끌어올리면 상세가 덮는" UX 요구.
-- 결정(사용자 확정): ① 핀/카드 탭 → 시트 **35%**(디자인 285/812)에 `ShopDetailSheet` 인라인 상세 ② 올리면 **시트 자체가 100% 확장**(push 없음) — expanded에서 핸들 숨김·라운드 0 + `DetailHeader`(뒤로=접힘)·`ReservationBar` 표시 ③ 탭된 핀은 포커스 핀(56px, `pin-focused.png`, zIndex 1) ④ 카드 탭도 동일 플로우(+카메라 이동) ⑤ `/shop/:id` 라우트는 알림 딥링크용 유지. 본문 공유는 `useSectionSpy` 훅 + `ShopDetailBody`의 **`renderScroll` render prop**(라우트=ScrollView, 시트=BottomSheetScrollView — 같은 쿼리키로 캐시도 공유). 안드 물리 뒤로: 풀스크린→접힘→해제. 풀스크린에서 헤더 별+타이틀 별 중복은 각 디자인과 일치해 유지(디자이너 확인 항목).
+- 결정(사용자 확정): ① 핀/카드 탭 → 시트 **35%**(디자인 285/812)에 `ShopDetailSheet` 인라인 상세 ② 올리면 **시트 자체가 100% 확장**(push 없음) — expanded에서 핸들 숨김·라운드 0 + `DetailHeader`(뒤로=접힘)·`ReservationBar` 표시 ③ 탭된 핀은 포커스 핀(56px, `pin-focused.png`, zIndex 1) ④ 카드 탭도 동일 플로우(+카메라 이동) ⑤ `/shop/:id` 라우트는 알림 딥링크용 유지. 본문 공유는 `useSectionSpy` 훅 + `ShopDetailBody`의 **`renderScroll` render prop**(라우트=ScrollView, 시트=BottomSheetScrollView — 같은 쿼리키로 캐시도 공유). 안드 물리 뒤로: 풀스크린→접힘→해제. ~~풀스크린에서 헤더 별+타이틀 별 중복은 각 디자인과 일치해 유지(디자이너 확인 항목).~~ → **2026-07-25 QA #58에서 뒤집음**: 중복 노출이 버그로 접수돼 `expanded`일 때 타이틀 별을 끔(접힘=타이틀 별 / 풀스크린=헤더 별, 라우트 화면과 동일하게 항상 1개).
 - 이유: gorhom v5는 최대 스냅 이전 콘텐츠 팬이 시트를 끌어올리므로 35%↔100%↔내부 스크롤이 기본 동작으로 성립. BottomSheetScrollView가 `onScroll`·`stickyHeaderIndices`·`scrollTo`를 지원해 스크롤스파이 로직을 그대로 공유 가능(단 `scrollEventThrottle`은 내부 관리라 render prop으로 컨테이너별 분리). 인라인이라 지도 맥락 유지 + 시트에서 본 데이터가 라우트 캐시로 재사용.
 - 대안(버림): 90% 도달 시 push 유지(화면 전환 UX — 사용자가 시트 확장 확정), `BottomSheetFooter`로 예약바(조건부 렌더로 충분), 섹션 컴포넌트 `shared/ui` 이동(도메인 응집 깨짐 — 홈→shop-detail import 예외로 기록), 스크롤 컨테이너 ComponentType 주입(TS strict 변성 문제).
 - 관련: `ShopDetailSheet.tsx`, `ShopDetailBody.tsx`, `useSectionSpy.ts`, `ShopBottomSheet.tsx`, `HomeMap.tsx`, [home.md](./home.md) §3 특정샵 포커스, [shop-detail.md](./shop-detail.md)

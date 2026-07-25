@@ -34,12 +34,17 @@ type Props = {
   onMapPress?: () => void; // 핀 없는 빈 곳 탭 (포커스 해제)
   myLocation?: { lat: number; lng: number } | null; // 내 주변 모드의 토글 시점 좌표 (null = 마커 숨김)
   selectedShopId?: string | null; // 포커스된 매장 — 해당 핀만 포커스 핀(56px)으로 교체
+  topPadding?: number; // 헤더+검색바 높이 — SDK 컨트롤이 그 아래에 오도록
+  bottomPadding?: number; // 바텀시트 최소 높이 — 줌 컨트롤·네이버 로고가 시트에 안 가리게
 };
 
 // 네이버 지도 + 샵 좌표 핀. 네이티브 전용(web/Expo Go는 HomeMap.web.tsx placeholder).
 // 키(EXPO_PUBLIC_NAVER_MAP_CLIENT_ID) 미발급 dev build에서도 안전하게 placeholder로 폴백.
 export const HomeMap = forwardRef<HomeMapRef, Props>(
-  ({ shops, onMarkerPress, onMapPress, myLocation, selectedShopId }, ref) => {
+  (
+    { shops, onMarkerPress, onMapPress, myLocation, selectedShopId, topPadding, bottomPadding },
+    ref,
+  ) => {
     const mapRef = useRef<NaverMapViewRef>(null);
 
     useImperativeHandle(ref, () => ({
@@ -57,6 +62,16 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
         style={StyleSheet.absoluteFill}
         initialCamera={SEOUL}
         onTapMap={onMapPress}
+        // SDK 기본 UI는 전부 true라 지정하지 않으면 다 켜진다. 줌(+/-)만 남기고 정리:
+        // 현위치 버튼은 앱 커스텀 CurrentLocationButton과 중복, 나머지는 디자인에 없다(QA #55).
+        isShowZoomControls
+        isShowLocationButton={false}
+        isShowCompass={false}
+        isShowScaleBar={false}
+        isShowIndoorLevelPicker={false}
+        // 콘텐츠 패딩 — SDK는 컨트롤·로고를 이 영역 안으로 옮긴다. 없으면 지도 뷰(absoluteFill)
+        // 최하단에 밀착해 바텀시트 뒤로 완전히 가려진다(네이버 로고는 노출 필수).
+        mapPadding={{ top: topPadding ?? 0, bottom: bottomPadding ?? 0 }}
         // 내 위치 = SDK 전용 오버레이(지도당 1개). anchor 기본 중앙 — 점형 마커에 적합.
         locationOverlay={{
           isVisible: myLocation != null,

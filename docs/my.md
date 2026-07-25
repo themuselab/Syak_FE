@@ -17,7 +17,8 @@
   │    └ 서버 연동(GET/PATCH /notifications/settings): 값은 서버 파생, 토글 탭 → PATCH → 응답으로 캐시 교체
   └ 하단: 회원="로그아웃"(useSignOut) / 비회원="로그인"(채움) → /login
 ```
-- 회원/비회원은 `useAuthStore.user`로 자동 분기. 비회원·설정 로딩 중엔 알림 토글 비활성(disabled). **위치 권한·앱 소식 토글은 예외 — 계정 무관이라 비회원도 동작**(QA 비로그인 #3·#4).
+- 회원/비회원은 `useAuthStore.user`로 자동 분기. **위치 권한·앱 소식 토글은 계정 무관이라 비회원도 동작**(QA 비로그인 #3·#4).
+- **비회원 알림 토글 = 로그인 유도(2026-07-25 QA #59)**: ~~비회원이면 '내 주변 알림'·'즐겨찾기 알림' 토글 비활성(disabled)~~ → **탭 가능하게 두고 `LoginPromptModal`을 띄운다**. disabled는 시각 표현조차 없어 비회원에겐 "고장난 토글"로 보였다. `disabled`는 이제 **설정 로딩 중(로그인 상태에서 `settings == null`)** 에만 건다. 로그인 유도는 홈 별 탭과 동일 패턴 — `Alert.alert`는 OS 권한/실패 안내 전용이라 쓰지 않는다.
 - **앱 소식 토글(2026-07-18 BE 개편)**: ~~서버 설정 `shopNewsEnabled` 매핑(로그인 필요)~~ → **디바이스 단위** — 로컬 저장값(`appNewsLocal.ts`)이 원본, 변경 시 `POST /notifications/devices` 재등록으로 서버 반영. 기본 ON.
 - **위치 권한 토글(2026-07-14, QA 비로그인 #3 — 실권한 연동)**: 화면 포커스마다 `getLocationPermission()`(조회 전용)으로 실제 OS 권한 표시. ON 시도 → `requestLocationPermission()`(OS 팝업), 재요청 불가('다시 묻지 않음')면 Alert + `Linking.openSettings()`. OFF 시도 → 앱에서 회수 불가라 설정 앱으로 이동(복귀 시 포커스 재조회로 반영).
 - **내 주변 알림 ON**: `getCurrentCoords()`(위치 권한 요청) → 허용 시 `{ nearEnabled:true, nearLat, nearLng }` PATCH / 거부 시 `Alert` 안내 후 미전송(값이 서버 파생이라 토글은 OFF에 머묾 — 롤백 불필요). OFF는 `{ nearEnabled:false }`만.

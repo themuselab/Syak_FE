@@ -23,17 +23,21 @@ export function MenuSection({ menus }: Props) {
       )}
       <View className="gap-4">
         {menus.map((m, i) => (
+          // 폭이 모자랄 때 줄어드는 쪽은 메뉴명(말줄임), 가격은 flexShrink 0으로 고정.
+          // 가격을 안 막으면 '75,000원'의 '원'이 줄바꿈 기회로 잡혀 두 줄로 꺾인다(QA #57).
           <View key={i} className="flex-row items-center gap-1">
             <Text
               className="font-pretendard-medium text-[15px]"
-              style={{ color: '#7e7e7e', letterSpacing: -0.3 }}
+              numberOfLines={1}
+              style={{ color: '#7e7e7e', letterSpacing: -0.3, flexShrink: 1 }}
             >
               {m.name}
             </Text>
             <View className="h-px flex-1" style={{ backgroundColor: '#e6e6e6' }} />
             <Text
               className="font-pretendard-medium text-[15px]"
-              style={{ color: '#1a1a1a', letterSpacing: -0.3 }}
+              numberOfLines={1}
+              style={{ color: '#1a1a1a', letterSpacing: -0.3, flexShrink: 0 }}
             >
               {m.price}
             </Text>

@@ -1,5 +1,5 @@
 import { Search } from 'lucide-react-native';
-import { TextInput, View } from 'react-native';
+import { Keyboard, TextInput, View } from 'react-native';
 
 import { colors } from '@/shared/theme/colors';
 import { useHomeFilterStore } from '../useHomeFilterStore';
@@ -11,7 +11,8 @@ export function SearchBar() {
 
   return (
     <View
-      className="h-11 flex-row items-center rounded-full border bg-white"
+      // h-10(40px) — 헤더 영역 세로 축소(QA #61)
+      className="h-10 flex-row items-center rounded-full border bg-white"
       style={{
         borderColor: colors.primary[300],
         paddingLeft: 16,
@@ -28,6 +29,9 @@ export function SearchBar() {
         onChangeText={setSearch}
         placeholder="샵 이름으로 찾기"
         placeholderTextColor="#c3c3c3"
+        // 검색은 입력마다 디바운스로 나가므로 엔터는 키보드만 닫는다(QA #60).
+        returnKeyType="search"
+        onSubmitEditing={() => Keyboard.dismiss()}
         className="flex-1 text-body-l font-pretendard"
         style={{ color: colors.gray[900], paddingVertical: 0 }}
       />

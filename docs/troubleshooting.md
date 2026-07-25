@@ -15,6 +15,27 @@
 
 ---
 
+## 2026-07-25 · 검색 키보드가 지도를 터치해도 안 닫힘
+- 증상: 검색창을 눌러 키보드를 올린 뒤, 검색하지 않고 지도를 보려고 화면을 터치해도 키보드가 그대로 남아 있음. (QA 접수 시 추정 원인은 "바텀시트 뒤 검색창과 터치 영역이 겹쳐 포커스가 잡힌다"였으나 **코드상 성립하지 않음** — 시트는 루트 View의 마지막 형제이고 트리 전체에 `zIndex`가 없어 항상 검색창보다 위다.)
+- 원인: 두 가지. ① 프로젝트 전체에 `Keyboard.dismiss()` 호출이 **0건** — 지도 탭(`onTapMap`)도, 시트 드래그도 키보드를 건드리지 않았다. ② 상단 장식용 `LinearGradient` 높이가 `insets.top + 150`으로 헤더(`insets.top + 104`)보다 **약 46px 아래까지** 덮는데 `pointerEvents`가 없어, 그 띠에서는 지도 탭 이벤트 자체가 발생하지 않았다. 헤더 래퍼·헤더 행도 마찬가지로 로고~아이콘 사이 빈 공간의 탭을 먹고 있었다.
+- 해결: 지도 탭 / 시트 스냅 이동(`onAnimate`, from≠to일 때만) / 목록 드래그(`keyboardDismissMode="on-drag"`) / 카드 탭 / 엔터(`onSubmitEditing`)에 `Keyboard.dismiss()` 추가. 그라데이션에 `pointerEvents="none"`, 헤더 래퍼·헤더 행·검색 래퍼에 `pointerEvents="box-none"`. 시트엔 `keyboardBlurBehavior="restore"`.
+- 관련: `HomeScreen.tsx`, `ShopBottomSheet.tsx`, `SearchBar.tsx`, `HomeHeader.tsx`
+- 교훈: 네이티브 뷰(지도) 위에 얹은 **투명 장식 레이어**는 눈에 안 보여도 터치를 그대로 먹는다. 장식은 `pointerEvents="none"`, 자식만 눌려야 하는 컨테이너는 `box-none`을 기본으로 붙일 것. 또 QA가 적어준 추정 원인을 그대로 믿지 말고 재현 조건부터 확인할 것(여기선 "겹침"이 아니라 "해제 로직 부재"였다).
+
+## 2026-07-25 · 바텀시트 최대 확장 위치가 기기마다 검색바를 덮거나 틈이 생김
+- 증상: 시트를 끝까지 올렸을 때 의도(검색바 바로 아래)와 달리 기기에 따라 검색바를 침범하거나, 반대로 검색바 아래에 빈 틈이 남음.
+- 원인: 스냅포인트를 `useWindowDimensions().height - topOffset - 8`(창 높이)로 계산했는데, gorhom은 이 값을 **자기 호스팅 컨테이너의 onLayout 실측 높이**로 정규화한다(`normalizeSnapPoint`). 안드로이드 상태바 처리(edge-to-edge 여부)에 따라 창 높이와 루트 View 높이가 어긋나면 그 차이만큼 시트 상단이 밀린다. 극단적으로 `winH - topOffset - 8 >= rootH`면 `Math.max(0, …)`에 걸려 전체 화면을 덮는다.
+- 해결: `ShopBottomSheet`에 `containerHeight`(루트 `onLayout` 실측) prop을 추가하고 `useWindowDimensions` 제거 — 최대 = `containerHeight - topOffset - 8`.
+- 관련: `ShopBottomSheet.tsx`, `HomeScreen.tsx`, [decisions.md](./decisions.md) 2026-07-25
+- 교훈: 같은 증상이 2026-07-18에 **내 위치 버튼**에서 먼저 나와 실측 기준으로 고쳐졌는데(HomeScreen 주석에 기록됨) 시트는 그대로 남아 재발했다. 한 화면에서 같은 좌표를 쓰는 요소는 계산 기준을 **한 모듈(`homeLayout.ts`)로 강제**할 것.
+
+## 2026-07-25 · 메뉴 가격 '75,000원'이 두 줄로 꺾임
+- 증상: 샵 상세 메뉴·가격 행에서 가격이 `75,000` / `원` 두 줄로 표시됨. 메뉴명이 길수록 재현이 쉬움.
+- 원인: 행의 자식 3개(메뉴명 / 리더선 / 가격) 중 `flex-1`은 리더선뿐이라 리더선이 먼저 0까지 줄고, 그래도 넘치면 Yoga가 **텍스트 노드를 min-content 폭까지 압축**한다. 한글 `원`이 별도의 줄바꿈 기회로 취급돼 거기서 꺾인다.
+- 해결: 가격에 `flexShrink: 0` + `numberOfLines={1}`(핵심 — 이것만으로 해소), 메뉴명에 `flexShrink: 1` + `numberOfLines={1}`로 양보. 같은 결함이 있던 `InfoSection`(긴 주소 → 라벨이 먼저 꺾임)도 반대 방향으로 동일 처리.
+- 관련: `MenuSection.tsx`, `InfoSection.tsx` — 선례: `ShopListCard.tsx`(QA #46)
+- 교훈: `flex-row`에서 "절대 줄면 안 되는" 쪽에 `flexShrink: 0`을 명시하지 않으면, 줄일 여지가 없어진 순간 RN이 텍스트를 쪼갠다. 고정/양보 역할을 항상 한 쌍으로 지정할 것.
+
 ## 2026-07-03 · 지역 필터에서 인천·부산 등 선택 시 결과 0건
 - 증상: 지역 필터에서 서울 구는 정상인데 인천/부산/대구/광주 선택 시 항상 "조건에 맞는 샵 없음".
 - 원인: 필터의 지역 목록이 mock 하드코딩이라 구 이름만 전송("부평구") — 실데이터 `shops.gu`는 서울만 구 단독이고 **광역시는 "시 구" 형태**("인천 부평구"). `in('gu', ['부평구'])`가 아무것도 못 찾음. 실측: `districts=부평구` 0건 / `districts=인천 부평구` 826건.

@@ -4,11 +4,18 @@
 > 홈은 **비회원도 접근**(`/shops` 무인증). 디자인: `designs/홈지도뷰/*`, `design.pen` 프레임 `GhhI1`(메인)·`aMGlg`(정렬)·`T7ZAb7`(지역)·`ykdR2`(가격)·`S5sgV5`(예약시간)·`Ib0Re`(시술)·`FvUT4`(빈 상태).
 
 ## 1. 구성
-- **헤더**: 로고 + 알림/프로필. 벨 → `/notifications`, 유저 → `/my`.
-- **검색바**: pill, 핑크 테두리. 이름 검색(`store.search`) — **서버 `q` 파라미터**(ilike 부분검색). 타이핑마다 refetch하지 않도록 **300ms 디바운스**(`useDebouncedValue`).
+- **헤더**: 로고 + 알림/프로필. 벨 → `/notifications`, 유저 → `/my`. 총 높이 **`insets.top + 88`**(래퍼 pt 4 + 행 36 + 검색 pt 8 + 검색바 40) — 2026-07-25 QA #61로 `+104`에서 16px 축소. 아이콘 탭 타깃은 36+`hitSlop 4`=44px 유지.
+- **검색바**: pill, 핑크 테두리, 높이 40px. 이름 검색(`store.search`) — **서버 `q` 파라미터**(ilike 부분검색). 타이핑마다 refetch하지 않도록 **300ms 디바운스**(`useDebouncedValue`).
+  - **키보드 해제(2026-07-25 QA #60)**: 지도 탭 / 시트 스냅 이동 / 목록 드래그(`keyboardDismissMode="on-drag"`) / 카드 탭 / 엔터에서 모두 `Keyboard.dismiss()`. 더불어 상단 그라데이션 `pointerEvents="none"`, 헤더 래퍼·행 `box-none` — 이전엔 장식 레이어가 헤더보다 46px 아래까지 덮어 그 구간의 지도 탭이 아예 발생하지 않았다.
+- **지도 UI 컨트롤(2026-07-25 QA #55)**: SDK 기본값이 전부 `true`라 지정하지 않으면 나침반·축척바·실내층·현위치 버튼까지 다 켜진다. **줌(+/-)만 남기고 나머지는 끔**(현위치 버튼은 앱 커스텀 `CurrentLocationButton`과 중복). `mapPadding={{ top: headerHeight, bottom: 시트40% + 64 }}`로 컨트롤·네이버 로고를 헤더 아래 / 내 위치 버튼 위로 이동 — 이전엔 지도 뷰(absoluteFill) 최하단에 밀착해 시트 뒤로 완전히 가려졌다(로고는 SDK 약관상 노출 필수).
 - **지도**: `HomeMap`(네이버지도 `NaverMapView`) + 샵 좌표 핀. **핀/카드 탭 → 특정샵 포커스(2026-07-10)**: 탭된 핀은 포커스 핀(56px)으로 교체 + 시트 35%에 **인라인 상세**(`ShopDetailSheet`) 표시 → 시트를 올리면 **라우트 이동 없이 풀스크린(100%) 확장**(헤더·sticky 탭·예약바 = 상세 화면과 동일). **지도 빈 곳 탭 → 포커스 해제**(전체 목록 복귀). web/Expo Go/키 없음은 회색 placeholder(`HomeMap.web.tsx` + 키 가드). — §3 특정샵 포커스.
 - **현재위치 버튼 = 내 주변 토글(2026-07-05)**: 지도 우하단. 누르면 `expo-location` 권한 → 좌표 → 지도 카메라 이동(`HomeMap` ref `moveTo`) + **목록·핀을 내 주변 매장으로 필터**(`GET /shops?lat&lng`, 반경 서버 기본 5km). **다시 누르면 해제**(전체 목록, 카메라 유지). **모드 표시(2026-07-10 피드백 반영)**: 지도에 내 위치 마커(파란 점, `locationOverlay`) + 버튼 아이콘 파랑(`#007AFF`) 전환, 해제 시 원복. 권한 거부 시 무동작 — §임시 동작.
-- **바텀시트**: 드래그(40%↔90%), 칩바(고정) + 매장 목록 / 미리보기(핀 선택 시 카드 1개) / 로딩 / 에러 / 빈 상태. 목록 하단·필터 닫기 버튼은 **safe area bottom inset 반영**(안드 내비 바에 안 가림).
+  - **응답 지연 개선(2026-07-25 QA #56)**: ① `getCurrentCoords`가 `getLastKnownPositionAsync({maxAge:5분})` 캐시 좌표를 먼저 쓰고, 없을 때만 `getCurrentPositionAsync({accuracy: Balanced})` — 이전엔 옵션 없이 매번 새 GPS fix를 기다려 실내에서 수 초~십수 초 걸렸다 ② 좌표 대기 중 버튼에 `ActivityIndicator`(`loading` prop, 중복 탭 차단) ③ `useShops`에 `placeholderData: keepPreviousData` — 쿼리키가 바뀌어도 이전 목록을 유지한 채 갱신(이전엔 `isLoading=true`로 목록이 통째로 스피너로 교체됐다 다시 나타남).
+- **바텀시트**: 목록 모드 **3단 스냅 — 96px(최소) ↔ 40%(기본) ↔ 검색바 아래(최대)**. 칩바(고정) + 매장 목록 / 미리보기(핀 선택 시 카드 1개) / 로딩 / 에러 / 빈 상태. 목록 하단·필터 닫기 버튼은 **safe area bottom inset 반영**(안드 내비 바에 안 가림).
+  - **최소 96px(2026-07-25 QA #54)**: 끝까지 내리면 핸들+칩바만 남아 지도를 거의 풀스크린으로 본다. 기본 진입은 **40% 그대로**(디자인 유지) — "더 내릴 수 있는 단"만 추가한 것.
+  - **최대 높이 기준(2026-07-25)**: `useWindowDimensions` → **루트 컨테이너 onLayout 실측**(`containerHeight`)으로 교체. gorhom이 스냅포인트를 컨테이너 실측 높이로 정규화하므로, 창 높이를 쓰면 안드 상태바 처리에 따라 시트가 검색바를 덮거나 틈이 생겼다(내 위치 버튼은 2026-07-18에 이미 실측으로 고쳐졌고 시트만 남아 있었음).
+  - **필터 열 때만 예외 이동**: 최소(96px)에서 칩을 탭하면 필터 화면이 다 가려지므로 기본 40%로 올리고, 닫으면 되돌린다. 그보다 위에 둔 경우는 기존 정책대로 사용자가 둔 위치 유지.
+  - 상수는 `src/screens/home/homeLayout.ts`에 모음(`SHEET_MIN_HEIGHT`·`SHEET_DEFAULT_RATIO`·`MAP_CONTROL_CLEARANCE`) — 시트·지도·버튼이 같은 값을 공유해야 겹치지 않는다.
 - **매장 카드**: 썸네일(`photos[0]`) + 이름·**리뷰수(`리뷰 N`)**·주소·배지·즐겨찾기 별.
 - **필터**: 같은 바텀시트 안에서 내용 전환(별도 모달 아님). 칩 탭 → 필터 화면, 닫기 → 목록.
 
@@ -20,6 +27,7 @@ src/screens/home/
   useHomeFilterStore.ts              # zustand 필터 상태 (HomeFilterState export)
   filtersToParams.ts                 # ★ 필터 store → GET /shops 쿼리 파라미터 어댑터
   shopToView.ts                      # ★ 백엔드 ShopListItem → 카드/마커 뷰모델(ShopCardView) 어댑터
+  homeLayout.ts                      # ★ 시트 스냅·지도 컨트롤·내 위치 버튼이 공유하는 세로 좌표 상수
   components/
     HomeMap(.tsx 네이티브/.web.tsx placeholder) · HomeHeader · SearchBar · CurrentLocationButton
     FilterChip · FilterChipBar · ShopBottomSheet · ShopListCard · ShopListEmpty · ShopListError
@@ -65,7 +73,7 @@ src/shared/domain/shops/
   - **풀스크린(100%)**: 시트를 올리면 라우트 이동 없이 확장 — `expanded` 상태에서 핸들 숨김·라운드 제거 + `DetailHeader`(뒤로=시트 접힘)·`ReservationBar` 표시. 라우트 `/shop/:id`는 알림 딥링크용으로 유지(같은 쿼리키 = 캐시 공유).
   - **뒤로가기 매트릭스**: 헤더 뒤로/안드 물리 뒤로(풀스크린) → 35% 접힘 / 안드 물리 뒤로(35%) → 포커스 해제 / 지도 빈 곳 탭 → 포커스 해제(핀 원복). 스냅은 포커스 `['35%','100%']` ↔ 목록 `['40%', 화면높이-헤더높이-8px]`(2026-07-14 QA #50 — 목록 최대 확장이 검색바 아래에서 멈춤. 헤더+검색바 높이는 HomeScreen onLayout 측정 → `topOffset` prop, 측정 전엔 90% 폴백. 포커스 100% 풀스크린은 의도된 동작 유지).
   - **시트 위치 안정(2026-07-14 QA #53)**: `enableDynamicSizing={false}` — v5 기본값(true)이면 콘텐츠 높이 스냅포인트가 추가돼 칩 토글 → 로딩 스피너 교체 순간 시트가 최소 높이로 줄어들었음.
-  - 필터 변경으로 포커스 매장이 목록에서 빠지면 자동 해제(기존 로직 유지). 풀스크린에서 헤더 별+타이틀 별이 동시 노출 — 각각 해당 디자인과 일치해 유지(**디자이너 확인 항목**).
+  - 필터 변경으로 포커스 매장이 목록에서 빠지면 자동 해제(기존 로직 유지). ~~풀스크린에서 헤더 별+타이틀 별이 동시 노출 — 각각 해당 디자인과 일치해 유지(디자이너 확인 항목).~~ → **2026-07-25 QA #58: 별은 항상 1개**. 접힘(35%)=타이틀 별 / 풀스크린=헤더 별로 배타 처리(`ShopDetailSheet`가 `onToggleFavorite`을 `expanded`일 때 안 넘김). 라우트 `/shop/:id`와 동일한 규칙.
 - **뷰모델 변환**(`shopToView.ts`): 주소=`formatDistrict(district)`(region은 백엔드 "서울" 고정 버그로 미사용 — 서울 구만 "서울 " 접두), badges=`eventDesc`+`priceTier`, markerKind=`isPartner→partner / eventDesc→event / else default`, favorite=`useFavoriteShopIds` 서버 캐시 파생 Set.
 - **즐겨찾기**: `/favorites` **서버 연동 완료(2026-07-04)** — `src/shared/domain/favorite/` (types/api/queries).
   - 상태 소스는 `['favorites','list']` 캐시 하나(GET 응답 원형). 별 여부는 `useFavoriteShopIds(isLoggedIn)`의 `select` 파생 Set으로 판정(샵 API에 isFavorite 없음 — §4-6). **홈↔상세가 같은 캐시라 자동 동기화.**

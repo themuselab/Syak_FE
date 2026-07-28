@@ -9,6 +9,7 @@ import {
   getSocialToken,
   SocialAuthCancelledError,
   SocialAuthNotReadyError,
+  SocialAuthTimeoutError,
 } from '@/shared/domain/auth/socialAuth';
 
 import { LoginErrorToast } from './components/LoginErrorToast';
@@ -101,15 +102,33 @@ export function LoginScreen() {
 
 // 에러 종류별 토스트 메시지 (분기는 code/타입 기준).
 // 취소(사용자가 창을 닫음)는 null → 토스트 안 띄움. 그 외는 안내 메시지.
+//
+// QA 3차: 이전에는 SDK 미초기화·키해시·네트워크·HTTP 4xx/5xx·JSON 파싱 실패가 전부
+// "로그인에 실패했어요" 한 줄로 보여 제보만으로는 원인을 좁힐 수 없었다. 원인별로 문구를 나누고,
+// 분류되지 않은 경우엔 식별자를 덧붙여 스크린샷만으로 분기가 되게 한다.
 function resolveLoginError(e: unknown): string | null {
   if (e instanceof SocialAuthCancelledError) {
     return null;
   }
+  if (e instanceof SocialAuthTimeoutError) {
+    return '로그인 창에서 응답이 없어요. 다시 시도해 주세요.';
+  }
   if (e instanceof SocialAuthNotReadyError) {
     return '소셜 로그인 준비 중입니다. 잠시 후 다시 시도해 주세요.';
   }
-  if (e instanceof ApiError && e.code === ErrorCode.AUTH_SOCIAL_FAILED) {
-    return '소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
+  if (e instanceof ApiError) {
+    switch (e.code) {
+      case ErrorCode.NETWORK_ERROR:
+        return '네트워크에 연결할 수 없어요. 연결 상태를 확인해 주세요.';
+      case ErrorCode.TIMEOUT:
+        return '서버 응답이 지연되고 있어요. 잠시 후 다시 시도해 주세요.';
+      case ErrorCode.AUTH_SOCIAL_FAILED:
+        return '소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
+      default:
+        return `로그인에 실패했어요. (${e.code})`;
+    }
   }
-  return '로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
+  // 소셜 SDK 자체 실패(초기화 누락·키해시 미등록 등)가 주로 여기로 온다.
+  const detail = e instanceof Error ? e.name : 'Unknown';
+  return `로그인에 실패했어요. 잠시 후 다시 시도해 주세요. (${detail})`;
 }

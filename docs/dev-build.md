@@ -24,6 +24,23 @@
 
 `eas.json`(이미 있음): `development`={ developmentClient, distribution: internal, android.buildType: apk }.
 
+### ⚠️ 프로파일 ↔ 환경 매핑 (2026-07-28 추가 — 로그인 실패 재발 지점)
+EAS는 `.env`를 읽지 않고, **각 빌드 프로파일이 지정한 "환경"의 변수만** 주입한다. 한 환경에만 등록하고 다른 프로파일로 빌드하면 키가 빈 값이 되는데, `app.config.ts`의 조건부 plugin 때문에 **빌드는 성공하고 로그인·지도만 죽는다.**
+
+| 프로파일 | 환경 | 용도 |
+|---|---|---|
+| `development` | `development` | dev client(메트로 연결). JS 값은 메트로가 로컬 `.env`로 다시 인라인하므로 런타임 값은 `.env` 기준 |
+| `preview` | `preview` | **QA 배포용 APK**(internal). 런타임 값이 EAS 환경변수로 고정됨 |
+| `production` | (미설정) | 출시 |
+
+```bash
+eas env:list --environment preview      # 현재 등록 상태 확인
+eas env:create --name EXPO_PUBLIC_API_URL --value <URL> --environment development --visibility plaintext
+```
+- **QA 배포는 `eas build --profile preview --platform android`** 로 만든다(설치는 artifact APK URL 직접 공유 — `expo.dev` 빌드 페이지는 EAS 프로젝트 접근 권한이 있어야 열린다).
+- 2026-07-28 확인: `development` 환경에 `EXPO_PUBLIC_API_URL`이 없어 `env.ts` fallback `http://localhost:3000`으로 떨어질 수 있다(안드 cleartext 차단까지 겹침). 과거 "카카오·네이버 둘 다 로그인 안 됨" 제보의 유력 경로 — **등록 필요**.
+- 구 운영 IP `http://54.116.107.78/api/v1`은 **폐기됨(404)**. 현재 운영은 `https://api.themuselab.kr/api/v1`.
+
 ---
 
 ## B. 카카오 콘솔 (developers.kakao.com)

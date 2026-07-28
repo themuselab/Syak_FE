@@ -13,6 +13,21 @@
 
 ---
 
+## 2026-07-28 · 결정: 실패를 "조용히 통과"시키지 않는다 — 조건부 가드에 진단 로그·타임아웃을 붙인다
+- 맥락/문제: 카카오 로그인이 사람마다 정상/무한로딩/오류로 갈렸다. 근본 원인은 `app.config.ts`가 카카오 plugin에 `android`/`ios` 옵션을 안 넘겨 네이티브 주입이 스킵된 것이었는데(→ [auth.md](./auth.md)), **원인 특정에 오래 걸린 이유는 따로 있었다.** 2026-06-30 `eas init` 실패를 고치려 도입한 "키 없으면 plugin을 빼는" 조건부 패턴, `_layout.tsx`의 빈 `.catch(() => {})` 2곳, `resolveLoginError`의 뭉뚱그린 fallback, `fetch`의 타임아웃 부재가 겹쳐 **서로 다른 5가지 실패가 전부 같은 문구 한 줄**로 나타났다. 빌드는 항상 성공했다.
+- 결정: 조건부 가드는 유지하되(web/Expo Go/CI에서 필요) **실패가 흔적을 남기게** 한다. ① SDK init 실패 → `console.warn` ② `apiFetch` 15초 타임아웃 + 네트워크 실패를 `NETWORK_ERROR`/`TIMEOUT` `ApiError`로 정규화(백엔드 코드가 아닌 클라 생성 코드임을 `errors.ts`에 명시) ③ 소셜 SDK 60초 상한 ④ 에러 문구를 원인별로 분리하고 미분류는 식별자를 노출.
+- 이유: QA 제보는 스크린샷 한 장이 전부다. 화면 문구가 원인을 구분하지 못하면 매번 코드를 처음부터 다시 판다. 특히 "무한 로딩"은 타임아웃이 없으면 **버그가 아니라 정지**로 보여 재현 조건조차 못 좁힌다.
+- 대안(버림): 조건부 가드 제거(웹·Expo Go·CI에서 config 평가가 깨짐 — 2026-06-30에 이미 겪음), 원격 로그 수집 도입(인프라 대비 과함), 문구에 원문 에러 노출(사용자에게 부적절 — 짧은 식별자만).
+- 관련: `app.config.ts`, `client.ts`, `errors.ts`, `refresh.ts`, `socialAuth.ts`, `LoginScreen.tsx`, `_layout.tsx`, [troubleshooting.md](./troubleshooting.md) 2026-07-28
+
+## 2026-07-28 · 결정: gorhom 시트 안에서는 RN 순정 스크롤·터치 컴포넌트를 쓰지 않는다
+- 맥락/문제: 필터 칩바 가로 스크롤이 안 되고, 상세 섹션 탭 터치가 씹혔다. 둘 다 시트의 content pan gesture와 자식의 경합이었다. gorhom v5는 **자기 스크롤러블에만** `simultaneousWithExternalGesture`를 걸어주고, `activeOffsetX/Y`가 미지정이면 offset 제약을 아예 안 건다.
+- 결정: ① `<BottomSheet>`에 `activeOffsetY={[-10,10]}` + `failOffsetX={[-5,5]}` — 세로 우세 제스처에서만 시트가 반응 ② 시트 내부 터치는 gorhom이 재수출하는 `TouchableOpacity`(안드=RNGH / iOS=RN 자동 분기)를 쓴다.
+- 이유: ①은 칩바·이미지 캐러셀을 한 번에 고치면서 침습이 가장 적다. ②는 라이브러리가 플랫폼 분기 파일(`Touchables.tsx`/`.ios.tsx`)로 못박아 둔 공식 해법이고, `GestureHandlerRootView` 아래면 라우트 화면(일반 ScrollView)에서도 동작해 두 경로가 함께 해결된다.
+- 대안(버림): `BottomSheetScrollView horizontal`(v5 내부가 Y축 전용이라 오히려 시트 로직이 꼬임), `enableContentPanningGesture={false}`(2026-07-10 결정인 "콘텐츠 팬으로 35%→100% 확장"과 정면 충돌 + 풀스크린에선 핸들도 숨겨 드래그 수단이 사라짐), 가로 리스트만 직접 `GestureDetector`로 감싸기(gorhom이 Pan 객체를 export하지 않아 코드량이 크게 늚).
+- 트레이드오프: `activeOffsetY` 임계값(10px)만큼 시트 드래그 초기 반응이 둔해진다. 2026-07-10 결정의 35%↔100% 콘텐츠 팬 확장이 이 계약에 걸리므로 기기 회귀 확인이 필요하다.
+- 관련: `ShopBottomSheet.tsx`, `SectionTabs.tsx`, `FilterChipBar.tsx`, `ImageCarousel.tsx`
+
 ## 2026-07-25 · 결정: 홈 세로 좌표는 단일 상수 모듈 + 컨테이너 실측 기준으로 통일 (QA 2차 #54·#55·#61)
 - 맥락/문제: QA 2차에서 ① 시트를 끝까지 내려도 화면 1/3을 차지 ② 지도 확대/축소(+/-) 버튼이 내 위치 버튼과 겹침 ③ 상단 헤더가 과도하게 큼 이 접수됨. 조사 결과 세 증상이 같은 뿌리 — 시트 위치를 기준으로 지도 오버레이가 배치되는데 **계산 기준이 파일마다 달랐다**(시트=`useWindowDimensions`, 내 위치 버튼=`containerHeight` 실측, 지도 컨트롤=기준 없음). +/- 버튼은 아예 앱 코드에 없는 **네이버 SDK 기본 컨트롤**이었고(`isShow*` 미지정 → 전부 기본값 true), `mapPadding`이 없어 지도 뷰(absoluteFill) 최하단에 밀착해 있었다.
 - 결정(사용자 확정 3건 포함): ① 목록 시트를 **3단 스냅(96px / 40% / 검색바 아래)** 으로 — 최소만 추가하고 **기본 진입은 40% 유지**(디자인 불변) ② 최소 높이는 **핸들+칩바(96px)** — 사용자가 세 선택지 중 확정 ③ **+/- 버튼은 유지**(사용자 확정)하고 `mapPadding={{top: headerHeight, bottom: 시트40%+64}}`로 위치만 조정, 중복인 SDK 현위치 버튼과 디자인에 없는 나침반·축척바·실내층은 끔 ④ **내 위치 버튼은 디자인 위치(시트 40% 위 16px) 그대로** 두고 SDK 컨트롤을 그 위로 올림 ⑤ 헤더 `insets.top+104` → **`insets.top+88`**(래퍼 pt 8→4, 아이콘 p-2→p-1.5, 검색 pt 12→8, 검색바 44→40) ⑥ 모든 상수를 `src/screens/home/homeLayout.ts`에 모으고 시트 최대 높이 기준을 `containerHeight` 실측으로 교체.

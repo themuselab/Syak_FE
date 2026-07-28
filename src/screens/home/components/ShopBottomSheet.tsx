@@ -134,6 +134,12 @@ export function ShopBottomSheet({
       // v5 기본값(true)이면 콘텐츠 높이 스냅포인트가 추가돼, 칩 토글로 목록이 로딩 스피너로
       // 교체되는 순간 시트가 최소 높이로 줄어든다(QA #53) — 지정 스냅포인트만 사용.
       enableDynamicSizing={false}
+      // 시트 pan을 "세로 10px 이상"일 때만 활성화하고 가로 우세 제스처에선 실패시킨다.
+      // 미지정이면 gorhom이 activeOffset/failOffset을 아예 안 걸어(BottomSheetDraggableView)
+      // 가로 드래그 첫 픽셀에도 시트 pan이 잡아채는데, 시트 로직은 translationY만 쓰므로
+      // 시트도 안 움직이고 자식 가로 스크롤도 죽는다 — 필터 칩바·이미지 캐러셀이 이 상태였다(QA 3차).
+      activeOffsetY={[-10, 10]}
+      failOffsetX={[-5, 5]}
       onChange={handleChange}
       onAnimate={handleAnimate}
       // 키보드가 내려가면 시트를 원래 스냅으로 되돌린다(검색 → 지도 보기 전환 시 잔상 방지).

@@ -37,7 +37,9 @@ export default function RootLayout() {
     if (kakaoKey) {
       import('@react-native-kakao/core')
         .then((m) => m.initializeKakaoSDK(kakaoKey))
-        .catch(() => {});
+        // 삼키면 초기화 실패가 흔적 없이 사라지고, 나중에 로그인 버튼에서만 뭉뚱그려 나타난다.
+        // 앱을 깨뜨리진 않되(가드 유지) 로그는 남긴다 (QA 3차).
+        .catch((e) => console.warn('[auth] kakao SDK init failed', e));
     }
 
     // 네이버 SDK 초기화(1회). 카카오와 동일한 dynamic import 가드. 키 없으면 통과.
@@ -54,7 +56,7 @@ export default function RootLayout() {
             disableNaverAppAuthIOS: true,
           }),
         )
-        .catch(() => {});
+        .catch((e) => console.warn('[auth] naver SDK init failed', e));
     }
   }, []);
 

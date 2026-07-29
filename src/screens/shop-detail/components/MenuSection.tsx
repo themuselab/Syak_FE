@@ -6,7 +6,8 @@ type Props = {
   menus: MenuItem[];
 };
 
-// 메뉴·가격 섹션: 메뉴명 … 리더선 … 가격. 데이터 없으면 빈 상태 문구(백엔드 노출 대기).
+// 가격 섹션: 메뉴명 … 리더선 … 가격. 데이터 없으면 빈 상태 문구(백엔드 노출 대기).
+// 제목은 원래 '메뉴·가격'이었으나 섹션 탭 라벨과 함께 '가격'으로 통일(QA 3차, 디자이너 확인 항목).
 export function MenuSection({ menus }: Props) {
   return (
     <View className="gap-4">
@@ -14,7 +15,7 @@ export function MenuSection({ menus }: Props) {
         className="font-pretendard-medium text-[18px]"
         style={{ color: '#1a1a1a', letterSpacing: -0.36 }}
       >
-        메뉴·가격
+        가격
       </Text>
       {menus.length === 0 && (
         <Text className="font-pretendard text-[14px]" style={{ color: '#adb5bd' }}>

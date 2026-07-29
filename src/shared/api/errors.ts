@@ -36,6 +36,10 @@ export const ErrorCode = {
   NOTIFICATION_SETTINGS_NOT_FOUND: 'NOTIFICATION_SETTINGS_NOT_FOUND',
   NOT_FOUND: 'NOT_FOUND',
   INTERNAL_ERROR: 'INTERNAL_ERROR',
+  // 아래 2개는 백엔드가 주는 코드가 아니라 클라이언트가 생성한다.
+  // 서버에 닿지도 못한 실패를 "알 수 없는 오류"로 뭉개지 않기 위한 구분 (QA 3차).
+  NETWORK_ERROR: 'NETWORK_ERROR', // DNS·TLS·cleartext 차단·오프라인 등 fetch 자체 실패
+  TIMEOUT: 'TIMEOUT', // 응답이 제한 시간 내 오지 않음
 } as const;
 
 export type ErrorCodeValue = (typeof ErrorCode)[keyof typeof ErrorCode];

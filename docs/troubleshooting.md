@@ -15,6 +15,27 @@
 
 ---
 
+## 2026-07-28 · 카카오 로그인이 기기마다 다르게 실패 (무한 로딩 / 오류 / 정상)
+- 증상: 같은 APK인데 사람마다 달랐다 — A: 정상 로그인 / B: **버튼이 무한 로딩** / C: "로그인에 실패했어요" 토스트. 네이버는 전원 정상. 과거에도 "둘 다 안 됨", "네이버는 되는데 카카오만 안 됨"이 반복 접수됐다.
+- 원인: `app.config.ts`가 카카오 config plugin에 **`nativeAppKey`만 넘기고 `android`/`ios` 옵션을 안 넘겼다.** plugin 본체가 `if (android) { withAndroid(...) }` / `if (ios) { withIos(...) }`로 가드하고 기본값이 없어서, **네이티브 설정 주입이 통째로 스킵**됐다.
+  - Android: `com.kakao.sdk.auth.AuthCodeHandlerActivity`(`kakao{키}://oauth`) 미주입 → 카카오계정(웹) 로그인 후 **앱으로 돌아올 경로 없음**
+  - iOS: `CFBundleURLTypes`·`LSApplicationQueriesSchemes`·AppDelegate `handleOpenUrl` 미주입 → **카카오 로그인 전면 불가**
+  - 기기별로 갈린 이유: `RNCKakaoUserModule.kt`가 `isKakaoTalkLoginAvailable()`이면 `loginWithKakaoTalk`(앱 간 로그인 — manifest 불필요), 아니면 `loginWithKakaoAccount`(웹 — manifest 필수)로 분기한다. **카카오톡 설치 기기만 우연히 성공**하고 있었다.
+  - 무한 로딩인 이유: 웹 로그인 콜백이 유실되면 네이티브 promise가 resolve도 reject도 안 되는데, `LoginScreen`의 `finally`가 promise 종료에만 의존한다.
+- 해결: plugin에 `android: { authCodeHandlerActivity: true }`, `ios: { handleKakaoOpenUrl: true }` 전달. **네이티브 설정이라 EAS 재빌드 필수.** 함께 넣은 방어: 소셜 SDK 60초 상한(`SocialAuthTimeoutError`), `apiFetch` 15초 타임아웃 + `NETWORK_ERROR`/`TIMEOUT` 정규화, 에러 문구 원인별 분리.
+- 검증: `npx expo prebuild --platform android --no-install` 후 `android/app/src/main/AndroidManifest.xml`에 `AuthCodeHandlerActivity` + `android:scheme="kakao<키>"` 존재 확인(빌드 전 선검증 가능. 확인 후 `android/` 삭제, prebuild가 바꾼 `package.json` scripts도 되돌릴 것).
+- 관련: `app.config.ts`, `socialAuth.ts`, `LoginScreen.tsx`, `client.ts`, `errors.ts`
+- 교훈: **Expo config plugin은 옵션을 안 넘기면 조용히 아무것도 안 한다.** 빌드는 성공하고 런타임에 특정 경로에서만 죽어서, 검증 기기 조건이 우연히 맞으면 통과한다. plugin 도입 시 `node_modules/<plugin>/build/index.js`의 가드를 직접 읽고, `prebuild` 산출물로 실제 주입 여부를 확인할 것. 2026-06-30 키해시 건과 증상이 비슷해 그쪽으로 오인하기 쉬웠다.
+
+## 2026-07-28 · 필터 칩바 가로 스크롤이 안 되고 상세 탭 터치가 씹힘
+- 증상: 홈 바텀시트의 필터 칩 영역을 가로로 밀어도 스크롤되지 않음. 매장 상세 섹션 탭(홈 시트·라우트 양쪽)이 중간중간 눌리지 않음.
+- 원인: 둘 다 gorhom v5의 content pan gesture와 자식의 경합.
+  - 칩바: `FilterChipBar`가 **RN 순정 `ScrollView`** 라 gorhom의 `simultaneousWithExternalGesture` 등록 대상이 아니다(gorhom은 자기 `BottomSheetScrollView` 계열에만 걸어준다). 게다가 `<BottomSheet>`에 `activeOffsetX/Y`가 없어 `BottomSheetDraggableView`가 offset 제약을 아예 안 걸고, **가로 드래그 첫 픽셀에도 시트 pan이 활성**된다. 시트 로직은 `translationY`만 쓰므로 시트도 안 움직이고 칩바도 안 굴러간다.
+  - 탭: `SectionTabs`가 RN `Pressable`(JS responder)인데 부모 `BottomSheetScrollView`는 안드에서 `Gesture.Native()` GestureDetector로 감싸여 있어 경합 → 드래그로 판정되면 press 취소.
+- 해결: `<BottomSheet activeOffsetY={[-10,10]} failOffsetX={[-5,5]}>` (세로 10px 이상일 때만 시트가 반응). 탭은 gorhom이 재수출하는 `TouchableOpacity`(안드=RNGH / iOS=RN 자동 분기)로 교체 + `hitSlop`. 같은 원인이던 상세 `ImageCarousel`도 함께 해소.
+- 관련: `ShopBottomSheet.tsx`, `SectionTabs.tsx`, `FilterChipBar.tsx`, `ImageCarousel.tsx`
+- 교훈: **gorhom 시트 안에서는 RN 순정 스크롤/터치 컴포넌트를 그대로 쓰면 안 된다.** 라이브러리가 `index.ts`에서 RNGH touchable을 재수출하는 것 자체가 그 신호다. 가로 스크롤은 `BottomSheetScrollView horizontal`로 해결되지 않는다 — v5 내부가 Y축 전용이라 오히려 시트 로직이 꼬인다.
+
 ## 2026-07-25 · 검색 키보드가 지도를 터치해도 안 닫힘
 - 증상: 검색창을 눌러 키보드를 올린 뒤, 검색하지 않고 지도를 보려고 화면을 터치해도 키보드가 그대로 남아 있음. (QA 접수 시 추정 원인은 "바텀시트 뒤 검색창과 터치 영역이 겹쳐 포커스가 잡힌다"였으나 **코드상 성립하지 않음** — 시트는 루트 View의 마지막 형제이고 트리 전체에 `zIndex`가 없어 항상 검색창보다 위다.)
 - 원인: 두 가지. ① 프로젝트 전체에 `Keyboard.dismiss()` 호출이 **0건** — 지도 탭(`onTapMap`)도, 시트 드래그도 키보드를 건드리지 않았다. ② 상단 장식용 `LinearGradient` 높이가 `insets.top + 150`으로 헤더(`insets.top + 104`)보다 **약 46px 아래까지** 덮는데 `pointerEvents`가 없어, 그 띠에서는 지도 탭 이벤트 자체가 발생하지 않았다. 헤더 래퍼·헤더 행도 마찬가지로 로고~아이콘 사이 빈 공간의 탭을 먹고 있었다.

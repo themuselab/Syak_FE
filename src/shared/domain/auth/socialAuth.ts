@@ -29,7 +29,35 @@ export class SocialAuthCancelledError extends Error {
   }
 }
 
+// 소셜 SDK가 응답하지 않을 때의 상한. 카카오계정(웹) 로그인처럼 앱 밖으로 나갔다 돌아오는
+// 경로는 콜백이 유실되면 promise가 resolve도 reject도 되지 않아 버튼이 영원히 로딩에 머문다
+// (QA 3차 "무한 로딩"). 근본 원인은 app.config.ts의 plugin 옵션 누락이었지만,
+// 앱 전환 중 종료 등 SDK가 응답하지 않는 경로는 남으므로 상한을 둔다.
+const SOCIAL_LOGIN_TIMEOUT_MS = 60_000;
+
+// 소셜 SDK가 제한 시간 내 응답하지 않음. (사용자 취소·검증 실패와 구분)
+export class SocialAuthTimeoutError extends Error {
+  provider: SocialProvider;
+  constructor(provider: SocialProvider) {
+    super(`소셜 로그인 응답 없음: ${provider}`);
+    this.name = 'SocialAuthTimeoutError';
+    this.provider = provider;
+  }
+}
+
 export async function getSocialToken(provider: SocialProvider): Promise<string> {
+  return withTimeout(requestSocialToken(provider), provider);
+}
+
+function withTimeout(task: Promise<string>, provider: SocialProvider): Promise<string> {
+  let timer: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new SocialAuthTimeoutError(provider)), SOCIAL_LOGIN_TIMEOUT_MS);
+  });
+  return Promise.race([task, timeout]).finally(() => clearTimeout(timer));
+}
+
+async function requestSocialToken(provider: SocialProvider): Promise<string> {
   switch (provider) {
     case 'kakao': {
       // react-native-kakao(@react-native-kakao/user). 네이티브 모듈이라 dev build에서만 동작.

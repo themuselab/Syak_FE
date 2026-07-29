@@ -8,11 +8,27 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   // 키는 .env(로컬) 또는 EAS 환경변수(빌드)에서 온다. eas init/build의 로컬 config 평가는
   // .env를 읽지 않으므로, 키가 없을 때는 해당 plugin을 빼서 평가가 깨지지 않게 한다.
   // (빌드 시 EAS 환경변수로 키가 주입되면 plugin이 포함된다.)
+  //
+  // ★ android/ios 옵션은 반드시 넘겨야 한다. plugin 본체가 `if (android)` / `if (ios)` 로 가드하고
+  //   있어서, 안 넘기면 withAndroid·withIos가 통째로 스킵된다(기본값 없음). 그러면
+  //   - Android: AuthCodeHandlerActivity(kakao{키}://oauth) 미주입 → 카카오계정(웹) 로그인 콜백 유실
+  //     → 카카오톡 미설치 기기에서 promise가 영영 안 끝나 "무한 로딩"
+  //   - iOS: CFBundleURLTypes·LSApplicationQueriesSchemes 미주입 → 카카오 로그인 전면 불가
+  //   카카오톡 설치 기기는 앱 간 로그인(loginWithKakaoTalk)이라 manifest 없이도 성공 —
+  //   이 때문에 "어떤 사람은 되고 어떤 사람은 안 되는" 증상으로 보였다(QA 3차).
   const kakaoNativeAppKey = process.env.EXPO_PUBLIC_KAKAO_NATIVE_APP_KEY;
   const kakaoPlugin = kakaoNativeAppKey
-    ? ([['@react-native-kakao/core', { nativeAppKey: kakaoNativeAppKey }]] as NonNullable<
-        ExpoConfig['plugins']
-      >)
+    ? ([
+        [
+          '@react-native-kakao/core',
+          {
+            nativeAppKey: kakaoNativeAppKey,
+            // 채널·카카오링크·내비는 미사용이라 해당 옵션은 켜지 않는다.
+            android: { authCodeHandlerActivity: true },
+            ios: { handleKakaoOpenUrl: true },
+          },
+        ],
+      ] as NonNullable<ExpoConfig['plugins']>)
     : [];
 
   // 네이버 로그인 plugin. iOS 콜백용 URL scheme이 있을 때만 포함(카카오와 동일한 조건부 패턴).

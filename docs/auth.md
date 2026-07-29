@@ -28,6 +28,7 @@
 ```
 app/_layout.tsx        # initializeKakaoSDK + NaverLogin.initialize (각 키 있을 때, dynamic import 가드 — web/Expo Go 무시)
 app.config.ts          # app.json 확장 + 카카오·네이버 plugin(각 조건부) + expo-build-properties(카카오 Maven repo)
+                       # ★ 카카오 plugin은 nativeAppKey만이 아니라 android/ios 옵션까지 넘겨야 한다(아래 §카카오 plugin 옵션)
 eas.json               # development(devClient/internal/apk) 프로파일
 metro.config.js        # @emnapi watch 제외(Windows 워처 크래시 회피)
 src/shared/domain/auth/
@@ -52,6 +53,27 @@ src/screens/my/MyScreen.tsx     # 로그아웃 useSignOut 연결, 회원 시 use
 `socialAuth.ts`의 `getSocialToken(provider)`가 provider 차이를 흡수해 **토큰 문자열 하나**만 반환한다.
 - 카카오/네이버 → `accessToken`, 애플 → `identityToken` (백엔드 `access_token` 필드에 그대로 전달).
 - **카카오**: `@react-native-kakao/user`의 `login()` → `accessToken` (dynamic import — web/Expo Go에선 throw → 토스트). `_layout`에서 `initializeKakaoSDK` 1회.
+  - `login()`은 네이티브에서 **카카오톡 설치 여부로 분기**한다 — 설치 시 `loginWithKakaoTalk`(앱 간), 미설치 시 `loginWithKakaoAccount`(Custom Tabs 웹). **웹 경로는 `AuthCodeHandlerActivity`가 있어야 콜백이 돌아온다** → 아래 plugin 옵션 필수.
+
+### 카카오 plugin 옵션 (2026-07-28 QA 3차 — 필수)
+`app.config.ts`에서 `@react-native-kakao/core` plugin에 **`android`/`ios` 옵션을 반드시 넘긴다.** plugin 본체가 `if (android)` / `if (ios)`로 가드하고 기본값이 없어, 안 넘기면 네이티브 주입이 통째로 스킵된다(빌드는 성공 — 로그인만 죽음).
+```ts
+['@react-native-kakao/core', {
+  nativeAppKey,
+  android: { authCodeHandlerActivity: true },   // kakao{키}://oauth 콜백 수신
+  ios: { handleKakaoOpenUrl: true },            // CFBundleURLTypes·LSApplicationQueriesSchemes·AppDelegate
+}]
+```
+채널(`followChannelHandlerActivity`)·카카오링크(`forwardKakaoLinkIntentFilterToMainActivity`)·내비(`naviApplicationQuerySchemes`)는 미사용이라 켜지 않는다.
+**변경 시 EAS 재빌드 필수.** 반영 확인은 `npx expo prebuild --platform android --no-install` 후 `AndroidManifest.xml`에서 `AuthCodeHandlerActivity` 검색(확인 후 `android/` 삭제, prebuild가 바꾼 `package.json` scripts 되돌리기).
+> 네이버는 Android에 키해시·manifest가 불필요하고 plugin이 iOS만 건드린다 — "네이버는 되는데 카카오만 안 됨" 패턴의 이유.
+
+### 로그인 실패 진단 (2026-07-28)
+실패 원인이 전부 같은 토스트로 보여 제보만으로 좁힐 수 없던 문제를 해소했다.
+- `apiFetch` 15초 타임아웃 + 네트워크 실패를 `NETWORK_ERROR`/`TIMEOUT` `ApiError`로 정규화(`client.ts`·`errors.ts`)
+- 소셜 SDK 60초 상한 `SocialAuthTimeoutError`(`socialAuth.ts`) — 콜백 유실 시 무한 로딩 방지
+- `resolveLoginError`가 네트워크/타임아웃/소셜검증실패/그 외를 구분하고, 미분류는 문구 끝에 식별자를 붙인다(예: `(SHOP_NOT_FOUND)`, `(TypeError)`) → **QA 스크린샷만으로 분기 가능**
+- `_layout.tsx`의 SDK init 실패는 `console.warn('[auth] ... init failed')`로 남긴다(이전엔 빈 `.catch(() => {})`로 삼킴)
 - **네이버**: `@react-native-seoul/naver-login`의 `login()` → `successResponse.accessToken`. 카카오와 달리 **throw가 아니라 결과 객체**(`{ isSuccess, successResponse, failureResponse }`)를 반환하므로 `isSuccess`로 분기. 사용자가 창을 닫으면(`failureResponse.isCancel`) `SocialAuthCancelledError`로 변환 → LoginScreen이 **토스트를 생략**(취소는 오류 아님). `_layout`에서 `NaverLogin.initialize`(consumerKey·consumerSecret·appName) 1회.
 - **애플**: 아직 `SocialAuthNotReadyError` stub → 버튼 탭 시 "준비 중" 토스트. 추가 시 **이 파일의 apple case만** 교체(다른 파일 무수정).
 

@@ -17,16 +17,16 @@
 [고정] DetailHeader              뒤로가기(좌) + 즐겨찾기 별(우), SafeArea top
 [ScrollView] (stickyHeaderIndices=[1], scroll-spy)
   index0  홈 영역               ShopTitleBlock(이름·분류·리뷰수 / 배지) + ImageCarousel
-  index1  SectionTabs ← sticky  홈·빈자리·메뉴·가격·정보·리뷰
+  index1  SectionTabs ← sticky  홈·빈자리·가격·정보·리뷰
   index2  AvailabilitySection   빈자리 (날짜칩 + 오전/오후/저녁 슬롯)
-  index3  MenuSection           메뉴·가격 (리더선)
+  index3  MenuSection           가격 (리더선)
   index4  InfoSection           주소·오늘 예약·전화
   index5  ReviewSection         리뷰 본문·키워드 태그·날짜
 [고정] ReservationBar            전화로 예약 / 네이버 예약, SafeArea bottom
 ```
 
 ### 탭 스크롤스파이
-- "홈"은 화면 최상단(offset 0). 빈자리/메뉴·가격/정보/리뷰는 각 섹션 `View`의 `onLayout.y`를 `offsets` ref에 수집.
+- "홈"은 화면 최상단(offset 0). 빈자리/가격/정보/리뷰는 각 섹션 `View`의 `onLayout.y`를 `offsets` ref에 수집.
 - 탭 press → `scrollTo(offset - 탭바높이)` (홈은 0). 스크롤 시 `onScroll`에서 현재 위치로 활성 탭 자동 갱신.
 - 탭바는 `stickyHeaderIndices={[1]}`로 상단 고정. 고정 시 흰 배경, 활성 탭 밑줄(`#d23e6a`)·핑크 텍스트(`#b32f58`).
 - **공유 구조(2026-07-10)**: 위 로직은 `useSectionSpy` 훅 + `ShopDetailBody`(섹션 조립, `renderScroll` render prop으로 스크롤 컨테이너 주입)로 추출 — 라우트는 RN `ScrollView`, 홈 시트는 `BottomSheetScrollView`(시트 드래그 제스처 연동, `scrollEventThrottle`은 gorhom 내부 관리라 미전달). sticky는 children이 스크롤뷰 직계 배열이어야 동작(프래그먼트 래핑 금지).
@@ -95,6 +95,8 @@ src/shared/domain/reservation/
 - **빈자리 시간 칩 톤(2026-07-14, QA #56)**: 버튼형(rounded-full+테두리 #e6e6e6)이 선택 가능해 보인다는 QA 지적 → 테두리 제거 + 배경 `#f3f1f2`(날짜 칩 비선택과 동일 계열) 정보성 톤으로 변경. **확정 스타일은 디자이너 확인 항목.**
 - **'오늘 예약 가능해요' 문구**: 디자인엔 마감 상태 문구('오늘은 예약 마감이에요')만 있어 가능 상태는 대칭 문구로 채움 — 디자인 확정 시 교체.
 - **예약 버튼 = 서버 라우트 기반 (2026-07-18 BE 개편 — QA #32 완결)**: ~~FE가 bookingUrl URL을 추측해 분기~~ → `GET /shops/:id`의 `bookingType` + `reservationRoutes[{type,label,value}]`(naver/talktalk/instagram/kakao/phone, 라벨 서버 제공) 사용. 대표 라우트 1개만 우측 버튼(2버튼 유지 — 사용자 확정): 라벨 = `route.label` 그대로("네이버로 예약"/"인스타로 문의"/"톡톡으로 문의"/"카카오로 문의"/"전화로 예약"), `type='phone'`은 `tel:` 변환. 라우트 없으면 비활성. URL 추측 함수(resolveBooking) 제거. **다수 라우트 동시 노출·종류별 버튼 색은 디자인 부재 — 디자이너 확인 항목**(현재 전 종류 네이버 그린).
+- **탭 라벨·섹션 제목 '가격'(2026-07-28 QA 3차)**: 탭 5개가 각각 `flex-1`이라 360dp 화면에서 탭 하나가 약 64px인데 `'메뉴·가격'`(16px)은 약 80px라 **두 줄로 꺾였다** → `'가격'`으로 축약(+`numberOfLines={1}`). `MenuSection` 섹션 제목도 같이 통일. **디자인 원본 문구는 `'메뉴·가격'` — 디자이너 확인 항목.**
+- **섹션 탭 터치(2026-07-28 QA 3차)**: RN `Pressable` → gorhom 재수출 `TouchableOpacity`(안드=RNGH / iOS=RN 자동 분기) + `hitSlop`. 시트 안에서 부모 `BottomSheetScrollView`의 Native gesture와 JS responder가 경합해 탭이 씹혔다 — [troubleshooting.md](./troubleshooting.md) 2026-07-28.
 - **별은 화면당 항상 1개(2026-07-25 QA #58)**: 라우트 `/shop/:id`는 원래 헤더 별 1개. 홈 포커스 시트는 접힘(35%)에서 헤더가 없어 타이틀 별을 쓰는데, 풀스크린으로 올리면 헤더 별과 **둘 다** 보였다 → `ShopDetailSheet`가 `expanded`일 때 `ShopDetailBody`에 `onToggleFavorite`을 넘기지 않아 타이틀 별을 끈다(`ShopTitleBlock`이 이미 `onToggleFavorite &&` 조건부 렌더라 컴포넌트 수정 없음). **접힘=타이틀 별 / 풀스크린=헤더 별.**
 - **메뉴·정보 행 줄바꿈(2026-07-25 QA #57)**: `MenuSection` 가격은 `flexShrink: 0`+`numberOfLines={1}` 고정, 메뉴명이 `flexShrink: 1`로 양보(말줄임). 막지 않으면 `'75,000원'`의 `원`이 줄바꿈 기회로 잡혀 두 줄로 꺾인다. `InfoSection`은 반대로 라벨 고정·값(주소)이 흡수(`textAlign: right`). `ShopListCard`(QA #46)와 동일 패턴.
 - **헤더 즐겨찾기 별**: `/favorites` 서버 연동 완료(2026-07-04) — 홈과 같은 `['favorites','list']` 캐시에서 파생(`useFavoriteShopIds`)이라 **홈↔상세 별 상태 자동 동기화**. 토글은 낙관적 업데이트(`useToggleFavorite`), 비회원 탭 시 `LoginPromptModal`(로딩/에러 화면 포함 모든 분기에서 동작). 저장 실패 시 안내 없이 별만 원복(토스트 인프라 부재). 상세는 [home.md](./home.md) §3 즐겨찾기.

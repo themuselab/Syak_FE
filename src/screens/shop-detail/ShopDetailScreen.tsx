@@ -1,9 +1,10 @@
 import { RotateCcw } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { router } from 'expo-router';
 
+import { track } from '@/shared/lib/analytics';
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import { useFavoriteShopIds, useToggleFavorite } from '@/shared/domain/favorite/favorite.queries';
 import { postReservationClick } from '@/shared/domain/reservation/reservation.api';
@@ -33,6 +34,11 @@ export function ShopDetailScreen({ shopId }: Props) {
       shopQuery.data ? toShopDetailView(shopQuery.data, slotsQuery.data?.slots ?? []) : null,
     [shopQuery.data, slotsQuery.data],
   );
+
+  // GA4 shop_view: 샵 상세 진입 시 1회 (웹 detail_view→shop_view와 동일 이벤트, 통합 퍼널)
+  useEffect(() => {
+    if (shop?.id) track.shopView(shop.id, shop.name);
+  }, [shop?.id, shop?.name]);
 
   // 즐겨찾기: 홈과 같은 ['favorites','list'] 캐시에서 파생 — 화면 간 자동 동기화.
   const user = useAuthStore((s) => s.user);
@@ -112,6 +118,7 @@ export function ShopDetailScreen({ shopId }: Props) {
         onReserveClick={() => {
           // 클릭 애널리틱스 — 실패해도 무시(fire-and-forget)
           postReservationClick(shop.id).catch(() => {});
+          track.reserveClick(shop.id, shop.bookingRoute?.label); // GA4 (웹과 동일 이벤트)
         }}
       />
     </View>

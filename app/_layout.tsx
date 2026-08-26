@@ -2,13 +2,14 @@ import '../global.css';
 
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { track } from '@/shared/lib/analytics';
 import { usePushSetup } from '@/shared/domain/notification/push';
 import { queryClient } from '@/shared/lib/queryClient';
 
@@ -18,6 +19,12 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   // FCM 푸시: 로그인 전환 시 토큰 발급·서버 등록 (dev build 전용 — web/Expo Go는 내부 가드로 통과)
   usePushSetup();
+
+  // GA4 화면 추적: 라우트 변경 시 screen_view 전송 (Firebase Analytics, 가드 통과)
+  const pathname = usePathname();
+  useEffect(() => {
+    if (pathname) track.screen(pathname);
+  }, [pathname]);
 
   // 폰트는 백그라운드로 로드한다. 로딩 완료를 기다리느라 화면을 막지 않는다
   // (기다리면 폰에서 네이티브 스플래시에 멈출 수 있어서). 폰트는 준비되는 대로 적용됨.

@@ -56,9 +56,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const hasIosFirebase = existsSync(iosGoogleServices);
   const firebasePlugins =
     hasAndroidFirebase || hasIosFirebase
-      ? (['@react-native-firebase/app', '@react-native-firebase/messaging'] as NonNullable<
-          ExpoConfig['plugins']
-        >)
+      ? ([
+          '@react-native-firebase/app',
+          '@react-native-firebase/messaging',
+          '@react-native-firebase/analytics',
+        ] as NonNullable<ExpoConfig['plugins']>)
       : [];
 
   // 카카오·네이버지도 SDK는 각 전용 Maven 저장소에만 있다. Expo가 저장소를 중앙 관리(settings.gradle)

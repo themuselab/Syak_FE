@@ -1,8 +1,9 @@
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { RotateCcw } from 'lucide-react-native';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 
+import { track } from '@/shared/lib/analytics';
 import { postReservationClick } from '@/shared/domain/reservation/reservation.api';
 import { useShopSlots } from '@/shared/domain/reservation/reservation.queries';
 import { useShop } from '@/shared/domain/shops/shops.queries';
@@ -33,6 +34,11 @@ export function ShopDetailSheet({ shopId, favorite, onToggleFavorite, expanded, 
       shopQuery.data ? toShopDetailView(shopQuery.data, slotsQuery.data?.slots ?? []) : null,
     [shopQuery.data, slotsQuery.data],
   );
+
+  // GA4 shop_view: 시트에 샵이 뜨면 1회 (홈 지도 → 샵 상세 조회, 웹과 동일 이벤트)
+  useEffect(() => {
+    if (shop?.id) track.shopView(shop.id, shop.name);
+  }, [shop?.id, shop?.name]);
 
   // 로딩/에러: 접힘(35%) 상태에서도 보이도록 상단 배치(중앙 정렬이면 시트 아래 잘림).
   if (!shop) {
@@ -86,6 +92,7 @@ export function ShopDetailSheet({ shopId, favorite, onToggleFavorite, expanded, 
           onReserveClick={() => {
             // 클릭 애널리틱스 — 실패해도 무시(fire-and-forget)
             postReservationClick(shop.id).catch(() => {});
+            track.reserveClick(shop.id, shop.bookingRoute?.label); // GA4 (웹과 동일 이벤트)
           }}
         />
       )}

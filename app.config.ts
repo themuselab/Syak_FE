@@ -91,6 +91,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     ios: {
       ...config.ios,
+      usesAppleSignIn: true, // Apple 로그인(iOS 전용) 엔타이틀먼트
       ...(hasIosFirebase ? { googleServicesFile: iosGoogleServices } : {}),
     },
     plugins: [
@@ -100,6 +101,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...kakaoPlugin,
       ...naverPlugin,
       ...naverMapPlugin,
+      'expo-apple-authentication', // Apple 로그인 config plugin (iOS 엔타이틀먼트 주입)
     ],
   };
 };

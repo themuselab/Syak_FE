@@ -4,9 +4,8 @@ import type { SocialProvider } from './auth.types';
 // LoginScreen은 provider별 차이를 모른 채 이 함수로 "토큰 문자열" 하나만 받는다.
 // 백엔드 POST /auth/:provider 에는 카카오/네이버 = access_token, 애플 = identityToken 을 그대로 전달한다.
 //
-// ★ 실제 SDK 연동은 dev build + 소셜 키 발급 후 (아래 각 case의 TODO 자리만 채우면 됨).
-//   현재는 미연동 stub — 호출 시 SocialAuthNotReadyError 를 던진다.
-//   교체해도 LoginScreen 등 호출부는 바뀌지 않는다(어댑터로 격리).
+// 카카오·네이버·애플 모두 연동됨(네이티브 모듈이라 dev build에서만 동작 — 각 case의 dynamic import 가드).
+// provider별 SDK 차이는 여기서 흡수하고, LoginScreen 등 호출부는 "토큰 문자열" 하나만 받는다(어댑터로 격리).
 
 // 소셜 SDK가 아직 연동되지 않았음을 알리는 에러. (실제 소셜 검증 실패 AUTH_SOCIAL_FAILED 와 구분)
 export class SocialAuthNotReadyError extends Error {
@@ -77,10 +76,26 @@ async function requestSocialToken(provider: SocialProvider): Promise<string> {
       }
       return result.successResponse.accessToken; // 백엔드 POST /auth/naver 의 access_token
     }
-    case 'apple':
-      // TODO(SDK): expo-apple-authentication (iOS 전용)
-      //   const cred = await AppleAuthentication.signInAsync({ requestedScopes: [...] });
-      //   return cred.identityToken; // 애플은 access_token 자리에 identityToken 전달
-      throw new SocialAuthNotReadyError('apple');
+    case 'apple': {
+      // expo-apple-authentication (iOS 전용). 카카오/네이버와 동일한 dynamic import 가드 —
+      // 안드로이드/미지원 환경에선 버튼 자체가 숨겨지고(LoginScreen), import·호출 실패는 상위 토스트.
+      const AppleAuthentication = await import('expo-apple-authentication');
+      try {
+        const cred = await AppleAuthentication.signInAsync({
+          requestedScopes: [
+            AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+            AppleAuthentication.AppleAuthenticationScope.EMAIL,
+          ],
+        });
+        if (!cred.identityToken) throw new Error('Apple identityToken 없음');
+        return cred.identityToken; // 백엔드 POST /auth/apple 의 access_token 자리에 identityToken
+      } catch (e) {
+        // 사용자가 시트를 닫으면 ERR_REQUEST_CANCELED — 취소로 변환(오류 토스트 안 띄움).
+        if ((e as { code?: string })?.code === 'ERR_REQUEST_CANCELED') {
+          throw new SocialAuthCancelledError('apple');
+        }
+        throw e;
+      }
+    }
   }
 }

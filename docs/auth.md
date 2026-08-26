@@ -1,13 +1,13 @@
 # 인증 (소셜 로그인 · 세션 · 로그아웃)
 
-> 상태: **카카오·네이버 로그인 실기기(dev build) 연동·검증 완료.** 세션 확인·로그아웃·토큰 갱신 동작. **애플은 어댑터 stub.**
+> 상태: **카카오·네이버 로그인 실기기(dev build) 연동·검증 완료.** 세션 확인·로그아웃·토큰 갱신 동작. **애플 구현 완료(dev build·애플 개발자 설정 대기).**
 > (네이버는 2026-06-30 지도 dev build에 로그인 SDK·키가 함께 포함돼 빌드됐고, 실기기 로그인 검증 완료 — 2026-07-03 확인)
 > 백엔드 계약: `../syakBE/docs/01-auth.md`, `06-user.md`, `00-overview.md`.
 > dev build 셋업·재현 절차는 [dev-build.md](./dev-build.md), 라이브러리 선택은 [decisions.md](./decisions.md).
 
 ## 1. 범위
 소셜 로그인(카카오·네이버·애플) + 비회원, 앱 시작 시 세션 확인, 로그아웃, 토큰 만료 처리.
-소셜 토큰 획득은 provider별 **어댑터**로 격리 — 카카오·네이버는 실제 SDK 연동, 애플은 stub.
+소셜 토큰 획득은 provider별 **어댑터**로 격리 — 카카오·네이버·애플 모두 실제 SDK 연동(네이티브 — dev build 전용).
 
 ## 2. 인증 플로우
 ```
@@ -15,7 +15,7 @@
         ├ 성공 → setUser → /home
         └ 실패(401) → /login
 /login → 소셜 버튼
-        → getSocialToken(provider)        ★ 소셜 SDK 어댑터 (카카오·네이버=실제, 애플=stub)
+        → getSocialToken(provider)        ★ 소셜 SDK 어댑터 (카카오·네이버=실제, 애플=실제)
         → POST /auth/:provider (토큰 전달) → 쿠키 발급 + {user, isNewUser}
         → /home (신규·기존 동일, 닉네임 화면 없음)
         └ "비회원으로 둘러보기" → /home (user=null)
@@ -32,7 +32,7 @@ app.config.ts          # app.json 확장 + 카카오·네이버 plugin(각 조�
 eas.json               # development(devClient/internal/apk) 프로파일
 metro.config.js        # @emnapi watch 제외(Windows 워처 크래시 회피)
 src/shared/domain/auth/
-  socialAuth.ts        # ★ 소셜 토큰 어댑터 getSocialToken(provider) — 카카오·네이버=실제 SDK, 애플=stub. 취소(SocialAuthCancelledError) 구분
+  socialAuth.ts        # ★ 소셜 토큰 어댑터 getSocialToken(provider) — 카카오·네이버=실제 SDK, 애플=실제. 취소(SocialAuthCancelledError) 구분
   auth.api.ts          # socialLogin(POST /auth/:provider), signOut(DELETE /auth/signout)
   auth.queries.ts      # useSocialLogin, useSignOut(onSettled로 세션 비움)
   auth.store.ts        # useAuthStore (user만, 토큰 X)
@@ -75,7 +75,7 @@ src/screens/my/MyScreen.tsx     # 로그아웃 useSignOut 연결, 회원 시 use
 - `resolveLoginError`가 네트워크/타임아웃/소셜검증실패/그 외를 구분하고, 미분류는 문구 끝에 식별자를 붙인다(예: `(SHOP_NOT_FOUND)`, `(TypeError)`) → **QA 스크린샷만으로 분기 가능**
 - `_layout.tsx`의 SDK init 실패는 `console.warn('[auth] ... init failed')`로 남긴다(이전엔 빈 `.catch(() => {})`로 삼킴)
 - **네이버**: `@react-native-seoul/naver-login`의 `login()` → `successResponse.accessToken`. 카카오와 달리 **throw가 아니라 결과 객체**(`{ isSuccess, successResponse, failureResponse }`)를 반환하므로 `isSuccess`로 분기. 사용자가 창을 닫으면(`failureResponse.isCancel`) `SocialAuthCancelledError`로 변환 → LoginScreen이 **토스트를 생략**(취소는 오류 아님). `_layout`에서 `NaverLogin.initialize`(consumerKey·consumerSecret·appName) 1회.
-- **애플**: 아직 `SocialAuthNotReadyError` stub → 버튼 탭 시 "준비 중" 토스트. 추가 시 **이 파일의 apple case만** 교체(다른 파일 무수정).
+- **애플**: `expo-apple-authentication` 연동(`identityToken` 반환, 취소=`ERR_REQUEST_CANCELED`→`SocialAuthCancelledError`). 버튼은 iOS 전용(안드 숨김). 백엔드 `POST /auth/apple`(AppleAuthProvider) 지원됨.
 
 ## 5. 라이브러리 / 설정
 - **카카오(완료)**: `@react-native-kakao/core`·`@react-native-kakao/user`, `expo-build-properties`, `expo-dev-client`, 루트 `@expo/config-plugins`(plugin peer). 네이티브 앱 키 `.env`(`EXPO_PUBLIC_KAKAO_NATIVE_APP_KEY`) + EAS env.
@@ -85,7 +85,7 @@ src/screens/my/MyScreen.tsx     # 로그아웃 useSignOut 연결, 회원 시 use
 ## 6. 남은 작업
 - **네이버 마무리**: 키 발급(네이버 개발자센터) → `.env`·EAS env 주입 → EAS 재빌드 → 콘솔 등록 → 실기기 검증. 코드는 완료. 절차 [dev-build.md](./dev-build.md) 네이버 섹션.
   - ✅ **전부 완료(2026-07-03 확인)** — 키 발급·`.env`·EAS env 등록 완료, 로그인 SDK는 6/30 지도 dev build에 함께 포함, 실기기 네이버 로그인 검증까지 끝남. 더 이상 남은 작업 아님.
-- **애플 어댑터**: `expo-apple-authentication` 설치 → `socialAuth.ts` apple case 구현(`identityToken` 반환). 애플 버튼은 `Platform.OS === 'ios'`에서만 노출. 카카오·네이버와 동일 패턴.
+- ~~애플 어댑터~~ **완료**(expo-apple-authentication). 남은 것: iOS dev/EAS 빌드 + 애플 개발자 App ID "Sign in with Apple" 활성화. ⚠️ 백엔드 AppleAuthProvider의 `audience`가 APPLE_TEAM_ID인데 애플 aud는 앱 번들ID여야 함 — 검증 확인 필요.
 - 계정 연동(`POST /auth/link/:provider`) + 마이페이지 `linkedProviders` 표시.
 - 신규 가입 닉네임 입력 화면(디자인 확보 후), 회원 탈퇴(`DELETE /users/me`) 재확인 모달.
 - (선택) 빌드 자동화(EAS Workflows/GitHub Actions) 또는 JS 변경용 EAS Update(OTA).

@@ -21,7 +21,7 @@
 | [my.md](./my.md) | 마이페이지 — 프로필·알림 설정 토글·반경 슬라이더·로그인/로그아웃 | UI 완료 / 백엔드 연동 대기 |
 | [favorite.md](./favorite.md) | 즐겨찾기 목록 — 카테고리 칩·매장 카드·빈 상태 | 구현 완료(favorites + shopId별 상세 병렬) |
 | [account.md](./account.md) | 계정 관리 — 닉네임·연결된 계정·회원 탈퇴 | 탈퇴 완료 / 닉네임 저장은 BE PATCH 배포 대기 |
-| [auth.md](./auth.md) | 인증 — 소셜 로그인·세션 확인·로그아웃·토큰 갱신 | 카카오 실기기 연동 완료 · 네이버 코드 완료(키·빌드 대기) / 애플 대기 |
+| [auth.md](./auth.md) | 인증 — 소셜 로그인·세션 확인·로그아웃·토큰 갱신 | 카카오 실기기 완료 · 네이버 코드 완료(키·빌드 대기) · 애플 코드 완료(iOS 빌드·애플 개발자 설정 대기) |
 | [analytics.md](./analytics.md) | GA4 계측 — Firebase Analytics(screen_view·shop_view·reserve_click), 웹과 통합 퍼널 | 계측 코드 완료 / 네이티브 재빌드·GA4 속성 연결 대기 |
 
 ## 관련 참고

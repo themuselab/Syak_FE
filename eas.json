@@ -20,7 +20,8 @@
     },
     "production": {
       "autoIncrement": true,
-      "environment": "production"
+      "environment": "production",
+      "ios": { "credentialsSource": "local" }
     }
   },
   "submit": {

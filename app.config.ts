@@ -53,15 +53,25 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const androidGoogleServices = process.env.GOOGLE_SERVICES_JSON ?? './google-services.json';
   const iosGoogleServices = process.env.GOOGLE_SERVICE_INFO_PLIST ?? './GoogleService-Info.plist';
   const hasAndroidFirebase = existsSync(androidGoogleServices);
-  const hasIosFirebase = existsSync(iosGoogleServices);
-  const firebasePlugins =
-    hasAndroidFirebase || hasIosFirebase
-      ? ([
-          '@react-native-firebase/app',
-          '@react-native-firebase/messaging',
-          '@react-native-firebase/analytics',
-        ] as NonNullable<ExpoConfig['plugins']>)
-      : [];
+  const hasIosFirebaseFile = existsSync(iosGoogleServices);
+  // ★ iOS 빌드에선 기본적으로 Firebase 제외. RNFirebase+static frameworks가 Expo54/RN0.81에서
+  //   pod install·컴파일 실패(RCTPromiseRejectBlock 등). 이번 iOS 빌드는 푸시·분석 다 꺼져 있어
+  //   Firebase가 하는 일이 없으므로 빼도 기능 손실 0. JS는 dynamic import 가드라 네이티브 모듈
+  //   없어도 조용히 통과(push.ts·analytics.ts). Android 빌드·로컬 prebuild는 영향 없음.
+  //   재활성(추후 푸시/분석 iOS 붙일 때): iOS 빌드 env에 SYAK_IOS_FIREBASE=on.
+  //   짝꿍: react-native.config.js가 같은 조건으로 iOS pod(autolink)도 제외한다.
+  const iosBuild = process.env.EAS_BUILD_PLATFORM === 'ios';
+  const hasIosFirebase = hasIosFirebaseFile && !(iosBuild && process.env.SYAK_IOS_FIREBASE !== 'on');
+  // config plugin은 지금 빌드되는 플랫폼에만 적용됨 → iOS 빌드에서 firebase off면 plugin도 빼야
+  // AppDelegate에 Firebase 코드가 안 들어가 pod 없이도 컴파일된다.
+  const firebaseForThisBuild = iosBuild ? hasIosFirebase : hasAndroidFirebase || hasIosFirebase;
+  const firebasePlugins = firebaseForThisBuild
+    ? ([
+        '@react-native-firebase/app',
+        '@react-native-firebase/messaging',
+        '@react-native-firebase/analytics',
+      ] as NonNullable<ExpoConfig['plugins']>)
+    : [];
 
   // 카카오·네이버지도 SDK는 각 전용 Maven 저장소에만 있다. Expo가 저장소를 중앙 관리(settings.gradle)
   // 하므로, expo-build-properties로 그 저장소들을 추가해야 의존성이 해석된다.

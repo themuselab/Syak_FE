@@ -17,7 +17,10 @@ import { registerDevice, updateNotificationSettings } from './notification.api';
 
 // 타입 전용 import는 번들에서 지워지므로 web에서도 안전.
 type Messaging = typeof import('@react-native-firebase/messaging');
-type RemoteMessage = import('@react-native-firebase/messaging').FirebaseMessagingTypes.RemoteMessage;
+// v26에서 FirebaseMessagingTypes 네임스페이스가 제거됨 → getInitialNotification 반환 타입에서 추출.
+type RemoteMessage = NonNullable<
+  Awaited<ReturnType<typeof import('@react-native-firebase/messaging').getInitialNotification>>
+>;
 
 let listenersAttached = false; // 리스너(토큰 갱신·알림 탭 등)는 앱 프로세스당 1회만
 

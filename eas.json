@@ -22,6 +22,11 @@
       "autoIncrement": true,
       "environment": "production",
       "ios": { "credentialsSource": "local" }
+    },
+    "production-apk": {
+      "extends": "production",
+      "distribution": "internal",
+      "android": { "buildType": "apk" }
     }
   },
   "submit": {

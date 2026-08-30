@@ -16,7 +16,9 @@
     },
     "android": {
       "package": "com.themuselab.syak",
-      "permissions": ["android.permission.POST_NOTIFICATIONS"],
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -49,7 +51,11 @@
       "reactCompiler": true
     },
     "extra": {
-      "router": {}
-    }
+      "router": {},
+      "eas": {
+        "projectId": "8df1c845-d8a3-43b4-b795-484af559f4c2"
+      }
+    },
+    "owner": "v1ctoryjun"
   }
 }

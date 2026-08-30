@@ -98,6 +98,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...(config.plugins ?? []),
       ...buildPropsPlugin,
       ...firebasePlugins,
+      // RNFirebase + static frameworks의 non-modular header 컴파일 에러 픽스(Podfile 패치).
+      ...(hasIosFirebase ? (['./plugins/withNonModularHeaders'] as NonNullable<ExpoConfig['plugins']>) : []),
       ...kakaoPlugin,
       ...naverPlugin,
       ...naverMapPlugin,

@@ -9,7 +9,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.themuselab.syak",
+      "bundleIdentifier": "kr.themuselab.syak",
       "entitlements": {
         "aps-environment": "production"
       }

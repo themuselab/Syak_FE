@@ -22,6 +22,7 @@ export function SelectChip({ label, selected, onPress, width, color }: Props) {
       style={{ width, borderColor: selected ? pink : colors.gray[300] }}
     >
       <Text
+        numberOfLines={1}
         className="text-body-m font-pretendard-medium"
         style={{ color: selected ? pink : colors.gray[700] }}
       >

@@ -32,8 +32,16 @@ export function SectionTabs({ active, onPressTab }: Props) {
             key={tab.key}
             onPress={() => onPressTab(tab.key)}
             hitSlop={{ top: 6, bottom: 6 }}
-            className="flex-1 items-center justify-center p-2"
-            style={{ borderBottomWidth: 1, borderBottomColor: isActive ? '#d23e6a' : 'transparent' }}
+            // gorhom TouchableOpacity엔 NativeWind className이 적용되지 않아(서드파티 컴포넌트)
+            // flex-1이 무시돼 탭이 글자 너비로 붙어버렸다(QA #21). 레이아웃을 style로 지정. (홈/빈자리/가격/정보/리뷰)
+            style={{
+              flex: 1,
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 8,
+              borderBottomWidth: 1,
+              borderBottomColor: isActive ? '#d23e6a' : 'transparent',
+            }}
           >
             <Text
               className="font-pretendard-medium text-[16px]"

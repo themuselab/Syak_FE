@@ -16,7 +16,9 @@ export function SelectChip({ label, selected, onPress, width, color }: Props) {
   return (
     <Pressable
       onPress={onPress}
-      className="h-9 items-center justify-center rounded-full border bg-white px-3.5"
+      // 고정 width가 있으면 좌우 패딩을 빼서(width−28px로 눌리는 것 방지) 63px 전체를 중앙정렬에 쓴다.
+      // width 없는 칩(날짜 등)은 콘텐츠 크기라 패딩 유지. (QA #16 — 시간 칩 텍스트 밀림)
+      className={`h-9 items-center justify-center rounded-full border bg-white ${width ? '' : 'px-3.5'}`}
       style={{ width, borderColor: selected ? pink : colors.gray[300] }}
     >
       <Text

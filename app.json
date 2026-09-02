@@ -8,7 +8,7 @@
     "scheme": "syak",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/icon.png",
       "bundleIdentifier": "kr.themuselab.syak",
       "usesAppleSignIn": true,
       "infoPlist": {

@@ -142,20 +142,16 @@ export function HomeScreen() {
     toggleFavoriteOnServer(id);
   };
 
-  // 현재위치 버튼 = 내 주변 토글(사용자 확정): 켜면 카메라 이동 + 목록을 내 주변(서버 기본 5km)으로,
-  // 다시 누르면 해제(전체 목록, 카메라 유지·위치 재조회 없음). 권한 거부·실패 시 조용히 무동작(모드 안 켜짐).
-  // 모드 표시 = 지도 내 위치 마커 + 버튼 아이콘 파랑(토글 시점 좌표 1회 고정 — 목록 검색 기준과 일치, 사용자 확정).
+  // 현재위치 버튼: 누를 때마다 항상 "내 최신 위치로 카메라 재중심"(옛 좌표 캐시 안 씀 → fresh).
+  // 동시에 '내 주변'(서버 기본 5km) 필터를 토글한다. 이전엔 켜진 상태에서 누르면 이동 없이
+  // 꺼지기만 해서 "버튼 눌러도 내 위치로 안 감"으로 보였다(사용자 제보) → 항상 재중심하도록 수정.
   const handleNearbyToggle = async () => {
-    if (nearbyCoords) {
-      setNearbyCoords(null);
-      return;
-    }
     setNearbyLoading(true);
     try {
-      const coords = await getCurrentCoords();
+      const coords = await getCurrentCoords(true); // 항상 최신 GPS
       if (!coords) return;
-      mapRef.current?.moveTo(coords.lat, coords.lng);
-      setNearbyCoords(coords);
+      mapRef.current?.moveTo(coords.lat, coords.lng); // 누를 때마다 내 위치로 재중심
+      setNearbyCoords((prev) => (prev ? null : coords)); // 내 주변 필터 on/off 토글
     } finally {
       setNearbyLoading(false);
     }

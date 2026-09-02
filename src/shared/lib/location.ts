@@ -29,13 +29,19 @@ const LAST_KNOWN_MAX_AGE = 5 * 60 * 1000;
 // 캐시 좌표 우선(QA #56): getCurrentPositionAsync는 매번 새 GPS fix를 기다려 실내 콜드스타트에서
 // 수 초~십수 초가 걸린다. 최근 좌표가 있으면 즉시 반환하고, 없을 때만 새로 측정한다.
 // 정확도는 Balanced(≈100m) — 반경 km 단위 검색에 고정밀 fix가 필요 없고 훨씬 빠르다.
-export async function getCurrentCoords(): Promise<{ lat: number; lng: number } | null> {
+// fresh=true면 캐시를 건너뛰고 새 GPS fix를 받는다("내 위치" 버튼 재중심용 — 옛 좌표로 가는
+// 문제 방지). 기본(false)은 최근 좌표 우선(홈 진입 시 빠른 카메라 이동).
+export async function getCurrentCoords(
+  fresh = false,
+): Promise<{ lat: number; lng: number } | null> {
   try {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') return null;
 
-    const last = await Location.getLastKnownPositionAsync({ maxAge: LAST_KNOWN_MAX_AGE });
-    if (last) return { lat: last.coords.latitude, lng: last.coords.longitude };
+    if (!fresh) {
+      const last = await Location.getLastKnownPositionAsync({ maxAge: LAST_KNOWN_MAX_AGE });
+      if (last) return { lat: last.coords.latitude, lng: last.coords.longitude };
+    }
 
     const pos = await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.Balanced,

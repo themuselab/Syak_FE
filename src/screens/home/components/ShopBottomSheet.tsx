@@ -1,8 +1,8 @@
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, Keyboard, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useBottomInset } from '@/shared/lib/safeArea';
 import { ShopDetailSheet } from '@/screens/shop-detail/ShopDetailSheet';
 import { colors } from '@/shared/theme/colors';
 import { ShopListCard } from '@/shared/ui/ShopListCard';
@@ -51,7 +51,7 @@ export function ShopBottomSheet({
   topOffset,
   containerHeight,
 }: Props) {
-  const insets = useSafeAreaInsets();
+  const bottomInset = useBottomInset();
   const sheetRef = useRef<BottomSheet>(null);
   const activeFilter = useHomeFilterStore((s) => s.activeFilter);
   const setActiveFilter = useHomeFilterStore((s) => s.setActiveFilter);
@@ -177,7 +177,7 @@ export function ShopBottomSheet({
             <BottomSheetFlatList
               data={shops}
               keyExtractor={(item) => item.id}
-              contentContainerStyle={{ paddingTop: 13, paddingBottom: insets.bottom + 12 }}
+              contentContainerStyle={{ paddingTop: 13, paddingBottom: bottomInset + 12 }}
               // 목록을 스크롤하면 검색 키보드가 내려가고, 카드 탭은 그대로 전달된다(QA #60).
               keyboardDismissMode="on-drag"
               keyboardShouldPersistTaps="handled"

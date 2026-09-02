@@ -1,7 +1,7 @@
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Pressable, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useBottomInset } from '@/shared/lib/safeArea';
 import { colors } from '@/shared/theme/colors';
 import { useHomeFilterStore, type FilterKey } from '../../useHomeFilterStore';
 import { PriceFilterContent } from './PriceFilterContent';
@@ -22,7 +22,7 @@ const TITLE: Record<FilterKey, string> = {
 // 버튼 영역은 하단 고정이 아니라 콘텐츠 바로 아래 밀착(QA #55) — 짧은 필터(가격 등)에서
 // 콘텐츠와 버튼 사이 공백 제거. 긴 콘텐츠는 ScrollView가 줄어들어(flexShrink) 버튼 항상 노출.
 export function FilterView({ filterKey, onClose }: { filterKey: FilterKey; onClose: () => void }) {
-  const insets = useSafeAreaInsets(); // 버튼이 하단 내비 바에 가리지 않게
+  const bottomInset = useBottomInset(); // 버튼이 하단 내비 바에 가리지 않게(안드는 내비바 높이 하한 보장)
   const store = useHomeFilterStore();
 
   // 초기화 = 열려있는 필터의 선택만 해제(QA #16 — 사용자 확정). 다른 필터는 유지.
@@ -74,7 +74,7 @@ export function FilterView({ filterKey, onClose }: { filterKey: FilterKey; onClo
       </BottomSheetScrollView>
 
       {/* 초기화(현재 필터만) + 닫기. 초기화 버튼 디자인 부재 — 닫기 스타일 준용(디자이너 확인 항목) */}
-      <View className="flex-row gap-2 px-5 pt-2" style={{ paddingBottom: 12 + insets.bottom }}>
+      <View className="flex-row gap-2 px-5 pt-2" style={{ paddingBottom: 12 + bottomInset }}>
         <Pressable
           onPress={resetCurrent}
           className="h-11 flex-1 items-center justify-center rounded-sm border"

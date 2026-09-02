@@ -2,8 +2,8 @@ import { useQueries } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useBottomInset } from '@/shared/lib/safeArea';
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import {
   useFavorites,
@@ -43,7 +43,7 @@ function detailToCard(detail: ShopDetail, favorite: boolean): ShopCardInfo {
 // 별 해제 시 카드는 목록에 유지(별만 꺼짐, 재탭 복구 — 사용자 확정): 진입 시점 목록을 스냅샷으로
 // 고정하고 별 상태만 라이브 캐시(useFavoriteShopIds)로 표시. 재진입 시 해제분이 빠진다.
 export function FavoriteScreen() {
-  const insets = useSafeAreaInsets();
+  const bottomInset = useBottomInset();
   const user = useAuthStore((s) => s.user);
   const isLoggedIn = user != null;
 
@@ -135,7 +135,7 @@ export function FavoriteScreen() {
             <FlatList
               data={filtered}
               keyExtractor={(item) => item.shopId}
-              contentContainerStyle={{ paddingBottom: insets.bottom + 12 }}
+              contentContainerStyle={{ paddingBottom: bottomInset + 12 }}
               renderItem={({ item }) => (
                 <ShopListCard
                   shop={item.card}

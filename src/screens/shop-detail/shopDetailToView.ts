@@ -111,6 +111,22 @@ export function toShopDetailView(
     ...(shop.phone ? [{ label: '전화', value: shop.phone }] : []),
   ];
 
+  // 웹과 동일: bizId(네이버 예약 ID)가 있는데 reservationRoutes에 naver가 없으면 네이버 예약
+  // 링크를 조립해 최우선으로 넣는다. 백엔드 /shops/:id는 이 조립을 안 해줘 앱만 "톡톡으로 문의"로
+  // 뜨던 불일치(웹 api-shop-repository와 동일 로직). bizType 미제공이라 웹처럼 기본 13.
+  const rawRoutes = shop.reservationRoutes ?? [];
+  const routes: ReservationRoute[] =
+    shop.bizId && !rawRoutes.some((r) => r.type === 'naver')
+      ? [
+          {
+            type: 'naver' as const,
+            label: '네이버 예약',
+            value: `https://m.booking.naver.com/booking/13/bizes/${shop.bizId}`,
+          },
+          ...rawRoutes,
+        ]
+      : rawRoutes;
+
   return {
     id: shop.id,
     name: shop.name,
@@ -119,11 +135,11 @@ export function toShopDetailView(
     badges,
     photos: shop.photos,
     phone: shop.phone,
-    // 대표 라우트 = bookingType과 일치하는 항목(BE가 naver 최우선으로 지정) → 없으면 첫 항목.
-    // 구 응답(필드 부재) 방어로 ?? [] — 그 경우 bookingUrl 기반 폴백은 두지 않음(BE 배포 완료 확인).
+    // 대표 라우트 = 네이버 예약 최우선(웹 일치) → bookingType 일치 항목 → 첫 항목.
     bookingRoute:
-      (shop.reservationRoutes ?? []).find((r) => r.type === shop.bookingType) ??
-      (shop.reservationRoutes ?? [])[0] ??
+      routes.find((r) => r.type === 'naver') ??
+      routes.find((r) => r.type === shop.bookingType) ??
+      routes[0] ??
       null,
     availability,
     // 가격 없는 메뉴는 이름만(리더선 유지). recommend는 디자인에 표시 요소가 없어 미사용.

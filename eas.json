@@ -30,6 +30,12 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "work.victoryjun01@gmail.com",
+        "ascAppId": "6807780736",
+        "appleTeamId": "2KGLMXPY5C"
+      }
+    }
   }
 }

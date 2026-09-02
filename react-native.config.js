@@ -1,16 +1,17 @@
 // RN CLI autolinking 설정.
 //
-// @react-native-firebase/messaging 의 TurboModule(NativeRNFBTurboMessaging)이 Expo 54 / RN 0.81
-// New Architecture iOS 코드젠과 안 맞아 컴파일 실패한다
-// ("cannot initialize return object of type 'ModuleConstants<...Constants::Builder>'").
-// iOS에선 messaging pod만 autolink에서 제외한다. 이유:
-//  - 이번 빌드는 iOS 푸시가 어차피 비활성(APNs 미설정 + aps-environment 제거)이라 기능 손실 0
-//  - app / analytics pod은 유지 → Firebase 초기화·GA4 인프라는 iOS에도 그대로
-//  - JS의 messaging import는 dynamic import 가드(push.ts)라 네이티브 모듈 없어도 조용히 통과
-//  - messaging 플러그인은 iOS mod가 없어(안드 아이콘 설정만) 남겨둬도 무해
-// Android는 영향 없음(messaging pod 유지). 추후 iOS 푸시 붙일 때 이 제외만 풀면 된다.
+// v1에서는 @react-native-firebase(app/analytics/messaging) 네이티브 pod을 양 플랫폼에서
+// autolink 제외한다. RNFirebase가 Expo54/RN0.81 iOS에서 어떤 조합으로도 빌드 실패(New Arch
+// TurboModule 코드젠 / SPM+static / non-modular header)라, 네이티브 Firebase를 완전히 빼서
+// 빌드를 통과시킨다. 분석·푸시는 v1.1에서 재도입(필요시 expo-notifications 등).
+//  - JS는 dynamic import 가드(push.ts·analytics.ts)라 네이티브 모듈 없어도 무해
+//  - 패키지는 설치된 채로 둔다(Metro가 JS를 resolve해야 함) — 네이티브만 제외
+const bothNull = { platforms: { ios: null, android: null } };
+
 module.exports = {
   dependencies: {
-    '@react-native-firebase/messaging': { platforms: { ios: null } },
+    '@react-native-firebase/app': bothNull,
+    '@react-native-firebase/analytics': bothNull,
+    '@react-native-firebase/messaging': bothNull,
   },
 };

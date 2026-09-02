@@ -1,5 +1,3 @@
-import { existsSync } from 'node:fs';
-
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 // 동적 설정: app.json을 base로 받아 소셜 로그인 config plugin(카카오·네이버)을 추가한다.
@@ -47,25 +45,17 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       >)
     : [];
 
-  // Firebase(FCM 푸시). google-services 파일은 커밋하지 않고(.gitignore) 로컬은 루트 파일,
-  // EAS 빌드는 file 타입 환경변수(GOOGLE_SERVICES_JSON 등)가 경로를 준다.
-  // 파일이 있을 때만 plugin·googleServicesFile을 포함 — 없는 환경(파일 미준비·CI)에서 평가가 깨지지 않게(조건부 패턴).
-  const androidGoogleServices = process.env.GOOGLE_SERVICES_JSON ?? './google-services.json';
-  const iosGoogleServices = process.env.GOOGLE_SERVICE_INFO_PLIST ?? './GoogleService-Info.plist';
-  const hasAndroidFirebase = existsSync(androidGoogleServices);
-  const hasIosFirebase = existsSync(iosGoogleServices);
-  const firebasePlugins =
-    hasAndroidFirebase || hasIosFirebase
-      ? ([
-          '@react-native-firebase/app',
-          '@react-native-firebase/messaging',
-          '@react-native-firebase/analytics',
-        ] as NonNullable<ExpoConfig['plugins']>)
-      : [];
+  // ── Firebase 제외 (v1) ──────────────────────────────────────────────
+  // @react-native-firebase(app/analytics/messaging)가 Expo54/RN0.81 iOS에서 어떤 조합으로도
+  // 빌드 실패(New Arch TurboModule 코드젠 불일치 / SPM+static / non-modular header). v1에서는
+  // 네이티브 Firebase를 완전히 제외해 iOS 빌드를 통과시킨다. 분석·푸시는 v1.1에서 재도입.
+  //  - config plugin 미포함(아래 plugins에서 firebase 항목 없음)
+  //  - 네이티브 pod은 react-native.config.js가 양 플랫폼에서 autolink 제외
+  //  - JS는 dynamic import 가드(push.ts·analytics.ts)라 네이티브 모듈 없어도 무해
+  //  - RNFirebase 전용이던 useFrameworks:static / googleServicesFile / SPM 패치도 모두 제거
 
   // 카카오·네이버지도 SDK는 각 전용 Maven 저장소에만 있다. Expo가 저장소를 중앙 관리(settings.gradle)
   // 하므로, expo-build-properties로 그 저장소들을 추가해야 의존성이 해석된다.
-  // iOS static frameworks는 RNFirebase 필수 — firebase 활성 시에만 켠다(다른 pod 영향 최소화).
   const buildPropsPlugin = [
     [
       'expo-build-properties',
@@ -76,7 +66,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
             'https://repository.map.naver.com/archive/maven',
           ],
         },
-        ...(hasIosFirebase ? { ios: { useFrameworks: 'static' } } : {}),
       },
     ],
   ] as NonNullable<ExpoConfig['plugins']>;
@@ -85,21 +74,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ...config,
     name: config.name ?? 'syak',
     slug: config.slug ?? 'syak',
-    android: {
-      ...config.android,
-      ...(hasAndroidFirebase ? { googleServicesFile: androidGoogleServices } : {}),
-    },
     ios: {
       ...config.ios,
       usesAppleSignIn: true, // Apple 로그인(iOS 전용) 엔타이틀먼트
-      ...(hasIosFirebase ? { googleServicesFile: iosGoogleServices } : {}),
     },
     plugins: [
       ...(config.plugins ?? []),
       ...buildPropsPlugin,
-      ...firebasePlugins,
-      // RNFirebase + static frameworks의 non-modular header 컴파일 에러 픽스(Podfile 패치).
-      ...(hasIosFirebase ? (['./plugins/withNonModularHeaders'] as NonNullable<ExpoConfig['plugins']>) : []),
       ...kakaoPlugin,
       ...naverPlugin,
       ...naverMapPlugin,

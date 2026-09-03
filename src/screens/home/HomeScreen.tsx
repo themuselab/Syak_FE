@@ -28,6 +28,9 @@ import { useHomeFilterStore } from './useHomeFilterStore';
 // 필터·검색·정렬은 전부 서버 파라미터(filtersToParams). 시간 필터만 /slots/search 교집합.
 // 즐겨찾기는 /favorites 서버 연동(단일 캐시, 낙관적 업데이트) — 비회원 별 탭은 LoginPromptModal 게이팅.
 // 핀/카드 탭 → 특정샵 포커스(포커스 핀 + 시트 35% 인라인 상세, 올리면 풀스크린), 지도 빈 곳 탭 → 해제.
+// 위치 미동의 시 기본 지도 중심(개선 요청) — 강남역.
+const GANGNAM = { lat: 37.4979, lng: 127.0276 };
+
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const mapRef = useRef<HomeMapRef>(null);
@@ -38,8 +41,11 @@ export function HomeScreen() {
   const toggleFavoriteOnServer = useToggleFavorite();
   const [loginModalVisible, setLoginModalVisible] = useState(false);
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
-  // 내 주변 모드(현재위치 버튼 토글). 필터 화면과 무관한 홈 전용 상태라 필터 store가 아닌 로컬.
-  const [nearbyCoords, setNearbyCoords] = useState<{ lat: number; lng: number } | null>(null);
+  // 목록 쿼리 기준 위치 = 지도 중심(카메라 idle마다 갱신). 진입 시 GPS(허용)·강남(미동의).
+  // 백엔드가 lat/lng 주면 반경필터+거리순으로 근처 샵을 반환 → 목록이 지도 중심 근처를 보여줌(웹 동일).
+  const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>(GANGNAM);
+  // 내 위치 점(파란 마커) = 실제 GPS 좌표. 지도 중심(mapCenter)과 별개.
+  const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null);
   // GPS 좌표 획득 대기(수 초 걸릴 수 있음) — 버튼에 스피너를 띄워 "눌러도 무반응"을 없앤다(QA #56).
   const [nearbyLoading, setNearbyLoading] = useState(false);
   // 헤더+검색바 오버레이 높이(onLayout 측정) — 시트 최대 확장 한계 계산용 (QA #50).
@@ -49,12 +55,13 @@ export function HomeScreen() {
   // 덮거나 틈이 생긴다(사용자 피드백) — 시트·내 위치 버튼 모두 이 실측값을 쓴다.
   const [containerHeight, setContainerHeight] = useState(0);
 
-  // 홈 최초 진입 시 위치 권한 즉시 요청(QA #40·#52 — 사용자 확정: 온보딩 화면 대신 이 방식).
-  // 허용 시 지도 카메라만 내 위치로 이동 — 내 주변 모드(목록 필터·버튼 활성)는 버튼 탭으로만 켜짐.
-  // 거부 시 조용히 무시(서울 초기 카메라 유지).
+  // 홈 최초 진입 시 위치 권한 요청. 허용 → 내 위치 점 + 지도 이동(카메라 idle이 mapCenter를 내
+  // 위치로 갱신 → 목록도 내 주변). 미동의 → 강남(GANGNAM) 기본 중심 유지(개선 요청 #8).
   useEffect(() => {
     getCurrentCoords().then((coords) => {
-      if (coords) mapRef.current?.moveTo(coords.lat, coords.lng);
+      if (!coords) return;
+      setMyLocation(coords);
+      mapRef.current?.moveTo(coords.lat, coords.lng);
     });
   }, []);
 
@@ -80,12 +87,14 @@ export function HomeScreen() {
   // 시간 필터: 선택한 날짜×시간에 빈 슬롯 있는 샵을 /slots/search로 받아 목록과 교집합.
   const slotParams = useMemo(() => toSlotSearchParams({ date, times, regions }), [date, times, regions]);
 
+  // 목록은 항상 지도 중심(mapCenter) 근처를 쿼리 — 백엔드가 lat/lng로 반경필터+거리순 반환(웹 동일).
+  // 지도 중심을 디바운스해 팬 도중 과도한 재요청 방지. (radius 서버 기본 5km, lat/lng가 queryKey)
+  const debouncedCenter = useDebouncedValue(mapCenter);
   // 시간 필터 중엔 교집합이 페이지 단위로 잘리지 않게 100개 단일 조회(무한스크롤 비활성).
-  // 내 주변 모드면 lat/lng 병합(radius는 서버 기본 5km) — params가 queryKey라 토글 시 1페이지부터 리셋.
   const listParams = useMemo(() => {
     const base = slotParams !== null ? { ...params, limit: 100 } : params;
-    return nearbyCoords ? { ...base, lat: nearbyCoords.lat, lng: nearbyCoords.lng } : base;
-  }, [params, slotParams, nearbyCoords]);
+    return { ...base, lat: debouncedCenter.lat, lng: debouncedCenter.lng };
+  }, [params, slotParams, debouncedCenter]);
 
   const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useShops(listParams);
@@ -142,16 +151,19 @@ export function HomeScreen() {
     toggleFavoriteOnServer(id);
   };
 
-  // 현재위치 버튼: 누를 때마다 항상 "내 최신 위치로 카메라 재중심"(옛 좌표 캐시 안 씀 → fresh).
-  // 동시에 '내 주변'(서버 기본 5km) 필터를 토글한다. 이전엔 켜진 상태에서 누르면 이동 없이
-  // 꺼지기만 해서 "버튼 눌러도 내 위치로 안 감"으로 보였다(사용자 제보) → 항상 재중심하도록 수정.
-  const handleNearbyToggle = async () => {
+  // 지도 카메라가 멈추면(idle) 그 중심을 목록 쿼리 기준(mapCenter)으로 → 지도를 옮기면 목록·핀도
+  // 그 지역으로 갱신(웹과 동일, #7 위치 실시간 반영).
+  const handleCameraIdle = (center: { lat: number; lng: number }) => setMapCenter(center);
+
+  // 현재위치 버튼: 최신 GPS로 내 위치 점 갱신 + 지도 재중심. 지도가 움직이면 카메라 idle이
+  // mapCenter를 내 위치로 갱신 → 목록도 내 주변. (누를 때마다 항상 내 위치로 — 버튼 버그 수정)
+  const handleRecenter = async () => {
     setNearbyLoading(true);
     try {
       const coords = await getCurrentCoords(true); // 항상 최신 GPS
       if (!coords) return;
-      mapRef.current?.moveTo(coords.lat, coords.lng); // 누를 때마다 내 위치로 재중심
-      setNearbyCoords((prev) => (prev ? null : coords)); // 내 주변 필터 on/off 토글
+      setMyLocation(coords);
+      mapRef.current?.moveTo(coords.lat, coords.lng);
     } finally {
       setNearbyLoading(false);
     }
@@ -173,7 +185,8 @@ export function HomeScreen() {
             Keyboard.dismiss(); // 검색 키보드가 지도 탭으로 닫히지 않던 문제(QA #60)
             setSelectedShopId(null);
           }}
-          myLocation={nearbyCoords}
+          myLocation={myLocation}
+          onCameraIdle={handleCameraIdle}
           selectedShopId={selectedShopId}
           topPadding={headerHeight}
           bottomPadding={sheetDefaultHeight + MAP_CONTROL_CLEARANCE}
@@ -206,8 +219,8 @@ export function HomeScreen() {
             시트를 위로 올리면 버튼이 가려지는 것은 확정 정책(#45 — 버튼 고정). */}
         <View className="absolute right-4" style={{ bottom: sheetDefaultHeight + 16 }}>
           <CurrentLocationButton
-            onPress={handleNearbyToggle}
-            active={nearbyCoords !== null}
+            onPress={handleRecenter}
+            active={myLocation !== null}
             loading={nearbyLoading}
           />
         </View>

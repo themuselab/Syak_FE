@@ -23,8 +23,8 @@ const MY_LOCATION = require('../../../../assets/icons/marker-my-location.png') a
 // 포커스 핀 (design.pen 특정샵 포커스 euK3A > b6WWf — 56px 핑크 맵핀+상점 아이콘, 3배수 export).
 const PIN_FOCUSED = require('../../../../assets/icons/pin-focused.png') as MapImageProp;
 
-// 초기 카메라 = 서울 중심 (백엔드 region 항상 "서울").
-const SEOUL = { latitude: 37.5665, longitude: 126.978, zoom: 12 };
+// 초기 카메라 = 강남역 (위치 미동의 시 기본 중심 — 개선 요청 #8).
+const GANGNAM = { latitude: 37.4979, longitude: 127.0276, zoom: 14 };
 
 export type HomeMapRef = { moveTo: (lat: number, lng: number) => void };
 
@@ -32,7 +32,8 @@ type Props = {
   shops: ShopCardView[];
   onMarkerPress: (id: string) => void;
   onMapPress?: () => void; // 핀 없는 빈 곳 탭 (포커스 해제)
-  myLocation?: { lat: number; lng: number } | null; // 내 주변 모드의 토글 시점 좌표 (null = 마커 숨김)
+  myLocation?: { lat: number; lng: number } | null; // 내 위치 점(GPS) (null = 마커 숨김)
+  onCameraIdle?: (center: { lat: number; lng: number }) => void; // 카메라 멈춤 → 지도 중심(목록 쿼리 기준)
   selectedShopId?: string | null; // 포커스된 매장 — 해당 핀만 포커스 핀(56px)으로 교체
   topPadding?: number; // 헤더+검색바 높이 — SDK 컨트롤이 그 아래에 오도록
   bottomPadding?: number; // 바텀시트 최소 높이 — 줌 컨트롤·네이버 로고가 시트에 안 가리게
@@ -42,7 +43,7 @@ type Props = {
 // 키(EXPO_PUBLIC_NAVER_MAP_CLIENT_ID) 미발급 dev build에서도 안전하게 placeholder로 폴백.
 export const HomeMap = forwardRef<HomeMapRef, Props>(
   (
-    { shops, onMarkerPress, onMapPress, myLocation, selectedShopId, topPadding, bottomPadding },
+    { shops, onMarkerPress, onMapPress, myLocation, onCameraIdle, selectedShopId, topPadding, bottomPadding },
     ref,
   ) => {
     const mapRef = useRef<NaverMapViewRef>(null);
@@ -60,8 +61,10 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
       <NaverMapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
-        initialCamera={SEOUL}
+        initialCamera={GANGNAM}
         onTapMap={onMapPress}
+        // 카메라가 멈추면 중심 좌표를 부모로 → 목록·핀이 지도 따라 갱신(웹 동일, #2·#7).
+        onCameraIdle={(e) => onCameraIdle?.({ lat: e.latitude, lng: e.longitude })}
         // SDK 기본 UI는 전부 true라 지정하지 않으면 다 켜진다. 줌(+/-)·현위치 버튼 등 전부 끄고
         // 앱 커스텀 UI(CurrentLocationButton)만 사용 — 줌 버튼 삭제 요청(QA) 반영.
         isShowZoomControls={false}

@@ -131,6 +131,11 @@ export function ShopBottomSheet({
       ref={sheetRef}
       index={defaultIndex}
       snapPoints={snapPoints}
+      // 포커스(상세) 모드에서 아래로 스와이프 → 시트 닫힘 → 선택 해제(목록 복귀). 이전엔 min 스냅
+      // 35%에서 더 못 내려가 "상세에서 스와이프 다운해도 안 내려감"이었다(사용자 제보). 목록 모드
+      // (focused=false)에선 비활성 → 목록 시트가 실수로 닫히지 않는다.
+      enablePanDownToClose={focused}
+      onClose={onDeselect}
       // v5 기본값(true)이면 콘텐츠 높이 스냅포인트가 추가돼, 칩 토글로 목록이 로딩 스피너로
       // 교체되는 순간 시트가 최소 높이로 줄어든다(QA #53) — 지정 스냅포인트만 사용.
       enableDynamicSizing={false}

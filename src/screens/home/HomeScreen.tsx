@@ -1,8 +1,11 @@
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { LinearGradient } from 'expo-linear-gradient';
+import { RefreshCcw } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, View } from 'react-native';
+import { Keyboard, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { colors } from '@/shared/theme/colors';
 
 import { router } from 'expo-router';
 
@@ -41,10 +44,11 @@ export function HomeScreen() {
   const toggleFavoriteOnServer = useToggleFavorite();
   const [loginModalVisible, setLoginModalVisible] = useState(false);
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
-  // 목록 쿼리 기준 위치 = 지도 중심(카메라 idle마다 갱신). 진입 시 GPS(허용)·강남(미동의).
-  // 백엔드가 lat/lng 주면 반경필터+거리순으로 근처 샵을 반환 → 목록이 지도 중심 근처를 보여줌(웹 동일).
+  // 지도 중심(카메라 idle마다 갱신, 실시간). "현 지도에서 검색" 버튼 노출 판단용.
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>(GANGNAM);
-  // 내 위치 점(파란 마커) = 실제 GPS 좌표. 지도 중심(mapCenter)과 별개.
+  // 목록 조회를 확정한 중심. 지도를 팬해도 자동 재조회 안 하고 버튼을 눌러야 여기로 갱신(네이버 방식).
+  const [searchCenter, setSearchCenter] = useState<{ lat: number; lng: number }>(GANGNAM);
+  // 내 위치 점(파란 마커) = 실제 GPS 좌표. 지도 중심과 별개.
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null);
   // GPS 좌표 획득 대기(수 초 걸릴 수 있음) — 버튼에 스피너를 띄워 "눌러도 무반응"을 없앤다(QA #56).
   const [nearbyLoading, setNearbyLoading] = useState(false);
@@ -61,6 +65,7 @@ export function HomeScreen() {
     getCurrentCoords().then((coords) => {
       if (!coords) return;
       setMyLocation(coords);
+      setSearchCenter(coords); // 초기 목록도 내 위치 기준으로 조회
       mapRef.current?.moveTo(coords.lat, coords.lng);
     });
   }, []);
@@ -87,14 +92,17 @@ export function HomeScreen() {
   // 시간 필터: 선택한 날짜×시간에 빈 슬롯 있는 샵을 /slots/search로 받아 목록과 교집합.
   const slotParams = useMemo(() => toSlotSearchParams({ date, times, regions }), [date, times, regions]);
 
-  // 목록은 항상 지도 중심(mapCenter) 근처를 쿼리 — 백엔드가 lat/lng로 반경필터+거리순 반환(웹 동일).
-  // 지도 중심을 디바운스해 팬 도중 과도한 재요청 방지. (radius 서버 기본 5km, lat/lng가 queryKey)
-  const debouncedCenter = useDebouncedValue(mapCenter);
+  // 목록 조회 위치:
+  //  - 지역 필터가 있으면 그 지역(districts)으로 조회 → lat/lng 안 보냄(위치와 AND되어 빈 결과 방지).
+  //    (사용자 제보: 내 위치에서 먼 지역을 필터 걸면 아예 안 뜨던 문제)
+  //  - 없으면 확정 중심(searchCenter) 기준 반경+거리순(백엔드 lat/lng). 지도 팬 시 자동조회 X,
+  //    "현 지도에서 검색" 버튼을 눌러야 searchCenter가 갱신됨(네이버 방식).
+  const hasRegionFilter = regions.length > 0;
   // 시간 필터 중엔 교집합이 페이지 단위로 잘리지 않게 100개 단일 조회(무한스크롤 비활성).
   const listParams = useMemo(() => {
     const base = slotParams !== null ? { ...params, limit: 100 } : params;
-    return { ...base, lat: debouncedCenter.lat, lng: debouncedCenter.lng };
-  }, [params, slotParams, debouncedCenter]);
+    return hasRegionFilter ? base : { ...base, lat: searchCenter.lat, lng: searchCenter.lng };
+  }, [params, slotParams, hasRegionFilter, searchCenter]);
 
   const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useShops(listParams);
@@ -155,14 +163,23 @@ export function HomeScreen() {
   // 그 지역으로 갱신(웹과 동일, #7 위치 실시간 반영).
   const handleCameraIdle = (center: { lat: number; lng: number }) => setMapCenter(center);
 
-  // 현재위치 버튼: 최신 GPS로 내 위치 점 갱신 + 지도 재중심. 지도가 움직이면 카메라 idle이
-  // mapCenter를 내 위치로 갱신 → 목록도 내 주변. (누를 때마다 항상 내 위치로 — 버튼 버그 수정)
+  // 지도를 팬해서 확정 중심(searchCenter)과 충분히 멀어지면 "현 지도에서 검색" 버튼 노출.
+  const mapMoved = useMemo(() => {
+    const d = Math.hypot(mapCenter.lat - searchCenter.lat, mapCenter.lng - searchCenter.lng);
+    return d > 0.004; // 약 0.4km 이상 이동 시
+  }, [mapCenter, searchCenter]);
+
+  // "현 지도에서 검색" → 지금 보는 지도 중심으로 목록 재조회.
+  const searchHere = () => setSearchCenter(mapCenter);
+
+  // 현재위치 버튼: 최신 GPS로 내 위치 점 + 지도 재중심 + 목록도 내 위치로 조회(누를 때마다).
   const handleRecenter = async () => {
     setNearbyLoading(true);
     try {
       const coords = await getCurrentCoords(true); // 항상 최신 GPS
       if (!coords) return;
       setMyLocation(coords);
+      setSearchCenter(coords); // 목록도 내 위치로 즉시 갱신
       mapRef.current?.moveTo(coords.lat, coords.lng);
     } finally {
       setNearbyLoading(false);
@@ -213,6 +230,36 @@ export function HomeScreen() {
             <SearchBar />
           </View>
         </View>
+
+        {/* "현 지도에서 검색" — 지도를 팬해서 확정 중심과 멀어지면 노출(네이버 방식). 지역 필터 중엔
+            지역으로 조회하므로 숨김. 누르면 현재 지도 중심으로 목록 재조회(사용자 제보: 지도 이동 후 재조회 필요). */}
+        {mapMoved && !hasRegionFilter && (
+          <View
+            pointerEvents="box-none"
+            className="absolute left-0 right-0 items-center"
+            style={{ top: headerHeight + 6 }}
+          >
+            <Pressable
+              onPress={searchHere}
+              className="flex-row items-center gap-1.5 rounded-full bg-white px-4 py-2"
+              style={{
+                shadowColor: '#000000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.15,
+                shadowRadius: 6,
+                elevation: 4,
+              }}
+            >
+              <RefreshCcw size={15} color={colors.primary[500]} />
+              <Text
+                className="text-label-l font-pretendard-semibold"
+                style={{ color: colors.primary[500] }}
+              >
+                현 지도에서 검색
+              </Text>
+            </Pressable>
+          </View>
+        )}
 
         {/* 현재위치 버튼 (지도 우하단, 기본 시트 40% 상단 위 16px — 컨테이너 실측 기준이라 안 겹침).
             버튼 위치는 디자인 그대로 두고, SDK 줌 컨트롤을 mapPadding으로 이 위에 올렸다(QA #55).

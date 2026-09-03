@@ -62,9 +62,9 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
         style={StyleSheet.absoluteFill}
         initialCamera={SEOUL}
         onTapMap={onMapPress}
-        // SDK 기본 UI는 전부 true라 지정하지 않으면 다 켜진다. 줌(+/-)만 남기고 정리:
-        // 현위치 버튼은 앱 커스텀 CurrentLocationButton과 중복, 나머지는 디자인에 없다(QA #55).
-        isShowZoomControls
+        // SDK 기본 UI는 전부 true라 지정하지 않으면 다 켜진다. 줌(+/-)·현위치 버튼 등 전부 끄고
+        // 앱 커스텀 UI(CurrentLocationButton)만 사용 — 줌 버튼 삭제 요청(QA) 반영.
+        isShowZoomControls={false}
         isShowLocationButton={false}
         isShowCompass={false}
         isShowScaleBar={false}

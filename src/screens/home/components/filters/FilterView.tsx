@@ -48,6 +48,18 @@ export function FilterView({ filterKey, onClose }: { filterKey: FilterKey; onClo
     }
   };
 
+  // 현재 필터에 선택이 있으면 우측 버튼을 '선택'+메인컬러로(조건 적용됨을 명확히 — QA 요청).
+  const hasSelection =
+    filterKey === 'sort'
+      ? store.sort !== 'default'
+      : filterKey === 'region'
+        ? store.regions.length > 0
+        : filterKey === 'price'
+          ? store.prices.length > 0
+          : filterKey === 'time'
+            ? store.date !== null || store.times.length > 0
+            : store.serviceFields.length > 0 || store.services.length > 0;
+
   return (
     <View className="flex-1">
       {/* 제목 + divider */}
@@ -85,9 +97,17 @@ export function FilterView({ filterKey, onClose }: { filterKey: FilterKey; onClo
         <Pressable
           onPress={onClose}
           className="h-11 flex-1 items-center justify-center rounded-sm border"
-          style={{ borderColor: colors.gray[300] }}
+          style={{
+            borderColor: hasSelection ? colors.primary[500] : colors.gray[300],
+            backgroundColor: hasSelection ? colors.primary[500] : '#ffffff',
+          }}
         >
-          <Text className="text-label-l font-pretendard-semibold text-gray-900">닫기</Text>
+          <Text
+            className="text-label-l font-pretendard-semibold"
+            style={{ color: hasSelection ? '#ffffff' : colors.gray[900] }}
+          >
+            {hasSelection ? '선택' : '닫기'}
+          </Text>
         </Pressable>
       </View>
     </View>

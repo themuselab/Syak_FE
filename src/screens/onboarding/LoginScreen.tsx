@@ -34,8 +34,8 @@ export function LoginScreen() {
     setErrorMessage(null);
     setLoadingProvider(provider);
     try {
-      const token = await getSocialToken(provider);
-      await socialLogin.mutateAsync({ provider, accessToken: token });
+      const { token, name } = await getSocialToken(provider);
+      await socialLogin.mutateAsync({ provider, accessToken: token, name });
       router.replace('/home'); // 신규·기존 모두 홈 (닉네임 화면 없음)
     } catch (e) {
       const message = resolveLoginError(e);

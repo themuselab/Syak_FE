@@ -9,8 +9,8 @@ import type { SocialProvider } from './auth.types';
 export function useSocialLogin() {
   const setUser = useAuthStore((s) => s.setUser);
   return useMutation({
-    mutationFn: (vars: { provider: SocialProvider; accessToken: string }) =>
-      socialLogin(vars.provider, vars.accessToken),
+    mutationFn: (vars: { provider: SocialProvider; accessToken: string; name?: string }) =>
+      socialLogin(vars.provider, vars.accessToken, vars.name),
     onSuccess: (data) => setUser(data.user),
   });
 }

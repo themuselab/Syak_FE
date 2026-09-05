@@ -44,11 +44,19 @@ export class SocialAuthTimeoutError extends Error {
   }
 }
 
-export async function getSocialToken(provider: SocialProvider): Promise<string> {
+// 소셜 로그인 결과. token은 백엔드로 보낼 토큰(카카오/네이버=access_token, 애플=identityToken).
+// name은 애플 전용 — 애플은 이름을 identityToken에 넣지 않고 "최초 동의 시 fullName으로 딱 한 번"만
+// 준다. 그 이름을 백엔드로 함께 보내 "이름없음" 유저를 방지한다(카카오/네이버는 프로필에 닉네임 포함).
+export type SocialCredential = { token: string; name?: string };
+
+export async function getSocialToken(provider: SocialProvider): Promise<SocialCredential> {
   return withTimeout(requestSocialToken(provider), provider);
 }
 
-function withTimeout(task: Promise<string>, provider: SocialProvider): Promise<string> {
+function withTimeout(
+  task: Promise<SocialCredential>,
+  provider: SocialProvider,
+): Promise<SocialCredential> {
   let timer: ReturnType<typeof setTimeout>;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new SocialAuthTimeoutError(provider)), SOCIAL_LOGIN_TIMEOUT_MS);
@@ -56,14 +64,25 @@ function withTimeout(task: Promise<string>, provider: SocialProvider): Promise<s
   return Promise.race([task, timeout]).finally(() => clearTimeout(timer));
 }
 
-async function requestSocialToken(provider: SocialProvider): Promise<string> {
+// 애플 fullName(PersonNameComponents) → 표시 이름. 한국 사용자 우선(성+이름 순, 공백 없이).
+// 최초 동의 때만 값이 오고, 이후 로그인엔 null → undefined 반환(백엔드가 기존 이름 유지).
+function composeAppleName(fullName: {
+  familyName?: string | null;
+  givenName?: string | null;
+} | null): string | undefined {
+  if (!fullName) return undefined;
+  const joined = [fullName.familyName, fullName.givenName].filter(Boolean).join('').trim();
+  return joined || undefined;
+}
+
+async function requestSocialToken(provider: SocialProvider): Promise<SocialCredential> {
   switch (provider) {
     case 'kakao': {
       // react-native-kakao(@react-native-kakao/user). 네이티브 모듈이라 dev build에서만 동작.
       // dynamic import로 web/Expo Go 번들에 영향 없게 한다(모듈 없으면 throw → 상위에서 토스트).
       const { login } = await import('@react-native-kakao/user');
       const token = await login();
-      return token.accessToken; // 백엔드 POST /auth/kakao 의 access_token
+      return { token: token.accessToken }; // 백엔드 POST /auth/kakao 의 access_token
     }
     case 'naver': {
       // @react-native-seoul/naver-login. 네이티브 모듈이라 dev build에서만 동작(카카오와 동일하게 dynamic import).
@@ -74,7 +93,7 @@ async function requestSocialToken(provider: SocialProvider): Promise<string> {
         if (result.failureResponse?.isCancel) throw new SocialAuthCancelledError('naver');
         throw new Error(result.failureResponse?.message ?? '네이버 로그인 실패');
       }
-      return result.successResponse.accessToken; // 백엔드 POST /auth/naver 의 access_token
+      return { token: result.successResponse.accessToken }; // 백엔드 POST /auth/naver 의 access_token
     }
     case 'apple': {
       // expo-apple-authentication (iOS 전용). 카카오/네이버와 동일한 dynamic import 가드 —
@@ -88,7 +107,8 @@ async function requestSocialToken(provider: SocialProvider): Promise<string> {
           ],
         });
         if (!cred.identityToken) throw new Error('Apple identityToken 없음');
-        return cred.identityToken; // 백엔드 POST /auth/apple 의 access_token 자리에 identityToken
+        // identityToken=access_token 자리, name=최초 동의 때만 오는 fullName(백엔드 닉네임 보완).
+        return { token: cred.identityToken, name: composeAppleName(cred.fullName) };
       } catch (e) {
         // 사용자가 시트를 닫으면 ERR_REQUEST_CANCELED — 취소로 변환(오류 토스트 안 띄움).
         if ((e as { code?: string })?.code === 'ERR_REQUEST_CANCELED') {

@@ -84,6 +84,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...kakaoPlugin,
       ...naverPlugin,
       ...naverMapPlugin,
+      'expo-notifications', // 푸시(expo-notifications + Expo Push). iOS aps-environment는 프로파일
+      //                       재생성(Push capability) 후 app.json ios.entitlements에 추가한다.
       'expo-apple-authentication', // Apple 로그인 config plugin (iOS 엔타이틀먼트 주입)
     ],
   };

@@ -103,8 +103,13 @@ export type ShopListParams = {
   has_event?: boolean;
   has_slot?: boolean;
   slot_date?: string; // YYYY-MM-DD — 해당 날짜 슬롯 보유 샵만
-  lat?: number; // 내 주변 필터(bounding box) — lng와 함께 전송. radius는 안 보냄(서버 기본 5km — 사용자 확정)
+  lat?: number; // 정렬 기준 중심(거리순). 지도뷰에선 지도 중심.
   lng?: number;
+  // 지도 화면영역(bounds). 있으면 서버가 반경 대신 이 박스로 조회 → 보이는 영역=목록=핀 일치(웹모델).
+  swLat?: number;
+  swLng?: number;
+  neLat?: number;
+  neLng?: number;
   page?: number;
   limit?: number;
 };

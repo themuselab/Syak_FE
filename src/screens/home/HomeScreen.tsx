@@ -1,18 +1,14 @@
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { LinearGradient } from 'expo-linear-gradient';
-import { RefreshCcw } from 'lucide-react-native';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, Pressable, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-import { colors } from '@/shared/theme/colors';
-
 import { router } from 'expo-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Keyboard, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import { useFavoriteShopIds, useToggleFavorite } from '@/shared/domain/favorite/favorite.queries';
 import { useSlotSearch } from '@/shared/domain/reservation/reservation.queries';
-import { useShopPins, useShops } from '@/shared/domain/shops/shops.queries';
+import { useShops } from '@/shared/domain/shops/shops.queries';
 import type { MapBounds } from '@/shared/domain/shops/shops.types';
 import { getCurrentCoords } from '@/shared/lib/location';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
@@ -25,7 +21,7 @@ import { SearchBar } from './components/SearchBar';
 import { ShopBottomSheet } from './components/ShopBottomSheet';
 import { filtersToParams, toSlotSearchParams } from './filtersToParams';
 import { MAP_CONTROL_CLEARANCE, SHEET_DEFAULT_RATIO } from './homeLayout';
-import { toPinView, toShopCardView } from './shopToView';
+import { toShopCardView } from './shopToView';
 import { useHomeFilterStore } from './useHomeFilterStore';
 
 // 홈(지도뷰). 네이버 지도 + GET /shops(비회원 가능).
@@ -34,13 +30,11 @@ import { useHomeFilterStore } from './useHomeFilterStore';
 // 핀/카드 탭 → 특정샵 포커스(포커스 핀 + 시트 35% 인라인 상세, 올리면 풀스크린), 지도 빈 곳 탭 → 해제.
 // 위치 미동의 시 기본 지도 중심(개선 요청) — 강남역.
 const GANGNAM = { lat: 37.4979, lng: 127.0276 };
-// 첫 카메라 idle 전에도 핀이 뜨도록 강남 주변 초기 영역을 시드(첫 idle에 실제 영역으로 대체).
-const INITIAL_BOUNDS: MapBounds = {
-  swLat: GANGNAM.lat - 0.02,
-  neLat: GANGNAM.lat + 0.02,
-  swLng: GANGNAM.lng - 0.025,
-  neLng: GANGNAM.lng + 0.025,
-};
+// 첫 카메라 idle·현위치 이동 전 임시 영역(첫 idle에 실제 화면영역으로 대체). 대략 줌14 화면 크기.
+function boundsAround(c: { lat: number; lng: number }): MapBounds {
+  return { swLat: c.lat - 0.02, neLat: c.lat + 0.02, swLng: c.lng - 0.025, neLng: c.lng + 0.025 };
+}
+const INITIAL_BOUNDS: MapBounds = boundsAround(GANGNAM);
 
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -52,11 +46,9 @@ export function HomeScreen() {
   const toggleFavoriteOnServer = useToggleFavorite();
   const [loginModalVisible, setLoginModalVisible] = useState(false);
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
-  // 지도 중심(카메라 idle마다 갱신, 실시간). "현 지도에서 검색" 버튼 노출 판단용.
+  // 지도 중심(카메라 idle마다 갱신) — 거리순 정렬 기준.
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>(GANGNAM);
-  // 목록 조회를 확정한 중심. 지도를 팬해도 자동 재조회 안 하고 버튼을 눌러야 여기로 갱신(네이버 방식).
-  const [searchCenter, setSearchCenter] = useState<{ lat: number; lng: number }>(GANGNAM);
-  // 지도 영역(bounds) — 핀 조회 기준. 카메라 idle마다 갱신. 웹처럼 화면 안 샵을 전부 핀으로.
+  // 지도 화면영역(bounds) — 목록·핀 공통 조회 기준(웹모델: 보이는 영역=목록=핀). 카메라 idle마다 갱신.
   const [mapBounds, setMapBounds] = useState<MapBounds>(INITIAL_BOUNDS);
   // 내 위치 점(파란 마커) = 실제 GPS 좌표. 지도 중심과 별개.
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -69,13 +61,14 @@ export function HomeScreen() {
   // 덮거나 틈이 생긴다(사용자 피드백) — 시트·내 위치 버튼 모두 이 실측값을 쓴다.
   const [containerHeight, setContainerHeight] = useState(0);
 
-  // 홈 최초 진입 시 위치 권한 요청. 허용 → 내 위치 점 + 지도 이동(카메라 idle이 mapCenter를 내
-  // 위치로 갱신 → 목록도 내 주변). 미동의 → 강남(GANGNAM) 기본 중심 유지(개선 요청 #8).
+  // 홈 최초 진입 시 위치 권한 요청. 허용 → 내 위치 점 + 지도 이동. 중심/영역도 내 위치로 즉시 세팅
+  // (카메라 idle 전 강남 조회 깜빡임 방지) → 이후 idle이 실제 화면영역으로 갱신. 미동의 → 강남 유지.
   useEffect(() => {
     getCurrentCoords().then((coords) => {
       if (!coords) return;
       setMyLocation(coords);
-      setSearchCenter(coords); // 초기 목록도 내 위치 기준으로 조회
+      setMapCenter(coords);
+      setMapBounds(boundsAround(coords));
       mapRef.current?.moveTo(coords.lat, coords.lng);
     });
   }, []);
@@ -102,17 +95,24 @@ export function HomeScreen() {
   // 시간 필터: 선택한 날짜×시간에 빈 슬롯 있는 샵을 /slots/search로 받아 목록과 교집합.
   const slotParams = useMemo(() => toSlotSearchParams({ date, times, regions }), [date, times, regions]);
 
-  // 목록 조회 위치:
-  //  - 지역 필터가 있으면 그 지역(districts)으로 조회 → lat/lng 안 보냄(위치와 AND되어 빈 결과 방지).
-  //    (사용자 제보: 내 위치에서 먼 지역을 필터 걸면 아예 안 뜨던 문제)
-  //  - 없으면 확정 중심(searchCenter) 기준 반경+거리순(백엔드 lat/lng). 지도 팬 시 자동조회 X,
-  //    "현 지도에서 검색" 버튼을 눌러야 searchCenter가 갱신됨(네이버 방식).
+  // 목록 조회 (웹모델: 목록·핀이 같은 소스 → 항상 일치):
+  //  - 지역 필터가 있으면 그 지역(districts) 전체로 조회 → 위치/bounds 안 보냄(먼 지역 필터해도 나오게).
+  //  - 없으면 지도 화면영역(bounds) 안 샵 + 중심(mapCenter) 거리순. 지도 이동 시 idle이 갱신(자동, 웹처럼).
+  //    limit 500으로 화면 안 샵을 최대한 다 받아 핀=목록으로 렌더(클러스터링으로 성능 확보).
   const hasRegionFilter = regions.length > 0;
-  // 시간 필터 중엔 교집합이 페이지 단위로 잘리지 않게 100개 단일 조회(무한스크롤 비활성).
   const listParams = useMemo(() => {
-    const base = slotParams !== null ? { ...params, limit: 100 } : params;
-    return hasRegionFilter ? base : { ...base, lat: searchCenter.lat, lng: searchCenter.lng };
-  }, [params, slotParams, hasRegionFilter, searchCenter]);
+    if (hasRegionFilter) return slotParams !== null ? { ...params, limit: 100 } : params;
+    return {
+      ...params,
+      lat: mapCenter.lat,
+      lng: mapCenter.lng,
+      swLat: mapBounds.swLat,
+      swLng: mapBounds.swLng,
+      neLat: mapBounds.neLat,
+      neLng: mapBounds.neLng,
+      limit: slotParams !== null ? 100 : 500,
+    };
+  }, [params, slotParams, hasRegionFilter, mapCenter, mapBounds]);
 
   const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useShops(listParams);
@@ -137,21 +137,14 @@ export function HomeScreen() {
     return items.map((it) => toShopCardView(it, favoriteIds));
   }, [data, slotParams, slotSearch.data, favoriteIds]);
 
-  // 지도 핀: 웹처럼 현재 지도 영역 안 모든 샵(반경·목록과 별개). 시간/지역/검색 필터가 걸리면
-  // 목록과 어긋난 핀 노출을 막기 위해 핀도 목록(shops)만 쓰고, 그 외엔 영역 전체 핀을 쓴다.
-  const hasListFilter =
-    hasRegionFilter || slotParams !== null || !!debouncedSearch.trim() || date != null ||
-    prices.length > 0 || serviceFields.length > 0 || toggles.discount || toggles.sameDay || toggles.available;
-  const pinsQuery = useShopPins(hasListFilter ? null : mapBounds);
-  const pins = useMemo(() => {
-    // 필터가 있으면 목록 결과만 핀으로(교집합 유지), 없으면 영역 전체 핀.
-    if (hasListFilter) {
-      return shops
+  // 지도 핀 = 목록(shops)과 동일 소스 → 핀과 바텀시트 리스트가 항상 일치("이 핀이 리스트 여기").
+  const pins = useMemo(
+    () =>
+      shops
         .filter((s) => s.lat != null && s.lng != null)
-        .map((s) => ({ id: s.id, lat: s.lat!, lng: s.lng!, markerKind: s.markerKind }));
-    }
-    return (pinsQuery.data ?? []).map(toPinView).filter((p): p is NonNullable<typeof p> => p !== null);
-  }, [hasListFilter, shops, pinsQuery.data]);
+        .map((s) => ({ id: s.id, lat: s.lat!, lng: s.lng!, markerKind: s.markerKind })),
+    [shops],
+  );
 
   // 핀/카드 탭으로 포커스된 매장. 필터 변경으로 목록에서 빠지면 자동 해제(null).
   // 시트 기본(40%) 위치의 높이 — 내 위치 버튼·지도 컨트롤을 이 선 위에 배치한다.
@@ -185,11 +178,17 @@ export function HomeScreen() {
     toggleFavoriteOnServer(id);
   };
 
-  // 지도 카메라가 멈추면(idle) 그 중심을 목록 쿼리 기준(mapCenter)으로 → 지도를 옮기면 목록·핀도
-  // 그 지역으로 갱신(웹과 동일, #7 위치 실시간 반영).
+  // 지도 카메라가 멈추면(idle) 중심·영역을 갱신 → 목록·핀이 그 화면영역으로 자동 재조회(웹모델).
+  // bounds는 소수 4자리(~11m)로 반올림해 미세 흔들림에 의한 불필요한 재조회를 억제.
   const handleCameraIdle = (e: { lat: number; lng: number; bounds?: MapBounds }) => {
     setMapCenter({ lat: e.lat, lng: e.lng });
-    if (e.bounds) setMapBounds(e.bounds); // 핀은 이 영역으로 조회(웹처럼 화면 전체)
+    if (e.bounds) {
+      const r = (n: number) => Math.round(n * 10000) / 10000;
+      setMapBounds({
+        swLat: r(e.bounds.swLat), swLng: r(e.bounds.swLng),
+        neLat: r(e.bounds.neLat), neLng: r(e.bounds.neLng),
+      });
+    }
   };
 
   // 핀 탭: 목록(shops)에 있으면 인라인 포커스(기존 UX), 목록 밖(영역 전체 핀)이면 상세로 이동.
@@ -198,23 +197,15 @@ export function HomeScreen() {
     else router.push(`/shop/${id}`);
   };
 
-  // 지도를 팬해서 확정 중심(searchCenter)과 충분히 멀어지면 "현 지도에서 검색" 버튼 노출.
-  const mapMoved = useMemo(() => {
-    const d = Math.hypot(mapCenter.lat - searchCenter.lat, mapCenter.lng - searchCenter.lng);
-    return d > 0.004; // 약 0.4km 이상 이동 시
-  }, [mapCenter, searchCenter]);
-
-  // "현 지도에서 검색" → 지금 보는 지도 중심으로 목록 재조회.
-  const searchHere = () => setSearchCenter(mapCenter);
-
-  // 현재위치 버튼: 최신 GPS로 내 위치 점 + 지도 재중심 + 목록도 내 위치로 조회(누를 때마다).
+  // 현재위치 버튼: 최신 GPS로 내 위치 점 + 지도 재중심. 목록·핀은 지도 이동 후 카메라 idle이 갱신.
   const handleRecenter = async () => {
     setNearbyLoading(true);
     try {
       const coords = await getCurrentCoords(true); // 항상 최신 GPS
       if (!coords) return;
       setMyLocation(coords);
-      setSearchCenter(coords); // 목록도 내 위치로 즉시 갱신
+      setMapCenter(coords);
+      setMapBounds(boundsAround(coords)); // idle 전에도 즉시 내 위치 영역 조회
       mapRef.current?.moveTo(coords.lat, coords.lng);
     } finally {
       setNearbyLoading(false);
@@ -266,35 +257,7 @@ export function HomeScreen() {
           </View>
         </View>
 
-        {/* "현 지도에서 검색" — 지도를 팬해서 확정 중심과 멀어지면 노출(네이버 방식). 지역 필터 중엔
-            지역으로 조회하므로 숨김. 누르면 현재 지도 중심으로 목록 재조회(사용자 제보: 지도 이동 후 재조회 필요). */}
-        {mapMoved && !hasRegionFilter && (
-          <View
-            pointerEvents="box-none"
-            className="absolute left-0 right-0 items-center"
-            style={{ top: headerHeight + 6 }}
-          >
-            <Pressable
-              onPress={searchHere}
-              className="flex-row items-center gap-1.5 rounded-full bg-white px-4 py-2"
-              style={{
-                shadowColor: '#000000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.15,
-                shadowRadius: 6,
-                elevation: 4,
-              }}
-            >
-              <RefreshCcw size={15} color={colors.primary[500]} />
-              <Text
-                className="text-label-l font-pretendard-semibold"
-                style={{ color: colors.primary[500] }}
-              >
-                현 지도에서 검색
-              </Text>
-            </Pressable>
-          </View>
-        )}
+        {/* 지도 이동 시 목록·핀이 자동 갱신되므로(웹모델) "현 지도에서 검색" 버튼은 없음. */}
 
         {/* 현재위치 버튼 (지도 우하단, 기본 시트 40% 상단 위 16px — 컨테이너 실측 기준이라 안 겹침).
             버튼 위치는 디자인 그대로 두고, SDK 줌 컨트롤을 mapPadding으로 이 위에 올렸다(QA #55).

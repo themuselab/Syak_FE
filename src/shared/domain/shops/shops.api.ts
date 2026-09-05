@@ -22,6 +22,15 @@ function buildShopQuery(params: ShopListParams): string {
     sp.set('lat', String(params.lat));
     sp.set('lng', String(params.lng));
   }
+  if (
+    params.swLat != null && params.swLng != null &&
+    params.neLat != null && params.neLng != null
+  ) {
+    sp.set('swLat', String(params.swLat));
+    sp.set('swLng', String(params.swLng));
+    sp.set('neLat', String(params.neLat));
+    sp.set('neLng', String(params.neLng));
+  }
   sp.set('page', String(params.page ?? 1));
   sp.set('limit', String(params.limit ?? 20)); // 무한스크롤 기본 페이지 크기 20 (서버 최대 100)
   const qs = sp.toString();

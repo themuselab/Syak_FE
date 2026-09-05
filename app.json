@@ -11,6 +11,9 @@
       "icon": "./assets/images/app-icon.png",
       "bundleIdentifier": "kr.themuselab.syak",
       "usesAppleSignIn": true,
+      "entitlements": {
+        "aps-environment": "production"
+      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }

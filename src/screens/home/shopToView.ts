@@ -1,4 +1,4 @@
-import type { ShopListItem } from '@/shared/domain/shops/shops.types';
+import type { ShopListItem, ShopPinRow } from '@/shared/domain/shops/shops.types';
 import { formatDistrict } from '@/shared/lib/region';
 
 // 지도 마커 종류(=핀 PNG). assets/icons/pin-{kind}.png와 직결. 우선순위 partner→discount→reservable.
@@ -42,4 +42,14 @@ export function toShopCardView(item: ShopListItem, favoriteIds: Set<string>): Sh
     lng: item.lng,
     photo: item.photos[0] ?? null,
   };
+}
+
+// 지도 마커 뷰모델(핀 전용, 경량). /web/shops/pins 행 → 좌표 + 핀 종류.
+export type MapPinView = { id: string; lat: number; lng: number; markerKind: MarkerKind };
+
+// 핀 종류 우선순위는 카드와 동일: partner → discount(이벤트) → reservable.
+export function toPinView(row: ShopPinRow): MapPinView | null {
+  if (row.lat == null || row.lng == null) return null;
+  const markerKind: MarkerKind = row.is_partner ? 'partner' : row.event_desc ? 'discount' : 'reservable';
+  return { id: row.id, lat: row.lat, lng: row.lng, markerKind };
 }

@@ -78,6 +78,21 @@ export type ShopCategory =
 // '4만원이상'은 실데이터 값 기준 (syakBE 타입 선언은 '4만원대+'로 실데이터와 불일치 — 백엔드 전달).
 export type ShopPriceTier = '1만원대' | '2만원대' | '3만원대' | '4만원이상';
 
+// 지도 영역(bounds). 지도 카메라 region에서 계산 → /web/shops/pins 조회에 사용.
+export type MapBounds = { swLat: number; swLng: number; neLat: number; neLng: number };
+
+// GET /web/shops/pins 응답 한 건(핀 전용 경량 필드, snake_case 그대로).
+// 웹과 동일하게 화면영역 안 모든 샵을 반환(반경 아님) → 지도에 핀을 전부 띄운다.
+export type ShopPinRow = {
+  id: string;
+  name: string;
+  lat: number | null;
+  lng: number | null;
+  event_desc: string | null;
+  is_partner: boolean;
+  today_open: boolean;
+};
+
 // GET /shops 쿼리 파라미터. (배열은 api 레이어에서 콤마 join)
 export type ShopListParams = {
   q?: string; // 샵 이름 부분검색 (서버 ilike)

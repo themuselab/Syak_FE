@@ -12,7 +12,8 @@ import { router } from 'expo-router';
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import { useFavoriteShopIds, useToggleFavorite } from '@/shared/domain/favorite/favorite.queries';
 import { useSlotSearch } from '@/shared/domain/reservation/reservation.queries';
-import { useShops } from '@/shared/domain/shops/shops.queries';
+import { useShopPins, useShops } from '@/shared/domain/shops/shops.queries';
+import type { MapBounds } from '@/shared/domain/shops/shops.types';
 import { getCurrentCoords } from '@/shared/lib/location';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { LoginPromptModal } from '@/shared/ui/LoginPromptModal';
@@ -24,7 +25,7 @@ import { SearchBar } from './components/SearchBar';
 import { ShopBottomSheet } from './components/ShopBottomSheet';
 import { filtersToParams, toSlotSearchParams } from './filtersToParams';
 import { MAP_CONTROL_CLEARANCE, SHEET_DEFAULT_RATIO } from './homeLayout';
-import { toShopCardView } from './shopToView';
+import { toPinView, toShopCardView } from './shopToView';
 import { useHomeFilterStore } from './useHomeFilterStore';
 
 // 홈(지도뷰). 네이버 지도 + GET /shops(비회원 가능).
@@ -33,6 +34,13 @@ import { useHomeFilterStore } from './useHomeFilterStore';
 // 핀/카드 탭 → 특정샵 포커스(포커스 핀 + 시트 35% 인라인 상세, 올리면 풀스크린), 지도 빈 곳 탭 → 해제.
 // 위치 미동의 시 기본 지도 중심(개선 요청) — 강남역.
 const GANGNAM = { lat: 37.4979, lng: 127.0276 };
+// 첫 카메라 idle 전에도 핀이 뜨도록 강남 주변 초기 영역을 시드(첫 idle에 실제 영역으로 대체).
+const INITIAL_BOUNDS: MapBounds = {
+  swLat: GANGNAM.lat - 0.02,
+  neLat: GANGNAM.lat + 0.02,
+  swLng: GANGNAM.lng - 0.025,
+  neLng: GANGNAM.lng + 0.025,
+};
 
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -48,6 +56,8 @@ export function HomeScreen() {
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>(GANGNAM);
   // 목록 조회를 확정한 중심. 지도를 팬해도 자동 재조회 안 하고 버튼을 눌러야 여기로 갱신(네이버 방식).
   const [searchCenter, setSearchCenter] = useState<{ lat: number; lng: number }>(GANGNAM);
+  // 지도 영역(bounds) — 핀 조회 기준. 카메라 idle마다 갱신. 웹처럼 화면 안 샵을 전부 핀으로.
+  const [mapBounds, setMapBounds] = useState<MapBounds>(INITIAL_BOUNDS);
   // 내 위치 점(파란 마커) = 실제 GPS 좌표. 지도 중심과 별개.
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null);
   // GPS 좌표 획득 대기(수 초 걸릴 수 있음) — 버튼에 스피너를 띄워 "눌러도 무반응"을 없앤다(QA #56).
@@ -127,6 +137,22 @@ export function HomeScreen() {
     return items.map((it) => toShopCardView(it, favoriteIds));
   }, [data, slotParams, slotSearch.data, favoriteIds]);
 
+  // 지도 핀: 웹처럼 현재 지도 영역 안 모든 샵(반경·목록과 별개). 시간/지역/검색 필터가 걸리면
+  // 목록과 어긋난 핀 노출을 막기 위해 핀도 목록(shops)만 쓰고, 그 외엔 영역 전체 핀을 쓴다.
+  const hasListFilter =
+    hasRegionFilter || slotParams !== null || !!debouncedSearch.trim() || date != null ||
+    prices.length > 0 || serviceFields.length > 0 || toggles.discount || toggles.sameDay || toggles.available;
+  const pinsQuery = useShopPins(hasListFilter ? null : mapBounds);
+  const pins = useMemo(() => {
+    // 필터가 있으면 목록 결과만 핀으로(교집합 유지), 없으면 영역 전체 핀.
+    if (hasListFilter) {
+      return shops
+        .filter((s) => s.lat != null && s.lng != null)
+        .map((s) => ({ id: s.id, lat: s.lat!, lng: s.lng!, markerKind: s.markerKind }));
+    }
+    return (pinsQuery.data ?? []).map(toPinView).filter((p): p is NonNullable<typeof p> => p !== null);
+  }, [hasListFilter, shops, pinsQuery.data]);
+
   // 핀/카드 탭으로 포커스된 매장. 필터 변경으로 목록에서 빠지면 자동 해제(null).
   // 시트 기본(40%) 위치의 높이 — 내 위치 버튼·지도 컨트롤을 이 선 위에 배치한다.
   // 측정 전(0)엔 0이라 한 프레임만 하단에 붙었다가 onLayout 직후 제자리로 간다.
@@ -161,7 +187,16 @@ export function HomeScreen() {
 
   // 지도 카메라가 멈추면(idle) 그 중심을 목록 쿼리 기준(mapCenter)으로 → 지도를 옮기면 목록·핀도
   // 그 지역으로 갱신(웹과 동일, #7 위치 실시간 반영).
-  const handleCameraIdle = (center: { lat: number; lng: number }) => setMapCenter(center);
+  const handleCameraIdle = (e: { lat: number; lng: number; bounds?: MapBounds }) => {
+    setMapCenter({ lat: e.lat, lng: e.lng });
+    if (e.bounds) setMapBounds(e.bounds); // 핀은 이 영역으로 조회(웹처럼 화면 전체)
+  };
+
+  // 핀 탭: 목록(shops)에 있으면 인라인 포커스(기존 UX), 목록 밖(영역 전체 핀)이면 상세로 이동.
+  const handleMarkerPress = (id: string) => {
+    if (shops.some((s) => s.id === id)) setSelectedShopId(id);
+    else router.push(`/shop/${id}`);
+  };
 
   // 지도를 팬해서 확정 중심(searchCenter)과 충분히 멀어지면 "현 지도에서 검색" 버튼 노출.
   const mapMoved = useMemo(() => {
@@ -196,8 +231,8 @@ export function HomeScreen() {
             없으면 지도 뷰(absoluteFill) 최하단에 밀착해 시트 뒤로 완전히 가려진다(QA #55). */}
         <HomeMap
           ref={mapRef}
-          shops={shops}
-          onMarkerPress={setSelectedShopId}
+          pins={pins}
+          onMarkerPress={handleMarkerPress}
           onMapPress={() => {
             Keyboard.dismiss(); // 검색 키보드가 지도 탭으로 닫히지 않던 문제(QA #60)
             setSelectedShopId(null);

@@ -1,5 +1,11 @@
 import { apiFetch } from '@/shared/api/client';
-import type { ShopDetail, ShopListParams, ShopListResponse } from './shops.types';
+import type {
+  MapBounds,
+  ShopDetail,
+  ShopListParams,
+  ShopListResponse,
+  ShopPinRow,
+} from './shops.types';
 
 // 배열은 콤마 구분, default/빈값은 생략. 서버는 콤마로 split 한다.
 function buildShopQuery(params: ShopListParams): string {
@@ -30,4 +36,15 @@ export function getShops(params: ShopListParams = {}) {
 // GET /shops/:id — 샵 상세.
 export function getShop(shopId: string) {
   return apiFetch<ShopDetail>(`/shops/${shopId}`);
+}
+
+// GET /web/shops/pins — 지도 영역 안 모든 샵의 핀(반경 아님, 웹과 동일). 인증 불필요.
+export function getShopPins(b: MapBounds) {
+  const sp = new URLSearchParams({
+    swLat: String(b.swLat),
+    swLng: String(b.swLng),
+    neLat: String(b.neLat),
+    neLng: String(b.neLng),
+  });
+  return apiFetch<ShopPinRow[]>(`/web/shops/pins?${sp.toString()}`);
 }

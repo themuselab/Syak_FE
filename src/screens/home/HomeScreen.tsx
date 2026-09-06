@@ -102,6 +102,7 @@ export function HomeScreen() {
   const hasRegionFilter = regions.length > 0;
   const listParams = useMemo(() => {
     if (hasRegionFilter) return slotParams !== null ? { ...params, limit: 100 } : params;
+    // 화면 안 "가까운순" 상위 60개만 — 목록·핀 공용. (500개는 카드/이미지 과다로 버벅·이미지 빈칸)
     return {
       ...params,
       lat: mapCenter.lat,
@@ -110,7 +111,7 @@ export function HomeScreen() {
       swLng: mapBounds.swLng,
       neLat: mapBounds.neLat,
       neLng: mapBounds.neLng,
-      limit: slotParams !== null ? 100 : 500,
+      limit: 60,
     };
   }, [params, slotParams, hasRegionFilter, mapCenter, mapBounds]);
 
@@ -156,12 +157,11 @@ export function HomeScreen() {
     [shops, selectedShopId],
   );
 
-  // 목록 카드 탭 → 핀 탭과 동일한 포커스 플로우(사용자 확정). 화면 밖 매장일 수 있어 카메라도 이동.
+  // 목록 카드 탭 → 인라인 상세로 포커스. 목록 샵은 이미 화면 안(bounds)이라 카메라는 안 옮긴다
+  // (옮기면 카메라 idle→자동 재조회로 목록이 재정렬·이미지 재로딩되며 튄다). 포커스 핀만 강조.
   const selectShop = (id: string) => {
     Keyboard.dismiss(); // 검색 후 카드 탭 → 상세로 넘어가며 키보드도 정리(QA #60)
     setSelectedShopId(id);
-    const shop = shops.find((s) => s.id === id);
-    if (shop?.lat != null && shop.lng != null) mapRef.current?.moveTo(shop.lat, shop.lng);
   };
 
   // 리스트 끝 도달 시 다음 페이지 로드. 시간 필터 중엔 비활성(100개 단일 조회).
@@ -183,7 +183,7 @@ export function HomeScreen() {
   const handleCameraIdle = (e: { lat: number; lng: number; bounds?: MapBounds }) => {
     setMapCenter({ lat: e.lat, lng: e.lng });
     if (e.bounds) {
-      const r = (n: number) => Math.round(n * 10000) / 10000;
+      const r = (n: number) => Math.round(n * 1000) / 1000; // ~100m 단위 반올림(미세 이동 재조회 억제)
       setMapBounds({
         swLat: r(e.bounds.swLat), swLng: r(e.bounds.swLng),
         neLat: r(e.bounds.neLat), neLng: r(e.bounds.neLng),

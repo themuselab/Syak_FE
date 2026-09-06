@@ -66,18 +66,19 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
         style={StyleSheet.absoluteFill}
         initialCamera={GANGNAM}
         onTapMap={onMapPress}
-        // 카메라가 멈추면 중심 + 영역(bounds)을 부모로 → 목록은 중심 기준, 핀은 영역 기준(웹 동일).
-        // region은 카메라 이벤트의 표시 영역(중심±delta/2)이라 화면에 보이는 사각형과 일치한다.
+        // 카메라가 멈추면 중심(e.latitude/longitude=카메라 타깃) + 화면영역(bounds)을 부모로.
+        // ★ Region.latitude/longitude는 "남서(SW) 모서리"이고 delta는 SW→NE 전체 차이다(중심 아님!).
+        //   그래서 SW=그대로, NE=SW+delta. (이전엔 중심±delta/2로 잘못 계산해 박스가 어긋나 빈 결과)
         onCameraIdle={(e) =>
           onCameraIdle?.({
             lat: e.latitude,
             lng: e.longitude,
             bounds: e.region
               ? {
-                  swLat: e.region.latitude - e.region.latitudeDelta / 2,
-                  neLat: e.region.latitude + e.region.latitudeDelta / 2,
-                  swLng: e.region.longitude - e.region.longitudeDelta / 2,
-                  neLng: e.region.longitude + e.region.longitudeDelta / 2,
+                  swLat: e.region.latitude,
+                  neLat: e.region.latitude + e.region.latitudeDelta,
+                  swLng: e.region.longitude,
+                  neLng: e.region.longitude + e.region.longitudeDelta,
                 }
               : undefined,
           })

@@ -70,6 +70,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ],
   ] as NonNullable<ExpoConfig['plugins']>;
 
+  // 위치 권한 사용 목적 문구(App Store 심사 5.1.1(ii)): 용도 + 구체적 예시 필수.
+  // expo-location 기본 문구("Allow syak to access your location")가 막연하다고 반려됨(build 23).
+  // app.json ios.infoPlist에도 동일 문구를 두지만, plugin이 Info.plist를 덮어쓰지 않도록 여기서도 지정.
+  const LOCATION_MSG =
+    '현재 위치를 기준으로 주변 뷰티샵을 지도에 표시하고 가까운 순으로 정렬하기 위해 사용됩니다. ' +
+    '예를 들어, 지금 계신 위치 근처에서 예약 가능한 네일·헤어·왁싱샵을 찾아 보여드립니다.';
+  const locationPlugin = [
+    ['expo-location', { locationWhenInUsePermission: LOCATION_MSG }],
+  ] as NonNullable<ExpoConfig['plugins']>;
+
   return {
     ...config,
     name: config.name ?? 'syak',
@@ -84,6 +94,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...kakaoPlugin,
       ...naverPlugin,
       ...naverMapPlugin,
+      ...locationPlugin, // 위치 권한 사용 목적 문구(App Store 5.1.1(ii))
       'expo-notifications', // 푸시(expo-notifications + Expo Push). iOS aps-environment는 프로파일
       //                       재생성(Push capability) 후 app.json ios.entitlements에 추가한다.
       'expo-apple-authentication', // Apple 로그인 config plugin (iOS 엔타이틀먼트 주입)

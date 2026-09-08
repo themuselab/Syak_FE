@@ -1,8 +1,12 @@
+import { Image } from 'expo-image';
 import { Search } from 'lucide-react-native';
 import { Keyboard, TextInput, View } from 'react-native';
 
 import { colors } from '@/shared/theme/colors';
 import { useHomeFilterStore } from '../useHomeFilterStore';
+
+// 브랜드 로고(마젠타 배경 배지) — 검색창 왼쪽에 노출.
+const logo = require('../../../../assets/images/logo.png');
 
 // 검색바: 흰 배경 pill, 핑크 테두리(red-300), placeholder "샵 이름으로 찾기".
 export function SearchBar() {
@@ -15,7 +19,7 @@ export function SearchBar() {
       className="h-10 flex-row items-center rounded-full border bg-white"
       style={{
         borderColor: colors.primary[300],
-        paddingLeft: 16,
+        paddingLeft: 8,
         paddingRight: 12,
         shadowColor: '#000000',
         shadowOffset: { width: 0, height: 1 },
@@ -24,6 +28,12 @@ export function SearchBar() {
         elevation: 2,
       }}
     >
+      {/* 브랜드 로고 배지 (마젠타 정사각 → 둥근 배지). 검색창 왼쪽 고정. */}
+      <Image
+        source={logo}
+        style={{ width: 28, height: 28, borderRadius: 8, marginRight: 8 }}
+        contentFit="cover"
+      />
       <TextInput
         value={search}
         onChangeText={setSearch}

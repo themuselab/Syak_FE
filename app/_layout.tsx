@@ -60,7 +60,10 @@ export default function RootLayout() {
             consumerSecret: process.env.EXPO_PUBLIC_NAVER_CONSUMER_SECRET ?? '',
             appName: process.env.EXPO_PUBLIC_NAVER_APP_NAME ?? 'syak',
             serviceUrlSchemeIOS: process.env.EXPO_PUBLIC_NAVER_URL_SCHEME,
-            disableNaverAppAuthIOS: true,
+            // false = 네이버 앱이 설치돼 있으면 앱으로 전환해 로그인(app-to-app), 없으면 웹뷰 폴백.
+            // 웹뷰에서 아이디·비번을 직접 입력하던 UX 개선(플러그인이 LSApplicationQueriesSchemes에
+            // naversearchapp·naversearchthirdlogin을 주입하므로 앱 탐지·전환 가능).
+            disableNaverAppAuthIOS: false,
           }),
         )
         .catch((e) => console.warn('[auth] naver SDK init failed', e));

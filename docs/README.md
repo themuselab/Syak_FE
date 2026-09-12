@@ -28,3 +28,4 @@
 - 디자인 원본: `designs/`(페이지별 캡처) + `designs/design.pen`(pencil)
 - 백엔드 API 계약: `../syakBE/docs/`
 - 프로젝트 규칙·스택·폴더 구조: [`../CLAUDE.md`](../CLAUDE.md)
+- [mac-local-build.md](mac-local-build.md) — 맥에서 iOS 로컬 빌드(`--local`)·제출 런북, 인증 파일 이관 절차

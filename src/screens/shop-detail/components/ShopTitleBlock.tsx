@@ -1,5 +1,5 @@
 import { Star } from 'lucide-react-native';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { colors } from '@/shared/theme/colors';
 
@@ -47,7 +47,13 @@ export function ShopTitleBlock({ shop, favorite, onToggleFavorite }: Props) {
         )}
       </View>
 
-      <View className="flex-row gap-1">
+      {/* 이벤트·가격대 배지: 여러 개일 때 잘리지 않게 좌우 슬라이드(캐러셀).
+          긴 이벤트 문구는 Badge maxWidth로 한 장씩 잘라 보여준다(디자인 TO-BE). */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 4, paddingRight: 4 }}
+      >
         {shop.badges.map((b, i) => {
           const isDeal = b.includes('특가') || b.includes('이벤트');
           return (
@@ -56,10 +62,11 @@ export function ShopTitleBlock({ shop, favorite, onToggleFavorite }: Props) {
               label={b}
               bg={isDeal ? '#fff1f6' : '#f1f1f1'}
               color={isDeal ? '#b32f58' : '#7a7a7a'}
+              maxWidth={215}
             />
           );
         })}
-      </View>
+      </ScrollView>
     </View>
   );
 }

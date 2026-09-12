@@ -1,8 +1,9 @@
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { RefreshCcw } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, View } from 'react-native';
+import { Keyboard, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
@@ -12,6 +13,7 @@ import { useShops } from '@/shared/domain/shops/shops.queries';
 import type { MapBounds } from '@/shared/domain/shops/shops.types';
 import { getCurrentCoords } from '@/shared/lib/location';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
+import { colors } from '@/shared/theme/colors';
 import { LoginPromptModal } from '@/shared/ui/LoginPromptModal';
 
 import { CurrentLocationButton } from './components/CurrentLocationButton';
@@ -98,7 +100,6 @@ export function HomeScreen() {
   // 목록 조회 (웹모델: 목록·핀이 같은 소스 → 항상 일치):
   //  - 지역 필터가 있으면 그 지역(districts) 전체로 조회 → 위치/bounds 안 보냄(먼 지역 필터해도 나오게).
   //  - 없으면 지도 화면영역(bounds) 안 샵 + 중심(mapCenter) 거리순. 지도 이동 시 idle이 갱신(자동, 웹처럼).
-  //    limit 500으로 화면 안 샵을 최대한 다 받아 핀=목록으로 렌더(클러스터링으로 성능 확보).
   const hasRegionFilter = regions.length > 0;
   const listParams = useMemo(() => {
     if (hasRegionFilter) return slotParams !== null ? { ...params, limit: 100 } : params;
@@ -178,6 +179,13 @@ export function HomeScreen() {
     toggleFavoriteOnServer(id);
   };
 
+  // "현 지도에서 검색": 지금 보이는 영역으로 즉시 재조회. 지도 이동 시 자동 갱신과 병행하는
+  // 수동 트리거(사용자가 직접 확인하고 싶을 때) — 조회 기준(bounds)은 이미 현재 화면이다.
+  const searchHere = () => {
+    refetch();
+    if (slotParams !== null) slotSearch.refetch();
+  };
+
   // 지도 카메라가 멈추면(idle) 중심·영역을 갱신 → 목록·핀이 그 화면영역으로 자동 재조회(웹모델).
   // bounds는 소수 4자리(~11m)로 반올림해 미세 흔들림에 의한 불필요한 재조회를 억제.
   const handleCameraIdle = (e: { lat: number; lng: number; bounds?: MapBounds }) => {
@@ -255,9 +263,32 @@ export function HomeScreen() {
           <View pointerEvents="box-none" className="px-5 pt-2">
             <SearchBar />
           </View>
-        </View>
 
-        {/* 지도 이동 시 목록·핀이 자동 갱신되므로(웹모델) "현 지도에서 검색" 버튼은 없음. */}
+          {/* 현 지도에서 검색 — 검색바 바로 아래. 지역 필터 중엔 지역으로 조회하므로 숨김. */}
+          {!hasRegionFilter && (
+            <View pointerEvents="box-none" className="items-center pt-2">
+              <Pressable
+                onPress={searchHere}
+                className="flex-row items-center gap-1.5 rounded-full bg-white px-4 py-2"
+                style={{
+                  shadowColor: '#000000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.15,
+                  shadowRadius: 6,
+                  elevation: 4,
+                }}
+              >
+                <RefreshCcw size={15} color={colors.primary[500]} />
+                <Text
+                  className="text-label-l font-pretendard-semibold"
+                  style={{ color: colors.primary[500] }}
+                >
+                  현 지도에서 검색
+                </Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
 
         {/* 현재위치 버튼 (지도 우하단, 기본 시트 40% 상단 위 16px — 컨테이너 실측 기준이라 안 겹침).
             버튼 위치는 디자인 그대로 두고, SDK 줌 컨트롤을 mapPadding으로 이 위에 올렸다(QA #55).

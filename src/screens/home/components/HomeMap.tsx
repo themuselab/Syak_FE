@@ -4,7 +4,7 @@ import {
   NaverMapView,
   type NaverMapViewRef,
 } from '@mj-studio/react-native-naver-map';
-import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
+import { forwardRef, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import type { MapBounds } from '@/shared/domain/shops/shops.types';
@@ -18,6 +18,20 @@ const PIN: Record<MarkerKind, MapImageProp> = {
   discount: require('../../../../assets/icons/pin-discount.png') as MapImageProp,
   reservable: require('../../../../assets/icons/pin-reservable.png') as MapImageProp,
 };
+
+// 축소 상태(스케일바 500m 이상)용 도트 마커. 핀과 같은 색이라 줌을 바꿔도 색이 안 튄다.
+const DOT: Record<MarkerKind, MapImageProp> = {
+  partner: require('../../../../assets/icons/dot-partner.png') as MapImageProp,
+  discount: require('../../../../assets/icons/dot-discount.png') as MapImageProp,
+  reservable: require('../../../../assets/icons/dot-reservable.png') as MapImageProp,
+};
+
+// 도트로 바꾸는 줌 기준. 스케일바 표기와 줌은 m/px = 156543 * cos(위도) / 2^zoom 관계라
+// 서울 위도(37.5)에서 스케일바가 "500m"를 가리키는 지점이 zoom≈13.8이다. 그 아래(더 축소)면
+// 핀이 서로 겹쳐 지도를 덮으므로 12px 도트로 떨어뜨린다. 클러스터 maxZoom(14)과도 맞물린다.
+const DOT_ZOOM_THRESHOLD = 13.8;
+const PIN_SIZE = { width: 28, height: 34 };
+const DOT_SIZE = { width: 12, height: 12 };
 
 // 내 위치 마커 (design.pen 내위치 마크업 wMGlf > markup_my — 파란 점 + 후광, 3배수 export).
 const MY_LOCATION = require('../../../../assets/icons/marker-my-location.png') as MapImageProp;
@@ -50,6 +64,8 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
     ref,
   ) => {
     const mapRef = useRef<NaverMapViewRef>(null);
+    // 축소 여부만 상태로 둔다(줌 숫자를 그대로 담으면 idle마다 재렌더 — boolean은 값이 같으면 React가 생략).
+    const [isDotZoom, setIsDotZoom] = useState(false);
 
     useImperativeHandle(ref, () => ({
       moveTo: (lat, lng) =>
@@ -67,11 +83,10 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
             identifier: p.id,
             latitude: p.lat,
             longitude: p.lng,
-            image: PIN[p.markerKind],
-            width: 28,
-            height: 34,
+            image: isDotZoom ? DOT[p.markerKind] : PIN[p.markerKind],
+            ...(isDotZoom ? DOT_SIZE : PIN_SIZE),
           })),
-      [pins, selectedShopId],
+      [pins, selectedShopId, isDotZoom],
     );
     const focusedPin = useMemo(
       () => pins.find((p) => p.id === selectedShopId) ?? null,
@@ -93,7 +108,10 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
         // 카메라가 멈추면 중심(e.latitude/longitude=카메라 타깃) + 화면영역(bounds)을 부모로.
         // ★ Region.latitude/longitude는 "남서(SW) 모서리"이고 delta는 SW→NE 전체 차이다(중심 아님!).
         //   그래서 SW=그대로, NE=SW+delta. (이전엔 중심±delta/2로 잘못 계산해 박스가 어긋나 빈 결과)
-        onCameraIdle={(e) =>
+        onCameraIdle={(e) => {
+          // 줌이 기준 아래로 내려가면 핀 -> 도트. 제스처 중이 아니라 멈춘 뒤에만 바꿔(onCameraIdle)
+          // 핀치하는 내내 이미지가 교체되며 생기는 버벅임을 피한다.
+          if (e.zoom != null) setIsDotZoom(e.zoom < DOT_ZOOM_THRESHOLD);
           onCameraIdle?.({
             lat: e.latitude,
             lng: e.longitude,
@@ -105,8 +123,8 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
                   neLng: e.region.longitude + e.region.longitudeDelta,
                 }
               : undefined,
-          })
-        }
+          });
+        }}
         // SDK 기본 UI는 전부 true라 지정하지 않으면 다 켜진다. 줌(+/-)·현위치 버튼 등 전부 끄고
         // 앱 커스텀 UI(CurrentLocationButton)만 사용 — 줌 버튼 삭제 요청(QA) 반영.
         isShowZoomControls={false}

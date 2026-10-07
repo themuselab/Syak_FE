@@ -46,8 +46,8 @@ export function filtersToParams(s: FilterSnapshot): ShopListParams {
   if (s.regions.length) params.districts = s.regions;
   if (s.prices.length) params.price_tiers = s.prices.map((p) => `${p}만원대` as ShopPriceTier);
   if (s.toggles.discount) params.has_event = true;
-  // "당일 예약"·"예약 가능" 둘 다 오늘 슬롯 유무(has_slot)로 매핑 — 백엔드에 구분 파라미터 없음.
-  if (s.toggles.sameDay || s.toggles.available) params.has_slot = true;
+  // "당일 예약" = 오늘 슬롯 있는 샵(has_slot).
+  if (s.toggles.sameDay) params.has_slot = true;
   // 날짜 필터: 해당 날짜에 슬롯 있는 샵만 (시간 조건은 slots/search 교집합이 추가로 좁힘).
   const dateKey = resolvedDateKey(s);
   if (dateKey) params.slot_date = dateKeyFromToday(DATE_OFFSET[dateKey]);

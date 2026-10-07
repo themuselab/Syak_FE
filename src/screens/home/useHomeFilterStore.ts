@@ -8,7 +8,9 @@ export type DateKey = 'today' | 'tomorrow' | 'day_after';
 // 바텀시트에서 열려있는 필터 (null = 매장 목록). 시트 내용 전환에 사용.
 export type FilterKey = 'sort' | 'region' | 'price' | 'time' | 'service';
 
-export type ToggleKey = 'sameDay' | 'discount' | 'available';
+// 지도 모드 토글. 둘은 상호 배타(라디오) — 동시에 켜지지 않는다.
+//  둘 다 꺼짐 = 기본(전체 샵, 분홍 핀) / sameDay = 당일 예약(파란 핀) / discount = 할인·이벤트(노란 핀)
+export type ToggleKey = 'sameDay' | 'discount';
 
 export type HomeFilterState = {
   activeFilter: FilterKey | null;
@@ -45,7 +47,7 @@ const initial = {
   times: [] as string[],
   serviceFields: [] as string[],
   services: [] as string[],
-  toggles: { sameDay: false, discount: false, available: false },
+  toggles: { sameDay: false, discount: false },
 };
 
 export const useHomeFilterStore = create<HomeFilterState>((set) => ({
@@ -60,6 +62,8 @@ export const useHomeFilterStore = create<HomeFilterState>((set) => ({
   setTimes: (v) => set({ times: v }),
   setServiceFields: (v) => set({ serviceFields: v }),
   setServices: (v) => set({ services: v }),
-  toggle: (key) => set((s) => ({ toggles: { ...s.toggles, [key]: !s.toggles[key] } })),
-  reset: () => set({ ...initial, toggles: { sameDay: false, discount: false, available: false } }),
+  // 누른 것만 켜고 나머지는 끈다(상호 배타). 켜져 있는 걸 다시 누르면 꺼져 기본 상태로 돌아간다.
+  toggle: (key) =>
+    set((s) => ({ toggles: { sameDay: false, discount: false, [key]: !s.toggles[key] } })),
+  reset: () => set({ ...initial, toggles: { sameDay: false, discount: false } }),
 }));

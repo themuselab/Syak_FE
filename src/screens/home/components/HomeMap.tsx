@@ -14,14 +14,14 @@ import type { MapPinView, MarkerKind } from '../shopToView';
 // 마커 종류별 핀 PNG (assets/icons/pin-{kind}.png, 96×120 — 투명 여백 크롭본이라 24×30 렌더와 비율 일치).
 // require(png)는 로컬 리소스 이미지로 전달된다.
 const PIN: Record<MarkerKind, MapImageProp> = {
-  partner: require('../../../../assets/icons/pin-partner.png') as MapImageProp,
+  default: require('../../../../assets/icons/pin-default.png') as MapImageProp,
   discount: require('../../../../assets/icons/pin-discount.png') as MapImageProp,
   reservable: require('../../../../assets/icons/pin-reservable.png') as MapImageProp,
 };
 
 // 축소 상태(스케일바 500m 이상)용 도트 마커. 핀과 같은 색이라 줌을 바꿔도 색이 안 튄다.
 const DOT: Record<MarkerKind, MapImageProp> = {
-  partner: require('../../../../assets/icons/dot-partner.png') as MapImageProp,
+  default: require('../../../../assets/icons/dot-default.png') as MapImageProp,
   discount: require('../../../../assets/icons/dot-discount.png') as MapImageProp,
   reservable: require('../../../../assets/icons/dot-reservable.png') as MapImageProp,
 };

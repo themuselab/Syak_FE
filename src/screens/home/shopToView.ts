@@ -1,8 +1,21 @@
 import type { ShopListItem, ShopPinRow } from '@/shared/domain/shops/shops.types';
 import { formatDistrict } from '@/shared/lib/region';
 
-// 지도 마커 종류(=핀 PNG). assets/icons/pin-{kind}.png와 직결. 우선순위 partner→discount→reservable.
-export type MarkerKind = 'partner' | 'discount' | 'reservable';
+// 지도 마커 종류(=핀 PNG). assets/icons/pin-{kind}.png와 직결.
+//  default(분홍 상점) = 일반 샵 / discount(노랑 %) = 할인·이벤트 / reservable(파랑 알람시계) = 예약 가능
+export type MarkerKind = 'default' | 'discount' | 'reservable';
+
+// 홈 상단 토글 필터 상태. 토글이 켜져 있으면 목록 자체가 그 조건으로 걸러진 결과라
+// 핀도 한 종류로 통일한다 — "할인·이벤트"면 지도에 노란 핀만, "당일 예약"이면 파란 핀만.
+export type MarkerToggles = { sameDay: boolean; discount: boolean; available: boolean };
+
+// 핀 종류 결정. 토글이 켜진 동안은 그 토글의 색으로 고정하고, 아무 토글도 없을 때만
+// 샵 속성(이벤트 유무)으로 고른다. 둘 다 켜면 더 눈에 띄는 할인(노랑)을 우선한다.
+export function markerKindOf(hasEvent: boolean, toggles?: MarkerToggles): MarkerKind {
+  if (toggles?.discount) return 'discount';
+  if (toggles?.sameDay || toggles?.available) return 'reservable';
+  return hasEvent ? 'discount' : 'default';
+}
 
 // 화면(카드·마커)이 쓰는 뷰모델. 백엔드 ShopListItem을 어댑터로 변환한다.
 export type ShopCardView = {
@@ -18,16 +31,16 @@ export type ShopCardView = {
   photo: string | null;
 };
 
-export function toShopCardView(item: ShopListItem, favoriteIds: Set<string>): ShopCardView {
+export function toShopCardView(
+  item: ShopListItem,
+  favoriteIds: Set<string>,
+  toggles?: MarkerToggles,
+): ShopCardView {
   const badges: string[] = [];
   if (item.eventDesc) badges.push(item.eventDesc); // 이벤트 설명(있으면 첫 배지)
   if (item.priceTier) badges.push(item.priceTier); // 가격대 "2만원대"
 
-  const markerKind: MarkerKind = item.isPartner
-    ? 'partner'
-    : item.eventDesc
-      ? 'discount'
-      : 'reservable';
+  const markerKind = markerKindOf(item.eventDesc != null, toggles);
 
   return {
     id: item.id,
@@ -47,9 +60,13 @@ export function toShopCardView(item: ShopListItem, favoriteIds: Set<string>): Sh
 // 지도 마커 뷰모델(핀 전용, 경량). /web/shops/pins 행 → 좌표 + 핀 종류.
 export type MapPinView = { id: string; lat: number; lng: number; markerKind: MarkerKind };
 
-// 핀 종류 우선순위는 카드와 동일: partner → discount(이벤트) → reservable.
-export function toPinView(row: ShopPinRow): MapPinView | null {
+// 핀 종류 규칙은 카드와 동일(markerKindOf).
+export function toPinView(row: ShopPinRow, toggles?: MarkerToggles): MapPinView | null {
   if (row.lat == null || row.lng == null) return null;
-  const markerKind: MarkerKind = row.is_partner ? 'partner' : row.event_desc ? 'discount' : 'reservable';
-  return { id: row.id, lat: row.lat, lng: row.lng, markerKind };
+  return {
+    id: row.id,
+    lat: row.lat,
+    lng: row.lng,
+    markerKind: markerKindOf(row.event_desc != null, toggles),
+  };
 }

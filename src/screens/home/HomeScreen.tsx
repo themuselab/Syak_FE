@@ -137,8 +137,9 @@ export function HomeScreen() {
       const allowed = new Set(slotSearch.data.shops.map((s) => s.shopId));
       items = items.filter((it) => allowed.has(it.id));
     }
-    return items.map((it) => toShopCardView(it, favoriteIds));
-  }, [data, slotParams, slotSearch.data, favoriteIds]);
+    // toggles 전달: 토글이 켜진 동안은 핀 색을 그 조건으로 통일한다(할인=노랑/당일예약=파랑).
+    return items.map((it) => toShopCardView(it, favoriteIds, toggles));
+  }, [data, slotParams, slotSearch.data, favoriteIds, toggles]);
 
   // 지도 핀 = 목록(shops)과 동일 소스 → 핀과 바텀시트 리스트가 항상 일치("이 핀이 리스트 여기").
   const pins = useMemo(

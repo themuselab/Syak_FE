@@ -17,7 +17,7 @@ export function SettingToggleRow({ icon, label, value, onValueChange, disabled }
     <View className="flex-row items-center justify-between" style={{ paddingVertical: 12 }}>
       <View className="flex-row items-center gap-2">
         {icon != null && (
-          <Image source={icon} style={{ width: 16, height: 16 }} contentFit="contain" />
+          <Image source={icon} style={{ width: 20, height: 20 }} contentFit="contain" />
         )}
         <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: '#555555' }}>
           {label}

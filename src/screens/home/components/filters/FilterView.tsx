@@ -1,4 +1,5 @@
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { ChevronLeft } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 
 import { useBottomInset } from '@/shared/lib/safeArea';
@@ -62,14 +63,22 @@ export function FilterView({ filterKey, onClose }: { filterKey: FilterKey; onClo
 
   return (
     <View className="flex-1">
-      {/* 제목 + divider */}
-      <View className="border-b" style={{ borderColor: '#f3f3f3' }}>
+      {/* 제목 + divider. 좌측 뒤로가기로 목록 복귀(디자인 요청) — 제목 중앙 유지 위해 절대배치. */}
+      <View className="border-b justify-center" style={{ borderColor: '#f3f3f3' }}>
         <Text
           className="pb-3 pt-1 text-center text-[15px] font-pretendard-medium"
           style={{ color: '#1a1a1a' }}
         >
           {TITLE[filterKey]}
         </Text>
+        <Pressable
+          onPress={onClose}
+          hitSlop={10}
+          className="absolute left-3"
+          accessibilityLabel="뒤로"
+        >
+          <ChevronLeft size={22} color="#1a1a1a" />
+        </Pressable>
       </View>
 
       {/* 콘텐츠 — flexGrow:0 으로 내용 높이만큼만 차지(버튼 밀착), flexShrink:1 로 넘치면 스크롤 */}

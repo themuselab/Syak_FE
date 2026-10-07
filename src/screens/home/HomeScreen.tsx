@@ -293,7 +293,7 @@ export function HomeScreen() {
         {/* 현재위치 버튼 (지도 우하단, 기본 시트 40% 상단 위 16px — 컨테이너 실측 기준이라 안 겹침).
             버튼 위치는 디자인 그대로 두고, SDK 줌 컨트롤을 mapPadding으로 이 위에 올렸다(QA #55).
             시트를 위로 올리면 버튼이 가려지는 것은 확정 정책(#45 — 버튼 고정). */}
-        <View className="absolute right-4" style={{ bottom: sheetDefaultHeight + 16 }}>
+        <View className="absolute right-4" style={{ bottom: sheetDefaultHeight + 20 }}>
           <CurrentLocationButton
             onPress={handleRecenter}
             active={myLocation !== null}

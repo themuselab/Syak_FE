@@ -111,8 +111,8 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
               key={s.id}
               latitude={s.lat}
               longitude={s.lng}
-              width={focused ? 56 : 34}
-              height={focused ? 56 : 42}
+              width={focused ? 48 : 28}
+              height={focused ? 48 : 34}
               image={focused ? PIN_FOCUSED : PIN[s.markerKind]}
               zIndex={focused ? 10 : 0}
               onTap={() => onMarkerPress(s.id)}

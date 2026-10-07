@@ -11,7 +11,7 @@ import type { MapBounds } from '@/shared/domain/shops/shops.types';
 
 import type { MapPinView, MarkerKind } from '../shopToView';
 
-// 마커 종류별 핀 PNG (assets/icons/pin-{kind}.png, 96×120 — 투명 여백 크롭본이라 34×42 렌더와 비율 일치).
+// 마커 종류별 핀 PNG (assets/icons/pin-{kind}.png, 96×120 — 투명 여백 크롭본이라 24×30 렌더와 비율 일치).
 // require(png)는 로컬 리소스 이미지로 전달된다.
 const PIN: Record<MarkerKind, MapImageProp> = {
   partner: require('../../../../assets/icons/pin-partner.png') as MapImageProp,
@@ -30,7 +30,7 @@ const DOT: Record<MarkerKind, MapImageProp> = {
 // 서울 위도(37.5)에서 스케일바가 "500m"를 가리키는 지점이 zoom≈13.8이다. 그 아래(더 축소)면
 // 핀이 서로 겹쳐 지도를 덮으므로 12px 도트로 떨어뜨린다. 클러스터 maxZoom(14)과도 맞물린다.
 const DOT_ZOOM_THRESHOLD = 13.8;
-const PIN_SIZE = { width: 28, height: 34 };
+const PIN_SIZE = { width: 24, height: 30 };
 const DOT_SIZE = { width: 12, height: 12 };
 
 // 내 위치 마커 (design.pen 내위치 마크업 wMGlf > markup_my — 파란 점 + 후광, 3배수 export).

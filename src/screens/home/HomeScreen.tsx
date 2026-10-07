@@ -102,8 +102,12 @@ export function HomeScreen() {
   //  - 지역 필터가 있으면 그 지역(districts) 전체로 조회 → 위치/bounds 안 보냄(먼 지역 필터해도 나오게).
   //  - 없으면 지도 화면영역(bounds) 안 샵 + 중심(mapCenter) 거리순. 지도 이동 시 idle이 갱신(자동, 웹처럼).
   const hasRegionFilter = regions.length > 0;
+  // 검색은 지역 검색 전용이라 결과가 지금 보이는 지도 밖(예: "천호")이다. bounds·위치를 보내면
+  // 백엔드가 화면영역/반경 5km로 잘라내 "조건에 맞는 샵 없음"이 되므로 검색 중엔 빼고 보낸다.
+  const hasSearch = debouncedSearch.trim().length > 0;
   const listParams = useMemo(() => {
     if (hasRegionFilter) return slotParams !== null ? { ...params, limit: 100 } : params;
+    if (hasSearch) return { ...params, limit: slotParams !== null ? 100 : 60 };
     // 화면 안 "가까운순" 상위 60개만 — 목록·핀 공용. (500개는 카드/이미지 과다로 버벅·이미지 빈칸)
     return {
       ...params,
@@ -115,7 +119,7 @@ export function HomeScreen() {
       neLng: mapBounds.neLng,
       limit: 60,
     };
-  }, [params, slotParams, hasRegionFilter, mapCenter, mapBounds]);
+  }, [params, slotParams, hasRegionFilter, hasSearch, mapCenter, mapBounds]);
 
   const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useShops(listParams);
@@ -154,6 +158,22 @@ export function HomeScreen() {
   // 시트 기본(40%) 위치의 높이 — 내 위치 버튼·지도 컨트롤을 이 선 위에 배치한다.
   // 측정 전(0)엔 0이라 한 프레임만 하단에 붙었다가 onLayout 직후 제자리로 간다.
   const sheetDefaultHeight = containerHeight * SHEET_DEFAULT_RATIO;
+
+  // 지역 검색 결과는 화면 밖이라 그냥 두면 "검색했는데 지도는 그대로"가 된다. 첫 결과로 카메라를
+  // 옮겨준다. 같은 검색어로는 한 번만 — 이후 사용자가 지도를 움직인 걸 되돌리지 않는다.
+  const pannedSearchRef = useRef<string | null>(null);
+  useEffect(() => {
+    const q = debouncedSearch.trim();
+    if (!q) {
+      pannedSearchRef.current = null;
+      return;
+    }
+    if (pannedSearchRef.current === q) return;
+    const first = shops.find((s) => s.lat != null && s.lng != null);
+    if (!first) return;
+    pannedSearchRef.current = q;
+    mapRef.current?.moveTo(first.lat!, first.lng!);
+  }, [debouncedSearch, shops]);
 
   const selectedShop = useMemo(
     () => shops.find((s) => s.id === selectedShopId) ?? null,
@@ -267,8 +287,8 @@ export function HomeScreen() {
             <MapToggleChipBar />
           </View>
 
-          {/* 현 지도에서 검색 — 검색바 바로 아래. 지역 필터 중엔 지역으로 조회하므로 숨김. */}
-          {!hasRegionFilter && (
+          {/* 현 지도에서 검색 — 검색바 바로 아래. 지역 필터·검색 중엔 화면영역으로 조회하지 않으므로 숨김. */}
+          {!hasRegionFilter && !hasSearch && (
             <View pointerEvents="box-none" className="items-center pt-2">
               <Pressable
                 onPress={searchHere}

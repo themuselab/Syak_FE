@@ -8,7 +8,8 @@ import { useHomeFilterStore } from '../useHomeFilterStore';
 // 브랜드 심볼 마크(배경 없음) — 검색창 왼쪽에 아이콘만 노출.
 const logo = require('../../../../assets/images/logo-mark.png');
 
-// 검색바: 흰 배경 pill, 핑크 테두리(red-300), placeholder "샵 이름으로 찾기".
+// 검색바: 흰 배경 pill, 핑크 테두리(red-300). 지역 검색 전용 — 상호가 아니라 지역명("천호")으로
+// 그 동네 샵을 찾는다(BE q → gu / detail.roadAddress 부분일치).
 export function SearchBar() {
   const search = useHomeFilterStore((s) => s.search);
   const setSearch = useHomeFilterStore((s) => s.setSearch);
@@ -37,7 +38,7 @@ export function SearchBar() {
       <TextInput
         value={search}
         onChangeText={setSearch}
-        placeholder="샵 이름으로 찾기"
+        placeholder="샥- 지도검색"
         placeholderTextColor="#c3c3c3"
         // 검색은 입력마다 디바운스로 나가므로 엔터는 키보드만 닫는다(QA #60).
         returnKeyType="search"

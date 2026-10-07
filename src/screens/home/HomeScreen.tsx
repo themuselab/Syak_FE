@@ -15,10 +15,10 @@ import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { colors } from '@/shared/theme/colors';
 import { LoginPromptModal } from '@/shared/ui/LoginPromptModal';
 
+import { CategoryChipBar } from './components/CategoryChipBar';
 import { CurrentLocationButton } from './components/CurrentLocationButton';
 import { HomeHeader } from './components/HomeHeader';
 import { HomeMap, type HomeMapRef } from './components/HomeMap';
-import { MapToggleChipBar } from './components/MapToggleChipBar';
 import { SearchBar } from './components/SearchBar';
 import { ShopBottomSheet, type ShopBottomSheetRef } from './components/ShopBottomSheet';
 import { filtersToParams, toSlotSearchParams } from './filtersToParams';
@@ -59,6 +59,9 @@ export function HomeScreen() {
   const [nearbyLoading, setNearbyLoading] = useState(false);
   // 헤더+검색바 오버레이 높이(onLayout 측정) — 시트 최대 확장 한계 계산용 (QA #50).
   const [headerHeight, setHeaderHeight] = useState(0);
+  // 검색창 포커스 — 네이버 지도처럼 포커스되면 알림·프로필 아이콘과 카테고리 칩을 숨겨
+  // 검색창이 가로로 넓어진다(디자이너 시안).
+  const [searchFocused, setSearchFocused] = useState(false);
   // 루트 컨테이너 실측 높이 — gorhom이 스냅포인트를 정규화할 때 쓰는 기준과 동일해야 한다.
   // useWindowDimensions는 안드 상태바 처리에 따라 이 값과 어긋나 시트 최대 확장이 검색바를
   // 덮거나 틈이 생긴다(사용자 피드백) — 시트·내 위치 버튼 모두 이 실측값을 쓴다.
@@ -276,19 +279,24 @@ export function HomeScreen() {
           style={{ paddingTop: insets.top + 4 }}
           onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
         >
-          <HomeHeader />
-          <View pointerEvents="box-none" className="px-5 pt-2">
-            <SearchBar />
+          {/* 검색바 + 알림·프로필을 한 줄로(디자이너 시안). 포커스 중엔 아이콘을 숨겨 검색창이 넓어진다. */}
+          <View pointerEvents="box-none" className="flex-row items-center gap-1 px-5">
+            <View pointerEvents="box-none" className="flex-1">
+              <SearchBar focused={searchFocused} onFocusChange={setSearchFocused} />
+            </View>
+            {!searchFocused && <HomeHeader />}
           </View>
 
-          {/* 자주 쓰는 토글 필터는 시트를 열지 않아도 바로 누르도록 지도 위로 올렸다(디자인 리뷰).
-              헤더 View 안에 두므로 headerHeight 측정에 포함 → 시트 최대 확장·mapPadding이 자동 반영. */}
-          <View pointerEvents="box-none" className="pt-2">
-            <MapToggleChipBar />
-          </View>
+          {/* 시술분야 카테고리 — 시트를 열지 않고 바로 거른다. 헤더 View 안이라 headerHeight 측정에
+              포함되고, 시트 최대 확장·mapPadding이 자동으로 따라간다. 검색 중엔 숨긴다. */}
+          {!searchFocused && (
+            <View pointerEvents="box-none" className="pt-2">
+              <CategoryChipBar />
+            </View>
+          )}
 
           {/* 현 지도에서 검색 — 검색바 바로 아래. 지역 필터·검색 중엔 화면영역으로 조회하지 않으므로 숨김. */}
-          {!hasRegionFilter && !hasSearch && (
+          {!hasRegionFilter && !hasSearch && !searchFocused && (
             <View pointerEvents="box-none" className="items-center pt-2">
               <Pressable
                 onPress={searchHere}

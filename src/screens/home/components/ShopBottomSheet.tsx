@@ -1,5 +1,5 @@
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, Keyboard, View } from 'react-native';
 
 import { useBottomInset } from '@/shared/lib/safeArea';
@@ -36,7 +36,10 @@ type Props = {
 // 안 보이므로 그때만 최대로 올리고 닫을 때 되돌린다(QA #54로 최소 높이가 40%→96px이 되며 필요해짐).
 // 포커스 모드는 지도가 보이는 35%로 내리고, 위로 올리면(100%) 라우트 이동 없이 시트 안에서
 // 상세 전체(헤더·sticky 탭·예약바)가 화면을 덮는다 — 사용자 확정(2026-07-10 피드백).
-export function ShopBottomSheet({
+/** 지도 빈 곳 탭 등 외부에서 시트를 접을 때 쓰는 핸들. */
+export type ShopBottomSheetRef = { collapse: () => void };
+
+export const ShopBottomSheet = forwardRef<ShopBottomSheetRef, Props>(function ShopBottomSheet({
   shops,
   selectedShop,
   isLoading,
@@ -50,9 +53,12 @@ export function ShopBottomSheet({
   onDeselect,
   topOffset,
   containerHeight,
-}: Props) {
+}: Props, ref) {
   const bottomInset = useBottomInset();
   const sheetRef = useRef<BottomSheet>(null);
+
+  // 지도 빈 곳을 누르면 시트를 최소 높이로 내린다(gorhom이 애니메이션 처리).
+  useImperativeHandle(ref, () => ({ collapse: () => sheetRef.current?.snapToIndex(0) }), []);
   const activeFilter = useHomeFilterStore((s) => s.activeFilter);
   const setActiveFilter = useHomeFilterStore((s) => s.setActiveFilter);
 
@@ -208,4 +214,4 @@ export function ShopBottomSheet({
       )}
     </BottomSheet>
   );
-}
+});

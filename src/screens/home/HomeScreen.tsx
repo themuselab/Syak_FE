@@ -20,7 +20,7 @@ import { CurrentLocationButton } from './components/CurrentLocationButton';
 import { HomeHeader } from './components/HomeHeader';
 import { HomeMap, type HomeMapRef } from './components/HomeMap';
 import { SearchBar } from './components/SearchBar';
-import { ShopBottomSheet } from './components/ShopBottomSheet';
+import { ShopBottomSheet, type ShopBottomSheetRef } from './components/ShopBottomSheet';
 import { filtersToParams, toSlotSearchParams } from './filtersToParams';
 import { MAP_CONTROL_CLEARANCE, SHEET_DEFAULT_RATIO } from './homeLayout';
 import { toShopCardView } from './shopToView';
@@ -41,6 +41,7 @@ const INITIAL_BOUNDS: MapBounds = boundsAround(GANGNAM);
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const mapRef = useRef<HomeMapRef>(null);
+  const sheetRef = useRef<ShopBottomSheetRef>(null);
 
   const user = useAuthStore((s) => s.user);
   const isLoggedIn = user != null;
@@ -234,7 +235,10 @@ export function HomeScreen() {
           onMarkerPress={handleMarkerPress}
           onMapPress={() => {
             Keyboard.dismiss(); // 검색 키보드가 지도 탭으로 닫히지 않던 문제(QA #60)
-            setSelectedShopId(null);
+            // 시트 밖(지도)을 누르면: 상세 포커스 중이면 해제(→목록), 목록이면 시트를 최소로 접어
+            // 지도를 넓게 본다. 접힘은 gorhom 스냅 애니메이션으로 부드럽게 내려간다(디자인 요청).
+            if (selectedShopId) setSelectedShopId(null);
+            else sheetRef.current?.collapse();
           }}
           myLocation={myLocation}
           onCameraIdle={handleCameraIdle}
@@ -302,6 +306,7 @@ export function HomeScreen() {
         </View>
 
         <ShopBottomSheet
+          ref={sheetRef}
           shops={shops}
           selectedShop={selectedShop}
           isLoading={loading}

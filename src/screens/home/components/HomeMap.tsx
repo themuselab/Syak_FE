@@ -4,7 +4,7 @@ import {
   NaverMapView,
   type NaverMapViewRef,
 } from '@mj-studio/react-native-naver-map';
-import { forwardRef, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useImperativeHandle, useMemo, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import type { MapBounds } from '@/shared/domain/shops/shops.types';
@@ -56,6 +56,28 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
         mapRef.current?.animateCameraTo({ latitude: lat, longitude: lng, zoom: 14 }),
     }));
 
+    // 축소하면 근접 핀을 숫자로 묶고(클러스터), 확대하면 개별 핀으로 펼친다(디자인 요청).
+    // maxZoom 이상으로 확대하면 클러스터링을 멈춰 평소의 물방울 핀이 그대로 보인다.
+    // 포커스된 핀은 클러스터에서 제외하고 별도 오버레이로 항상 위에 크게 표시.
+    const clusterMarkers = useMemo(
+      () =>
+        pins
+          .filter((p) => p.id !== selectedShopId)
+          .map((p) => ({
+            identifier: p.id,
+            latitude: p.lat,
+            longitude: p.lng,
+            image: PIN[p.markerKind],
+            width: 28,
+            height: 34,
+          })),
+      [pins, selectedShopId],
+    );
+    const focusedPin = useMemo(
+      () => pins.find((p) => p.id === selectedShopId) ?? null,
+      [pins, selectedShopId],
+    );
+
     if (!process.env.EXPO_PUBLIC_NAVER_MAP_CLIENT_ID) {
       return <View style={[StyleSheet.absoluteFill, { backgroundColor: '#e9edf1' }]} />;
     }
@@ -66,6 +88,8 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
         style={StyleSheet.absoluteFill}
         initialCamera={GANGNAM}
         onTapMap={onMapPress}
+        clusters={[{ animate: true, maxZoom: 14, markers: clusterMarkers }]}
+        onTapClusterLeaf={({ markerIdentifier }) => onMarkerPress(markerIdentifier)}
         // 카메라가 멈추면 중심(e.latitude/longitude=카메라 타깃) + 화면영역(bounds)을 부모로.
         // ★ Region.latitude/longitude는 "남서(SW) 모서리"이고 delta는 SW→NE 전체 차이다(중심 아님!).
         //   그래서 SW=그대로, NE=SW+delta. (이전엔 중심±delta/2로 잘못 계산해 박스가 어긋나 빈 결과)
@@ -104,21 +128,17 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
           imageHeight: 32,
         }}
       >
-        {pins.map((s) => {
-          const focused = s.id === selectedShopId;
-          return (
-            <NaverMapMarkerOverlay
-              key={s.id}
-              latitude={s.lat}
-              longitude={s.lng}
-              width={focused ? 48 : 28}
-              height={focused ? 48 : 34}
-              image={focused ? PIN_FOCUSED : PIN[s.markerKind]}
-              zIndex={focused ? 10 : 0}
-              onTap={() => onMarkerPress(s.id)}
-            />
-          );
-        })}
+        {focusedPin && (
+          <NaverMapMarkerOverlay
+            latitude={focusedPin.lat}
+            longitude={focusedPin.lng}
+            width={48}
+            height={48}
+            image={PIN_FOCUSED}
+            zIndex={10}
+            onTap={() => onMarkerPress(focusedPin.id)}
+          />
+        )}
       </NaverMapView>
     );
   },

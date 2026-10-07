@@ -17,7 +17,8 @@ export type ShopListItem = {
   lat: number | null;
   lng: number | null;
   reviewCount: number;
-  photos: string[];
+  photos: string[]; // 목록=작업 사진 최대 3장(없으면 대표 이미지 1장) / 상세=갤러리 전체
+  introduction: string | null; // 한 줄 소개(스크래퍼가 채우기 전까지 null)
 };
 
 // 상세 응답의 메뉴 한 건 (detail.menus 그대로).

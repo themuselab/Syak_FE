@@ -2,7 +2,7 @@ import type { ShopListItem, ShopPinRow } from '@/shared/domain/shops/shops.types
 import { formatDistrict } from '@/shared/lib/region';
 
 // 지도 마커 종류(=핀 PNG). assets/icons/pin-{kind}.png와 직결.
-//  default(분홍 상점) = 일반 샵 / discount(노랑 %) = 할인·이벤트 / reservable(파랑 알람시계) = 예약 가능
+//  default(분홍 상점) = 일반 샵 / discount(노랑 %) = 이벤트 / reservable(파랑 알람시계) = 예약 가능
 export type MarkerKind = 'default' | 'discount' | 'reservable';
 
 // 홈 상단 토글 필터 상태(상호 배타). 지도는 "모드 하나 = 핀 색 하나"로 읽힌다.
@@ -21,14 +21,29 @@ export type ShopCardView = {
   id: string;
   name: string;
   reviewCount: number | null; // null이면 카드에서 숨김
-  address: string;
+  subtitle: string;
   badges: string[];
+  todayOpen: boolean;
   markerKind: MarkerKind;
   favorite: boolean;
   lat: number | null;
   lng: number | null;
-  photo: string | null;
+  photos: string[];
 };
+
+// 카드 두 번째 줄. 한 줄 소개가 있으면 그걸 쓰고, 없으면 업종 → 지역 순으로 대체한다.
+// (introduction은 스크래퍼가 채우기 전까지 비어 있어 당분간 대부분 업종이 보인다)
+export function cardSubtitle(item: {
+  introduction: string | null;
+  categories: string[];
+  district: string | null;
+}): string {
+  const intro = item.introduction?.trim();
+  if (intro) return intro;
+  if (item.categories.length) return item.categories.join(' · ');
+  // region은 백엔드가 항상 "서울"로 보내는 부정확한 값이라 미사용 — district 기반 표기.
+  return formatDistrict(item.district);
+}
 
 export function toShopCardView(
   item: ShopListItem,
@@ -45,14 +60,14 @@ export function toShopCardView(
     id: item.id,
     name: item.name,
     reviewCount: item.reviewCount,
-    // region은 백엔드가 항상 "서울"로 보내는 부정확한 값이라 미사용 — district 기반 표기.
-    address: formatDistrict(item.district),
+    subtitle: cardSubtitle(item),
     badges,
+    todayOpen: item.todayOpen,
     markerKind,
     favorite: favoriteIds.has(item.id),
     lat: item.lat,
     lng: item.lng,
-    photo: item.photos[0] ?? null,
+    photos: item.photos,
   };
 }
 

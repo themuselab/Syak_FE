@@ -9,7 +9,7 @@ export type DateKey = 'today' | 'tomorrow' | 'day_after';
 export type FilterKey = 'sort' | 'region' | 'price' | 'time' | 'service';
 
 // 지도 모드 토글. 둘은 상호 배타(라디오) — 동시에 켜지지 않는다.
-//  둘 다 꺼짐 = 기본(전체 샵, 분홍 핀) / sameDay = 당일 예약(파란 핀) / discount = 할인·이벤트(노란 핀)
+//  둘 다 꺼짐 = 기본(전체 샵, 분홍 핀) / sameDay = 당일 예약(파란 핀) / discount = 이벤트(노란 핀)
 export type ToggleKey = 'sameDay' | 'discount';
 
 export type HomeFilterState = {

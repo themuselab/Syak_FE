@@ -13,16 +13,17 @@ import {
 import type { Favorite } from '@/shared/domain/favorite/favorite.types';
 import { getShop } from '@/shared/domain/shops/shops.api';
 import type { ShopDetail } from '@/shared/domain/shops/shops.types';
-import { formatDistrict } from '@/shared/lib/region';
 import { colors } from '@/shared/theme/colors';
 import { BackHeader } from '@/shared/ui/BackHeader';
 import { LoginPromptModal } from '@/shared/ui/LoginPromptModal';
 import { ShopListCard, type ShopCardInfo } from '@/shared/ui/ShopListCard';
 
+import { cardSubtitle } from '@/screens/home/shopToView';
+
 import { CategoryChips, type FavoriteCategory } from './components/CategoryChips';
 import { FavoriteEmpty } from './components/FavoriteEmpty';
 
-// 상세(ShopDetail) → 카드 정보. 배지 규칙은 홈 toShopCardView와 동일(eventDesc → priceTier).
+// 상세(ShopDetail) → 카드 정보. 배지·소개 규칙은 홈 toShopCardView와 동일하게 공유한다.
 function detailToCard(detail: ShopDetail, favorite: boolean): ShopCardInfo {
   const badges: string[] = [];
   if (detail.eventDesc) badges.push(detail.eventDesc);
@@ -30,10 +31,11 @@ function detailToCard(detail: ShopDetail, favorite: boolean): ShopCardInfo {
   return {
     name: detail.name,
     reviewCount: detail.reviewCount,
-    address: formatDistrict(detail.district),
+    subtitle: cardSubtitle(detail),
     badges,
+    todayOpen: detail.todayOpen,
     favorite,
-    photo: detail.photos[0] ?? null,
+    photos: detail.photos,
   };
 }
 
@@ -78,12 +80,14 @@ export function FavoriteScreen() {
         card: detailQueries[i]?.data
           ? detailToCard(detailQueries[i].data, favoriteIds.has(f.shopId))
           : ({
+              // 상세 도착 전 임시 카드 — 즐겨찾기 스냅샷에 있는 이름/지역만 쓴다.
               name: f.shopName,
               reviewCount: null,
-              address: f.shopRegion ?? '',
+              subtitle: f.shopRegion ?? '',
               badges: [],
+              todayOpen: false,
               favorite: favoriteIds.has(f.shopId),
-              photo: null,
+              photos: [],
             } satisfies ShopCardInfo),
       })),
     [snapshot, detailQueries, favoriteIds],

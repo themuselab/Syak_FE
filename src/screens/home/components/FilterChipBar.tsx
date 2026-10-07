@@ -1,4 +1,4 @@
-import { ArrowDownUp, ChevronDown, Clock, Percent } from 'lucide-react-native';
+import { ArrowDownUp, ChevronDown } from 'lucide-react-native';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { colors } from '@/shared/theme/colors';
@@ -12,9 +12,10 @@ const SORT_LABEL: Record<SortKey, string> = {
   partner: '샥 파트너',
 };
 
-// 칩바: 좌측 고정 정렬칩(divider) + 가로 스크롤 필터칩. 칩 탭 → activeFilter 전환/토글.
+// 바텀시트 칩바: 좌측 고정 정렬칩(divider) + 가로 스크롤 상세 조건 칩. 칩 탭 → activeFilter 전환.
+// 토글 3종(당일 예약·할인·이벤트·예약 가능)은 홈 상단 지도 위(MapToggleChipBar)로 올렸다(디자인 리뷰).
 export function FilterChipBar() {
-  const { sort, regions, prices, date, times, serviceFields, services, toggles, toggle, setActiveFilter } =
+  const { sort, regions, prices, date, times, serviceFields, services, setActiveFilter } =
     useHomeFilterStore();
 
   return (
@@ -35,19 +36,6 @@ export function FilterChipBar() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ gap: 6, paddingHorizontal: 6 }}
       >
-        <FilterChip
-          label="당일 예약"
-          selected={toggles.sameDay}
-          leftIcon={(c) => <Clock size={14} color={c} />}
-          onPress={() => toggle('sameDay')}
-        />
-        <FilterChip
-          label="할인·이벤트"
-          selected={toggles.discount}
-          leftIcon={(c) => <Percent size={14} color={c} />}
-          onPress={() => toggle('discount')}
-        />
-        <FilterChip label="예약 가능" selected={toggles.available} onPress={() => toggle('available')} />
         <FilterChip
           label="지역"
           selected={regions.length > 0}

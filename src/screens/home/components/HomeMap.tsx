@@ -112,7 +112,9 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
         isShowZoomControls={false}
         isShowLocationButton={false}
         isShowCompass={false}
-        isShowScaleBar={false}
+        // 스케일바(축척)만 예외로 켠다 — 네이버 지도처럼 "지금 보이는 범위가 몇 m인지" 감을 준다.
+        // SDK가 현재 줌 + 화면 위도로 미터/픽셀을 계산해 그리므로 우리가 계산할 값은 없다.
+        isShowScaleBar
         isShowIndoorLevelPicker={false}
         // 콘텐츠 패딩 — SDK는 컨트롤·로고를 이 영역 안으로 옮긴다. 없으면 지도 뷰(absoluteFill)
         // 최하단에 밀착해 바텀시트 뒤로 완전히 가려진다(네이버 로고는 노출 필수).

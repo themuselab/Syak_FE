@@ -10,16 +10,29 @@ type Props = {
   leftIcon?: (color: string) => ReactNode;
   rightIcon?: (color: string) => ReactNode;
   onPress?: () => void;
+  // 지도 위에 얹는 칩(홈 상단)은 그림자가 있어야 배경 지도와 분리돼 보인다.
+  elevated?: boolean;
 };
 
 // 필터 칩: 흰 배경 pill, 테두리 gray-300. 선택 시 테두리·텍스트·아이콘 핑크.
-export function FilterChip({ label, selected, leftIcon, rightIcon, onPress }: Props) {
+export function FilterChip({ label, selected, leftIcon, rightIcon, onPress, elevated }: Props) {
   const color = selected ? colors.primary[500] : colors.gray[800];
   return (
     <Pressable
       onPress={onPress}
       className="h-[33px] flex-row items-center gap-1 rounded-full border bg-white px-3"
-      style={{ borderColor: selected ? colors.primary[500] : colors.gray[300] }}
+      style={{
+        borderColor: selected ? colors.primary[500] : colors.gray[300],
+        ...(elevated
+          ? {
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.12,
+              shadowRadius: 3.5,
+              elevation: 2,
+            }
+          : {}),
+      }}
     >
       {leftIcon?.(color)}
       <Text className="text-body-m font-pretendard-medium" style={{ color }}>

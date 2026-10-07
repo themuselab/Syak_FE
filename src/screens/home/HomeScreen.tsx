@@ -1,5 +1,4 @@
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { RefreshCcw } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -19,6 +18,7 @@ import { LoginPromptModal } from '@/shared/ui/LoginPromptModal';
 import { CurrentLocationButton } from './components/CurrentLocationButton';
 import { HomeHeader } from './components/HomeHeader';
 import { HomeMap, type HomeMapRef } from './components/HomeMap';
+import { MapToggleChipBar } from './components/MapToggleChipBar';
 import { SearchBar } from './components/SearchBar';
 import { ShopBottomSheet, type ShopBottomSheetRef } from './components/ShopBottomSheet';
 import { filtersToParams, toSlotSearchParams } from './filtersToParams';
@@ -247,14 +247,6 @@ export function HomeScreen() {
           bottomPadding={sheetDefaultHeight + MAP_CONTROL_CLEARANCE}
         />
 
-        {/* 상단 핑크 그라데이션 (장식 전용).
-            pointerEvents="none" 없으면 헤더보다 아래로 뻗은 구간이 지도 탭을 먹는다(QA #60). */}
-        <LinearGradient
-          colors={['#c24a6b33', '#c24a6b00']}
-          pointerEvents="none"
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top + 130 }}
-        />
-
         {/* 헤더 + 검색. 높이를 측정해 시트 최대 확장이 검색바 아래에서 멈추게 한다(QA #50).
             세로 높이 축소(QA #61): insets.top + 104 → insets.top + 88. */}
         <View
@@ -266,6 +258,12 @@ export function HomeScreen() {
           <HomeHeader />
           <View pointerEvents="box-none" className="px-5 pt-2">
             <SearchBar />
+          </View>
+
+          {/* 자주 쓰는 토글 필터는 시트를 열지 않아도 바로 누르도록 지도 위로 올렸다(디자인 리뷰).
+              헤더 View 안에 두므로 headerHeight 측정에 포함 → 시트 최대 확장·mapPadding이 자동 반영. */}
+          <View pointerEvents="box-none" className="pt-2">
+            <MapToggleChipBar />
           </View>
 
           {/* 현 지도에서 검색 — 검색바 바로 아래. 지역 필터 중엔 지역으로 조회하므로 숨김. */}

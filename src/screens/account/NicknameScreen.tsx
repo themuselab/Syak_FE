@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import { useMe, useUpdateMe } from '@/shared/domain/user/user.queries';
 import { BackHeader } from '@/shared/ui/BackHeader';
-import { LoginPromptModal } from '@/shared/ui/LoginPromptModal';
+import { LoginRequired } from '@/shared/ui/loginGate';
 import { colors } from '@/shared/theme/colors';
 
 type FormValues = { nickname: string };
@@ -39,11 +39,7 @@ export function NicknameScreen() {
     <View className="flex-1 bg-white">
       <BackHeader title="닉네임" />
       {!isLoggedIn ? (
-        <LoginPromptModal
-          visible
-          onClose={() => (router.canGoBack() ? router.back() : router.replace('/home'))}
-          onPressLogin={() => router.replace('/login')}
-        />
+        <LoginRequired />
       ) : (
         <KeyboardAvoidingView
           className="flex-1"

@@ -15,7 +15,7 @@ import { getShop } from '@/shared/domain/shops/shops.api';
 import type { ShopDetail } from '@/shared/domain/shops/shops.types';
 import { colors } from '@/shared/theme/colors';
 import { BackHeader } from '@/shared/ui/BackHeader';
-import { LoginPromptModal } from '@/shared/ui/LoginPromptModal';
+import { LoginRequired } from '@/shared/ui/loginGate';
 import { ShopListCard, type ShopCardInfo } from '@/shared/ui/ShopListCard';
 
 import { cardSubtitle } from '@/screens/home/shopToView';
@@ -105,11 +105,7 @@ export function FavoriteScreen() {
       <BackHeader title="즐겨찾기" />
       {!isLoggedIn ? (
         // 비회원 게이팅 — 알림 화면과 동일 정책(닫기 = 진입 전 화면, 로그인 = replace).
-        <LoginPromptModal
-          visible
-          onClose={() => (router.canGoBack() ? router.back() : router.replace('/home'))}
-          onPressLogin={() => router.replace('/login')}
-        />
+        <LoginRequired />
       ) : favoritesQuery.isError && snapshot === null ? (
         <View className="flex-1 items-center justify-center gap-3">
           <Text className="font-pretendard-medium" style={{ fontSize: 15, color: colors.text.subtle }}>

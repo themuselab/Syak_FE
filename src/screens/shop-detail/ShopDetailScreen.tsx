@@ -1,17 +1,14 @@
 import { RotateCcw } from 'lucide-react-native';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 
-import { router } from 'expo-router';
-
 import { track } from '@/shared/lib/analytics';
-import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import { useFavoriteShopIds, useToggleFavorite } from '@/shared/domain/favorite/favorite.queries';
 import { postReservationClick } from '@/shared/domain/reservation/reservation.api';
 import { useShopSlots } from '@/shared/domain/reservation/reservation.queries';
 import { useShop } from '@/shared/domain/shops/shops.queries';
 import { colors } from '@/shared/theme/colors';
-import { LoginPromptModal } from '@/shared/ui/LoginPromptModal';
+import { useLoginGate } from '@/shared/ui/loginGate';
 
 import { DetailHeader } from './components/DetailHeader';
 import { ReservationBar } from './components/ReservationBar';
@@ -41,20 +38,14 @@ export function ShopDetailScreen({ shopId }: Props) {
   }, [shop?.id, shop?.name]);
 
   // 즐겨찾기: 홈과 같은 ['favorites','list'] 캐시에서 파생 — 화면 간 자동 동기화.
-  const user = useAuthStore((s) => s.user);
-  const isLoggedIn = user != null;
+  const { isLoggedIn, requireLogin, loginModal } = useLoginGate();
   const favoriteIds = useFavoriteShopIds(isLoggedIn);
   const favorite = shopId ? favoriteIds.has(shopId) : false;
   const toggleFavoriteOnServer = useToggleFavorite();
-  const [loginModalVisible, setLoginModalVisible] = useState(false);
 
   const onToggleFavorite = () => {
     if (!shopId) return;
-    if (!isLoggedIn) {
-      setLoginModalVisible(true);
-      return;
-    }
-    toggleFavoriteOnServer(shopId);
+    requireLogin(() => toggleFavoriteOnServer(shopId));
   };
 
   // 로딩 / 에러 (헤더는 유지해 뒤로가기 가능).
@@ -62,14 +53,7 @@ export function ShopDetailScreen({ shopId }: Props) {
     return (
       <View className="flex-1 bg-white">
         <DetailHeader favorite={favorite} onToggleFavorite={onToggleFavorite} />
-        <LoginPromptModal
-          visible={loginModalVisible}
-          onClose={() => setLoginModalVisible(false)}
-          onPressLogin={() => {
-            setLoginModalVisible(false);
-            router.push('/login');
-          }}
-        />
+        {loginModal}
         {shopQuery.isError ? (
           <View className="flex-1 items-center justify-center gap-3">
             <Text className="text-body-m font-pretendard text-gray-600">
@@ -96,14 +80,7 @@ export function ShopDetailScreen({ shopId }: Props) {
   return (
     <View className="flex-1 bg-white">
       <DetailHeader favorite={favorite} onToggleFavorite={onToggleFavorite} />
-      <LoginPromptModal
-        visible={loginModalVisible}
-        onClose={() => setLoginModalVisible(false)}
-        onPressLogin={() => {
-          setLoginModalVisible(false);
-          router.push('/login');
-        }}
-      />
+      {loginModal}
 
       <ShopDetailBody
         shop={shop}

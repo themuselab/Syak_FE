@@ -23,7 +23,7 @@ import {
 } from '@/shared/lib/location';
 import { colors } from '@/shared/theme/colors';
 import { BackHeader } from '@/shared/ui/BackHeader';
-import { LoginPromptModal } from '@/shared/ui/LoginPromptModal';
+import { useLoginGate } from '@/shared/ui/loginGate';
 
 import { RadiusSlider } from './components/RadiusSlider';
 import { SettingToggleRow } from './components/SettingToggleRow';
@@ -38,9 +38,10 @@ const iconAppNews = require('../../../assets/icons/my-app-news.png');
 
 export function MyScreen() {
   const insets = useSafeAreaInsets();
+  const { isLoggedIn, requireLogin, loginModal } = useLoginGate();
+  // 닉네임 폴백용 로그인 시점 스냅샷 (최신 값은 아래 me 쿼리).
   const user = useAuthStore((s) => s.user);
   const signOut = useSignOut();
-  const isLoggedIn = user != null;
 
   // 프로필은 서버 파생(GET /users/me) — 로그인 시점 스냅샷(auth store)이 아닌 최신 값 표시.
   // 조회 중엔 store 값 폴백(깜빡임 방지). 프로필 사진·연동 현황은 디자인 부재로 미표시(docs/my.md §9).
@@ -94,7 +95,6 @@ export function MyScreen() {
   const { data: settings } = useNotificationSettings(isLoggedIn);
   const update = useUpdateNotificationSettings();
   const settingsLoading = isLoggedIn && settings == null;
-  const [loginModalVisible, setLoginModalVisible] = useState(false);
 
   const nearEnabled = settings?.nearEnabled ?? false;
   // 반경: 드래그 중 표시용 draft만 로컬, 드롭 시 1회 PATCH 후 서버 값으로 복귀.
@@ -103,11 +103,8 @@ export function MyScreen() {
 
   // 내 주변 알림 ON: 위치 권한 → 현재 좌표를 기준점(nearLat/nearLng)으로 함께 저장.
   // 거부 시 mutate 안 함 → 값이 서버 파생이라 토글이 OFF에 그대로 머묾(되돌리기 불필요).
-  const handleNearToggle = async (next: boolean) => {
-    if (!isLoggedIn) {
-      setLoginModalVisible(true);
-      return;
-    }
+  const handleNearToggle = (next: boolean) =>
+    requireLogin(async () => {
     if (!next) {
       update.mutate({ nearEnabled: false });
       return;
@@ -118,19 +115,14 @@ export function MyScreen() {
       return;
     }
     update.mutate({ nearEnabled: true, nearLat: coords.lat, nearLng: coords.lng });
-  };
+    });
 
   // 즐겨찾기 알림도 계정 단위 설정 — 비회원은 동일하게 로그인 유도.
-  const handleFavoriteToggle = (next: boolean) => {
-    if (!isLoggedIn) {
-      setLoginModalVisible(true);
-      return;
-    }
-    update.mutate({ favoriteEnabled: next });
-  };
+  const handleFavoriteToggle = (next: boolean) =>
+    requireLogin(() => update.mutate({ favoriteEnabled: next }));
 
   const subtitle = isLoggedIn
-    ? (me?.nickname ?? user.nickname ?? '닉네임 미설정')
+    ? (me?.nickname ?? user?.nickname ?? '닉네임 미설정')
     : '로그인하고 편리하게 샥-';
 
   const handleLogout = () => {
@@ -248,16 +240,7 @@ export function MyScreen() {
         )}
       </View>
 
-      {/* 비회원 알림 토글 게이팅. 홈 별 탭과 동일 패턴 — 로그인 이동 전 모달을 먼저 닫아야
-          push된 로그인 화면을 안 덮는다. */}
-      <LoginPromptModal
-        visible={loginModalVisible}
-        onClose={() => setLoginModalVisible(false)}
-        onPressLogin={() => {
-          setLoginModalVisible(false);
-          router.push('/login');
-        }}
-      />
+      {loginModal}
     </View>
   );
 }

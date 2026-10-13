@@ -5,7 +5,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import { useFavoriteShopIds, useToggleFavorite } from '@/shared/domain/favorite/favorite.queries';
 import { useSlotSearch } from '@/shared/domain/reservation/reservation.queries';
 import { useShops } from '@/shared/domain/shops/shops.queries';
@@ -13,7 +12,7 @@ import type { MapBounds } from '@/shared/domain/shops/shops.types';
 import { getCurrentCoords } from '@/shared/lib/location';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { colors, shadow } from '@/shared/theme/colors';
-import { LoginPromptModal } from '@/shared/ui/LoginPromptModal';
+import { useLoginGate } from '@/shared/ui/loginGate';
 
 import { CategoryChipBar } from './components/CategoryChipBar';
 import { CurrentLocationButton } from './components/CurrentLocationButton';
@@ -43,11 +42,9 @@ export function HomeScreen() {
   const mapRef = useRef<HomeMapRef>(null);
   const sheetRef = useRef<ShopBottomSheetRef>(null);
 
-  const user = useAuthStore((s) => s.user);
-  const isLoggedIn = user != null;
+  const { isLoggedIn, requireLogin, loginModal } = useLoginGate();
   const favoriteIds = useFavoriteShopIds(isLoggedIn); // 비회원 → 빈 Set(별 항상 꺼짐)
   const toggleFavoriteOnServer = useToggleFavorite();
-  const [loginModalVisible, setLoginModalVisible] = useState(false);
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
   // 지도 중심(카메라 idle마다 갱신) — 거리순 정렬 기준.
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>(GANGNAM);
@@ -196,13 +193,7 @@ export function HomeScreen() {
   };
 
   // 비회원은 로그인 유도, 회원은 서버 토글(낙관적 업데이트라 즉시 반영).
-  const toggleFavorite = (id: string) => {
-    if (!isLoggedIn) {
-      setLoginModalVisible(true);
-      return;
-    }
-    toggleFavoriteOnServer(id);
-  };
+  const toggleFavorite = (id: string) => requireLogin(() => toggleFavoriteOnServer(id));
 
   // "현 지도에서 검색": 지금 보이는 영역으로 즉시 재조회. 지도 이동 시 자동 갱신과 병행하는
   // 수동 트리거(사용자가 직접 확인하고 싶을 때) — 조회 기준(bounds)은 이미 현재 화면이다.
@@ -348,15 +339,7 @@ export function HomeScreen() {
           containerHeight={containerHeight}
         />
 
-        {/* 비회원 별 탭 게이팅. 로그인 이동 전 모달을 먼저 닫아야 push된 로그인 화면을 안 덮는다. */}
-        <LoginPromptModal
-          visible={loginModalVisible}
-          onClose={() => setLoginModalVisible(false)}
-          onPressLogin={() => {
-            setLoginModalVisible(false);
-            router.push('/login');
-          }}
-        />
+        {loginModal}
       </View>
     </BottomSheetModalProvider>
   );

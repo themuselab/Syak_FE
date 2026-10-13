@@ -8,7 +8,7 @@ import type { SocialProvider } from '@/shared/domain/auth/auth.types';
 import { useMe, useWithdraw } from '@/shared/domain/user/user.queries';
 import { colors } from '@/shared/theme/colors';
 import { BackHeader } from '@/shared/ui/BackHeader';
-import { LoginPromptModal } from '@/shared/ui/LoginPromptModal';
+import { LoginRequired } from '@/shared/ui/loginGate';
 
 import { WithdrawConfirmModal } from './components/WithdrawConfirmModal';
 
@@ -54,11 +54,7 @@ export function AccountScreen() {
     <View className="flex-1 bg-white">
       <BackHeader title="계정 관리" />
       {!isLoggedIn ? (
-        <LoginPromptModal
-          visible
-          onClose={() => (router.canGoBack() ? router.back() : router.replace('/home'))}
-          onPressLogin={() => router.replace('/login')}
-        />
+        <LoginRequired />
       ) : (
         <>
           <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>

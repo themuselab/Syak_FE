@@ -10,6 +10,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 
 import { track } from '@/shared/lib/analytics';
+import { WebViewShell } from '@/shell/WebViewShell';
+import { useWebViewShellUrl } from '@/shell/useWebViewShell';
 import { usePushSetup } from '@/shared/domain/notification/push';
 import { queryClient } from '@/shared/lib/queryClient';
 
@@ -17,6 +19,9 @@ import { queryClient } from '@/shared/lib/queryClient';
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  // 웹뷰 셸 모드 여부. 웹 빌드와 EXPO_PUBLIC_WEBVIEW_URL 미설정 네이티브 빌드는 null →
+  // 아래 네이티브 화면(Stack)을 그대로 쓴다(= 롤백 스위치). docs/webview-migration.md
+  const shellUrl = useWebViewShellUrl();
   // FCM 푸시: 로그인 전환 시 토큰 발급·서버 등록 (dev build 전용 — web/Expo Go는 내부 가드로 통과)
   usePushSetup();
 
@@ -76,7 +81,13 @@ export default function RootLayout() {
           하단 내비바에 잘린다(QA #12·#18). initialWindowMetrics로 첫 프레임부터 올바른 인셋 제공. */}
       <SafeAreaProvider initialMetrics={initialWindowMetrics}>
         <QueryClientProvider client={queryClient}>
-          <Stack screenOptions={{ headerShown: false }} />
+          {/* 셸 모드: 화면은 웹이 그리고 앱은 푸시·위치·소셜 로그인만 맡는다.
+              usePushSetup 등 위의 네이티브 설정은 셸 모드에서도 그대로 돈다. */}
+          {shellUrl ? (
+            <WebViewShell url={shellUrl} />
+          ) : (
+            <Stack screenOptions={{ headerShown: false }} />
+          )}
           <StatusBar style="auto" />
         </QueryClientProvider>
       </SafeAreaProvider>

@@ -7,6 +7,7 @@
 - **기능별 구현 명세** (`<기능>.md`): 그 기능을 무엇을/어디에/어떻게 만들었는지 + 남은 작업. 기능마다 1파일.
 - **[troubleshooting.md](./troubleshooting.md)**: 겪은 오류·문제와 해결(증상→원인→해결). 한 파일에 **최신 항목을 맨 위로** 누적.
 - **[decisions.md](./decisions.md)**: 주요 기술 결정과 이유. "왜 이렇게 했지?"를 빠르게 확인.
+- **[vercel-deploy.md](./vercel-deploy.md)**: 앱 웹 빌드의 Vercel 배포 설정(빌드 명령·환경변수·도메인·네이버 지도 등록).
 - **[webview-migration.md](./webview-migration.md)**: RN → 웹뷰 전환 계획(결정·단계·리스크). 전환 작업 전에 먼저 읽는다.
 - **[dev-build.md](./dev-build.md)**: 네이티브(소셜 로그인 등) 실기기 dev build 셋업·재현 절차(EAS·카카오 콘솔·키해시·백엔드 도커).
 

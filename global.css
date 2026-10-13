@@ -1,3 +1,16 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* 웹(= 웹뷰) 전용. 네이티브에는 body/input이 없어 무시된다.
+   길게 눌렀을 때 뜨는 텍스트 선택·복사 UI를 막아 앱처럼 보이게 한다. 입력창은 예외. */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}

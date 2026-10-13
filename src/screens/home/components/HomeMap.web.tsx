@@ -246,11 +246,14 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
     );
 
     // react-native-web에서 View의 ref는 실제 DOM 엘리먼트라 그대로 지도 컨테이너로 쓴다.
+    // ★ 컨테이너를 absoluteFill로 직접 채우면 안 된다 — 네이버 SDK가 Map 생성 시 컨테이너의
+    //   position을 relative로 덮어쓰는데, 그러면 absoluteFill의 top/bottom:0이 "늘리기"가
+    //   아니라 "이동"이 돼 높이가 0으로 접힌다(지도 DOM은 다 만들어지는데 화면엔 아무것도 안 보임).
+    //   그래서 바깥을 absoluteFill로 잡고, 안쪽 컨테이너는 flex로 채운다.
     return (
-      <View
-        ref={containerRef}
-        style={[StyleSheet.absoluteFill, { backgroundColor: colors.surface.map }]}
-      />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.surface.map }]}>
+        <View ref={containerRef} style={{ flex: 1, width: '100%', height: '100%' }} />
+      </View>
     );
   },
 );

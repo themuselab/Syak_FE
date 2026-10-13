@@ -16,6 +16,7 @@ import { LoginErrorToast } from './components/LoginErrorToast';
 import { OnboardingBackground } from './components/OnboardingBackground';
 import { SocialLoginButton } from './components/SocialLoginButton';
 import { SyakLogo } from './components/SyakLogo';
+import { colors } from '@/shared/theme/colors';
 
 const appleIcon = require('../../../assets/icons/social-apple.png');
 const kakaoIcon = require('../../../assets/icons/social-kakao.png');
@@ -61,8 +62,8 @@ export function LoginScreen() {
             {Platform.OS === 'ios' && (
               <SocialLoginButton
                 label="Apple로 계속하기"
-                backgroundColor="#000000"
-                textColor="#ffffff"
+                backgroundColor={colors.overlay.shadow}
+                textColor={colors.white}
                 icon={appleIcon}
                 onPress={() => handleSocial('apple')}
                 disabled={busy}
@@ -70,16 +71,16 @@ export function LoginScreen() {
             )}
             <SocialLoginButton
               label="카카오로 계속하기"
-              backgroundColor="#ffee01"
-              textColor="#3c1e1e"
+              backgroundColor={colors.social.kakao}
+              textColor={colors.social.kakaoText}
               icon={kakaoIcon}
               onPress={() => handleSocial('kakao')}
               disabled={busy}
             />
             <SocialLoginButton
               label="네이버로 계속하기"
-              backgroundColor="#00de5a"
-              textColor="#ffffff"
+              backgroundColor={colors.social.naver}
+              textColor={colors.white}
               icon={naverIcon}
               onPress={() => handleSocial('naver')}
               disabled={busy}

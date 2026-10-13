@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import type { MapBounds } from '@/shared/domain/shops/shops.types';
 
 import type { MapPinView } from '../shopToView';
+import { colors } from '@/shared/theme/colors';
 
 export type HomeMapRef = { moveTo: (lat: number, lng: number) => void };
 
@@ -21,7 +22,7 @@ type Props = {
 // web/Expo Go: 네이버 지도는 네이티브 전용이라 회색 placeholder. (실제 지도는 dev build)
 export const HomeMap = forwardRef<HomeMapRef, Props>((_props, ref) => {
   useImperativeHandle(ref, () => ({ moveTo: () => {} }));
-  return <View style={[StyleSheet.absoluteFill, { backgroundColor: '#e9edf1' }]} />;
+  return <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.surface.map }]} />;
 });
 
 HomeMap.displayName = 'HomeMap';

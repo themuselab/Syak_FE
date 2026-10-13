@@ -3,7 +3,7 @@ import { ChevronLeft, Search, X } from 'lucide-react-native';
 import { useRef } from 'react';
 import { Keyboard, Pressable, TextInput, View } from 'react-native';
 
-import { colors } from '@/shared/theme/colors';
+import { colors, shadow } from '@/shared/theme/colors';
 import { useHomeFilterStore } from '../useHomeFilterStore';
 
 // 브랜드 심볼 마크(배경 없음) — 검색창 왼쪽에 아이콘만 노출.
@@ -38,11 +38,7 @@ export function SearchBar({ focused, onFocusChange }: Props) {
         borderColor: colors.primary[300],
         paddingLeft: focused ? 8 : 14,
         paddingRight: 12,
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.12,
-        shadowRadius: 3.5,
-        elevation: 2,
+        ...shadow.sm,
       }}
     >
       {focused ? (
@@ -61,7 +57,7 @@ export function SearchBar({ focused, onFocusChange }: Props) {
         onFocus={() => onFocusChange(true)}
         onBlur={() => onFocusChange(false)}
         placeholder="샥- 지도검색"
-        placeholderTextColor="#c3c3c3"
+        placeholderTextColor={colors.text.placeholder}
         // 검색은 입력마다 디바운스로 나가므로 엔터는 키보드만 닫는다(QA #60).
         returnKeyType="search"
         onSubmitEditing={exitFocus}
@@ -71,10 +67,10 @@ export function SearchBar({ focused, onFocusChange }: Props) {
 
       {focused && search.length > 0 ? (
         <Pressable onPress={() => setSearch('')} hitSlop={8}>
-          <X size={18} color="#c3c3c3" />
+          <X size={18} color={colors.text.placeholder} />
         </Pressable>
       ) : (
-        <Search size={20} color="#c3c3c3" />
+        <Search size={20} color={colors.text.placeholder} />
       )}
     </View>
   );

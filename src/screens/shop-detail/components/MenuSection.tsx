@@ -1,6 +1,7 @@
 import { Text, View } from 'react-native';
 
 import type { MenuItem } from '../shopDetailToView';
+import { colors } from '@/shared/theme/colors';
 
 type Props = {
   menus: MenuItem[];
@@ -13,12 +14,12 @@ export function MenuSection({ menus }: Props) {
     <View className="gap-4">
       <Text
         className="font-pretendard-medium text-[18px]"
-        style={{ color: '#1a1a1a', letterSpacing: -0.36 }}
+        style={{ color: colors.text.strong, letterSpacing: -0.36 }}
       >
         가격
       </Text>
       {menus.length === 0 && (
-        <Text className="font-pretendard text-[14px]" style={{ color: '#adb5bd' }}>
+        <Text className="font-pretendard text-[14px]" style={{ color: colors.text.faint }}>
           메뉴 정보를 준비 중이에요
         </Text>
       )}
@@ -30,15 +31,15 @@ export function MenuSection({ menus }: Props) {
             <Text
               className="font-pretendard-medium text-[15px]"
               numberOfLines={1}
-              style={{ color: '#7e7e7e', letterSpacing: -0.3, flexShrink: 1 }}
+              style={{ color: colors.text.subtle, letterSpacing: -0.3, flexShrink: 1 }}
             >
               {m.name}
             </Text>
-            <View className="h-px flex-1" style={{ backgroundColor: '#e6e6e6' }} />
+            <View className="h-px flex-1" style={{ backgroundColor: colors.line.baseAlt2 }} />
             <Text
               className="font-pretendard-medium text-[15px]"
               numberOfLines={1}
-              style={{ color: '#1a1a1a', letterSpacing: -0.3, flexShrink: 0 }}
+              style={{ color: colors.text.strong, letterSpacing: -0.3, flexShrink: 0 }}
             >
               {m.price}
             </Text>

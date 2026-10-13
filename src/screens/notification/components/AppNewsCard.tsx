@@ -22,7 +22,7 @@ export function AppNewsCard({
     <Pressable
       onPress={onPress}
       className="flex-row items-center gap-3 px-5 py-4"
-      style={{ borderBottomWidth: 1, borderBottomColor: '#f3f3f3' }}
+      style={{ borderBottomWidth: 1, borderBottomColor: colors.line.divider }}
     >
       {item.imageUrl ? (
         <Image
@@ -33,7 +33,7 @@ export function AppNewsCard({
       ) : (
         <View
           className="h-10 w-10 items-center justify-center rounded-lg"
-          style={{ backgroundColor: '#fdeef2' }}
+          style={{ backgroundColor: colors.brand.tintAlt }}
         >
           <Megaphone size={18} color={colors.primary[500]} />
         </View>
@@ -48,7 +48,7 @@ export function AppNewsCard({
           <Text
             className="font-pretendard-medium"
             numberOfLines={1}
-            style={{ fontSize: 16, color: '#1a1a1a', flexShrink: 1 }}
+            style={{ fontSize: 16, color: colors.text.strong, flexShrink: 1 }}
           >
             {item.title}
           </Text>
@@ -56,12 +56,12 @@ export function AppNewsCard({
         <Text
           className="font-pretendard-medium"
           numberOfLines={2}
-          style={{ fontSize: 13, color: '#7e7e7e' }}
+          style={{ fontSize: 13, color: colors.text.subtle }}
         >
           {item.body}
         </Text>
       </View>
-      <Text className="font-pretendard" style={{ fontSize: 11, color: '#bfbfbf' }}>
+      <Text className="font-pretendard" style={{ fontSize: 11, color: colors.text.disabled }}>
         {formatRelativeTime(item.publishedAt)}
       </Text>
     </Pressable>

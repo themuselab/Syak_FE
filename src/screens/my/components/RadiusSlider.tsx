@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { PanResponder, Text, View } from 'react-native';
+import { colors } from '@/shared/theme/colors';
 
 // 알림 반경 슬라이더 (커스텀). design.pen frame y1ARc(k1H7d) 기준.
 // 트랙 8px #ebebeb / 채움 #ffdfea / 노브 20 #ef6491. 상·하 보더 1px #f3f3f3. 범위 1~10(정수, km).
@@ -60,14 +61,14 @@ export function RadiusSlider({ value, onChange, onRelease }: Props) {
         paddingVertical: 20,
         borderTopWidth: 1,
         borderBottomWidth: 1,
-        borderColor: '#f3f3f3',
+        borderColor: colors.line.divider,
       }}
     >
       <View className="flex-row items-center justify-between">
-        <Text className="font-pretendard-medium" style={{ fontSize: 14, color: '#555555' }}>
+        <Text className="font-pretendard-medium" style={{ fontSize: 14, color: colors.text.muted }}>
           알림 반경
         </Text>
-        <Text className="font-pretendard-semibold" style={{ fontSize: 14, color: '#1a1a1a' }}>
+        <Text className="font-pretendard-semibold" style={{ fontSize: 14, color: colors.text.strong }}>
           {value}km
         </Text>
       </View>
@@ -82,7 +83,7 @@ export function RadiusSlider({ value, onChange, onRelease }: Props) {
         style={{ height: KNOB, justifyContent: 'center' }}
       >
         {/* 트랙 */}
-        <View style={{ height: TRACK_H, borderRadius: 999, backgroundColor: '#ebebeb' }} />
+        <View style={{ height: TRACK_H, borderRadius: 999, backgroundColor: colors.line.base }} />
         {/* 채움 */}
         <View
           style={{
@@ -91,7 +92,7 @@ export function RadiusSlider({ value, onChange, onRelease }: Props) {
             height: TRACK_H,
             width: center,
             borderRadius: 999,
-            backgroundColor: '#ffdfea',
+            backgroundColor: colors.brand.tintStrong,
           }}
         />
         {/* 노브 */}
@@ -102,7 +103,7 @@ export function RadiusSlider({ value, onChange, onRelease }: Props) {
             width: KNOB,
             height: KNOB,
             borderRadius: 999,
-            backgroundColor: '#ef6491',
+            backgroundColor: colors.brand.pale,
           }}
         />
       </View>

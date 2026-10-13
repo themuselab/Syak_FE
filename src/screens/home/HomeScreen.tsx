@@ -12,7 +12,7 @@ import { useShops } from '@/shared/domain/shops/shops.queries';
 import type { MapBounds } from '@/shared/domain/shops/shops.types';
 import { getCurrentCoords } from '@/shared/lib/location';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
-import { colors } from '@/shared/theme/colors';
+import { colors, shadow } from '@/shared/theme/colors';
 import { LoginPromptModal } from '@/shared/ui/LoginPromptModal';
 
 import { CategoryChipBar } from './components/CategoryChipBar';
@@ -302,11 +302,7 @@ export function HomeScreen() {
                 onPress={searchHere}
                 className="flex-row items-center gap-1.5 rounded-full bg-white px-4 py-2"
                 style={{
-                  shadowColor: '#000000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.15,
-                  shadowRadius: 6,
-                  elevation: 4,
+                  ...shadow.md,
                 }}
               >
                 <RefreshCcw size={15} color={colors.primary[500]} />

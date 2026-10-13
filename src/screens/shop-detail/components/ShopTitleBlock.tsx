@@ -6,7 +6,7 @@ import { colors } from '@/shared/theme/colors';
 import type { ShopDetailView } from '../shopDetailToView';
 import { Badge } from './Badge';
 
-const FAVORITE_COLOR = '#FFC107';
+const FAVORITE_COLOR = colors.accent.favorite;
 
 type Props = {
   shop: Pick<ShopDetailView, 'name' | 'category' | 'reviewCount' | 'badges'>;
@@ -24,15 +24,15 @@ export function ShopTitleBlock({ shop, favorite, onToggleFavorite }: Props) {
           <View className="flex-row items-center gap-2">
             <Text
               className="font-pretendard-semibold text-[24px]"
-              style={{ color: '#000000', letterSpacing: -0.48 }}
+              style={{ color: colors.overlay.shadow, letterSpacing: -0.48 }}
             >
               {shop.name}
             </Text>
-            <Text className="font-pretendard text-[15px]" style={{ color: '#555555' }}>
+            <Text className="font-pretendard text-[15px]" style={{ color: colors.text.muted }}>
               {shop.category}
             </Text>
           </View>
-          <Text className="font-pretendard text-[12px]" style={{ color: '#bfbfbf' }}>
+          <Text className="font-pretendard text-[12px]" style={{ color: colors.text.disabled }}>
             리뷰 {shop.reviewCount}
           </Text>
         </View>
@@ -60,8 +60,8 @@ export function ShopTitleBlock({ shop, favorite, onToggleFavorite }: Props) {
             <Badge
               key={`${b}-${i}`}
               label={b}
-              bg={isDeal ? '#fff1f6' : '#f1f1f1'}
-              color={isDeal ? '#b32f58' : '#7a7a7a'}
+              bg={isDeal ? colors.brand.tint : colors.surface.mutedAlt}
+              color={isDeal ? colors.brand.active : colors.text.subtleAlt}
               maxWidth={215}
             />
           );

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import type { AvailabilityPeriod, DayAvailability } from '../shopDetailToView';
+import { colors } from '@/shared/theme/colors';
 
 type Props = {
   availability: DayAvailability[];
@@ -12,11 +13,11 @@ function DayChip({ label, selected, onPress }: { label: string; selected: boolea
     <Pressable
       onPress={onPress}
       className="items-center justify-center rounded-[4px] p-2"
-      style={{ backgroundColor: selected ? '#d23e6a' : '#f3f1f2' }}
+      style={{ backgroundColor: selected ? colors.primary[500] : colors.surface.muted }}
     >
       <Text
         className="font-pretendard-medium text-[15px]"
-        style={{ color: selected ? '#ffffff' : '#333333', letterSpacing: -0.3 }}
+        style={{ color: selected ? colors.white : colors.text.base, letterSpacing: -0.3 }}
       >
         {label}
       </Text>
@@ -30,9 +31,9 @@ function TimeChip({ time }: { time: string }) {
   return (
     <View
       className="items-center justify-center rounded-full"
-      style={{ paddingVertical: 8, paddingHorizontal: 10, backgroundColor: '#f3f1f2' }}
+      style={{ paddingVertical: 8, paddingHorizontal: 10, backgroundColor: colors.surface.muted }}
     >
-      <Text className="font-pretendard-medium text-[14px]" style={{ color: '#555555' }}>
+      <Text className="font-pretendard-medium text-[14px]" style={{ color: colors.text.muted }}>
         {time}
       </Text>
     </View>
@@ -44,16 +45,16 @@ function Period({ period }: { period: AvailabilityPeriod }) {
     <View className="gap-2">
       <Text
         className="font-pretendard-medium text-[15px]"
-        style={{ color: '#222222', letterSpacing: -0.3 }}
+        style={{ color: colors.text.dark, letterSpacing: -0.3 }}
       >
         {period.label}
       </Text>
       {period.slots.length === 0 ? (
         <View
           className="items-center justify-center rounded-[4px]"
-          style={{ paddingVertical: 12, backgroundColor: '#f3f1f2' }}
+          style={{ paddingVertical: 12, backgroundColor: colors.surface.muted }}
         >
-          <Text className="font-pretendard-medium text-[12px]" style={{ color: '#999999' }}>
+          <Text className="font-pretendard-medium text-[12px]" style={{ color: colors.text.weak }}>
             {period.closedMessage}
           </Text>
         </View>
@@ -63,7 +64,7 @@ function Period({ period }: { period: AvailabilityPeriod }) {
             <View key={slot.time} className="flex-row items-center">
               <TimeChip time={slot.time} />
               {slot.note ? (
-                <Text className="ml-2 font-pretendard-medium text-[12px]" style={{ color: '#d23e6a' }}>
+                <Text className="ml-2 font-pretendard-medium text-[12px]" style={{ color: colors.primary[500] }}>
                   {slot.note}
                 </Text>
               ) : null}
@@ -84,7 +85,7 @@ export function AvailabilitySection({ availability }: Props) {
     <View className="gap-4">
       <Text
         className="font-pretendard-medium text-[18px]"
-        style={{ color: '#1a1a1a', letterSpacing: -0.36 }}
+        style={{ color: colors.text.strong, letterSpacing: -0.36 }}
       >
         샥- 예약 가능한 빈자리 (앞으로 3일간)
       </Text>

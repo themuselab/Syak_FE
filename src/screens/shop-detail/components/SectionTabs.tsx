@@ -3,6 +3,7 @@
 // Pressable과 경합이 나고, 탭이 드래그로 판정되면 press가 취소된다 — "터치가 중간중간 씹힘"(QA 3차).
 import { TouchableOpacity } from '@gorhom/bottom-sheet';
 import { Text, View } from 'react-native';
+import { colors } from '@/shared/theme/colors';
 
 export type TabKey = 'home' | 'availability' | 'menu' | 'info' | 'review';
 
@@ -40,13 +41,13 @@ export function SectionTabs({ active, onPressTab }: Props) {
               justifyContent: 'center',
               padding: 8,
               borderBottomWidth: 1,
-              borderBottomColor: isActive ? '#d23e6a' : 'transparent',
+              borderBottomColor: isActive ? colors.primary[500] : 'transparent',
             }}
           >
             <Text
               className="font-pretendard-medium text-[16px]"
               numberOfLines={1}
-              style={{ color: isActive ? '#b32f58' : '#7d7d7d', letterSpacing: -0.32 }}
+              style={{ color: isActive ? colors.brand.active : colors.text.subtleAlt2, letterSpacing: -0.32 }}
             >
               {tab.label}
             </Text>

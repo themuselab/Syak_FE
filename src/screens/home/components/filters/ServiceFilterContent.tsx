@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 import { SERVICE_FIELDS } from '../../serviceFields';
 import { useHomeFilterStore } from '../../useHomeFilterStore';
 import { SelectChip } from './SelectChip';
+import { colors } from '@/shared/theme/colors';
 const SERVICES = ['젤네일', '패디큐어', '네일아트', '손연장', '케어', '속눈썹', '왁싱', '반영구', '펌', '염색', '커트', '피부관리', '마사지', '태닝'];
 
 function toggle(arr: string[], v: string): string[] {
@@ -13,7 +14,7 @@ export function ServiceFilterContent() {
   const { serviceFields, setServiceFields, services, setServices } = useHomeFilterStore();
   return (
     <View className="px-5">
-      <Text className="mb-2 text-[13px] font-pretendard-medium" style={{ color: '#1a1a1a' }}>
+      <Text className="mb-2 text-[13px] font-pretendard-medium" style={{ color: colors.text.strong }}>
         시술분야
       </Text>
       <View className="flex-row flex-wrap gap-2">
@@ -27,7 +28,7 @@ export function ServiceFilterContent() {
         ))}
       </View>
 
-      <Text className="mb-2 mt-5 text-[13px] font-pretendard-medium" style={{ color: '#1a1a1a' }}>
+      <Text className="mb-2 mt-5 text-[13px] font-pretendard-medium" style={{ color: colors.text.strong }}>
         시술
       </Text>
       <View className="flex-row flex-wrap gap-2">

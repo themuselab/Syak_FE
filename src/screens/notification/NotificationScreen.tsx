@@ -114,7 +114,7 @@ export function NotificationScreen() {
         </View>
       ) : isLoggedIn && isError ? (
         <View className="flex-1 items-center justify-center gap-3">
-          <Text className="font-pretendard-medium" style={{ fontSize: 15, color: '#7e7e7e' }}>
+          <Text className="font-pretendard-medium" style={{ fontSize: 15, color: colors.text.subtle }}>
             알림을 불러오지 못했어요
           </Text>
           <Pressable onPress={() => refetch()}>

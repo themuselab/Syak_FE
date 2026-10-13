@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Pressable } from 'react-native';
+import { colors } from '@/shared/theme/colors';
 
 // 커스텀 토글 (design.pen 마이페이지 기준). RN 기본 Switch 대신 디자인 치수/색을 정확히 재현.
 // 트랙 39×18, 노브 흰색 20×12. ON 트랙 #ef6491 / OFF 트랙 #ebebeb. 디자인 전용 hex(토큰 외).
@@ -36,7 +37,7 @@ export function Toggle({ value, onValueChange, disabled }: Props) {
         width: TRACK_W,
         height: TRACK_H,
         borderRadius: 999,
-        backgroundColor: value ? '#ef6491' : '#ebebeb',
+        backgroundColor: value ? colors.brand.pale : colors.line.base,
         justifyContent: 'center',
       }}
     >
@@ -45,7 +46,7 @@ export function Toggle({ value, onValueChange, disabled }: Props) {
           width: KNOB_W,
           height: KNOB_H,
           borderRadius: 999,
-          backgroundColor: '#ffffff',
+          backgroundColor: colors.white,
           transform: [{ translateX: x }],
         }}
       />

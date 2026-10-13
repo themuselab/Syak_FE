@@ -1,4 +1,5 @@
 import { Text, View } from 'react-native';
+import { colors } from '@/shared/theme/colors';
 
 type Props = {
   visible: boolean;
@@ -14,7 +15,7 @@ export function LoginErrorToast({
   return (
     <View
       className="absolute items-center justify-center rounded-sm"
-      style={{ left: 23, right: 23, bottom: 32, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: '#f8f9fa33' }}
+      style={{ left: 23, right: 23, bottom: 32, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: colors.surface.scrim }}
     >
       <Text className="font-pretendard-medium text-gray-500" style={{ fontSize: 15 }}>
         {message}

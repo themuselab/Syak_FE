@@ -22,7 +22,7 @@ export function RegionFilterContent() {
     <View>
       {/* 시·도 탭(좌측 flush, 우측 divider) + 구 그리드(우측 패딩 20) */}
       <View className="flex-row gap-5 pr-5">
-        <View className="w-[55px] border-r" style={{ borderColor: '#f3f3f3' }}>
+        <View className="w-[55px] border-r" style={{ borderColor: colors.line.divider }}>
           {SIDO.map((s) => (
             <Pressable key={s} onPress={() => setSido(s)} className="items-center py-4">
               <Text
@@ -57,7 +57,7 @@ export function RegionFilterContent() {
               className="h-9 flex-row items-center gap-1 rounded-full border bg-white px-[10px]"
               style={{ borderColor: colors.primary[500] }}
             >
-              <Text className="text-body-m font-pretendard-semibold" style={{ color: '#212529' }}>
+              <Text className="text-body-m font-pretendard-semibold" style={{ color: colors.text.heading }}>
                 {r}
               </Text>
               <X size={14} color={colors.gray[500]} />

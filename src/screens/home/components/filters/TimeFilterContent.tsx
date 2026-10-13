@@ -2,8 +2,9 @@ import { Text, View } from 'react-native';
 
 import { useHomeFilterStore, type DateKey } from '../../useHomeFilterStore';
 import { SelectChip } from './SelectChip';
+import { colors } from '@/shared/theme/colors';
 
-const PINK = '#c24a6b'; // 예약시간 칩 선택 (디자인 원값)
+const PINK = colors.brand.deep; // 예약시간 칩 선택 (디자인 원값)
 
 const DATES: { key: DateKey; label: string }[] = [
   { key: 'today', label: '오늘' },
@@ -20,7 +21,7 @@ export function TimeFilterContent() {
 
   return (
     <View className="px-5">
-      <Text className="mb-2 text-[13px] font-pretendard-medium" style={{ color: '#1a1a1a' }}>
+      <Text className="mb-2 text-[13px] font-pretendard-medium" style={{ color: colors.text.strong }}>
         날짜
       </Text>
       <View className="flex-row gap-[5px]">
@@ -35,7 +36,7 @@ export function TimeFilterContent() {
         ))}
       </View>
 
-      <Text className="mb-2 mt-5 text-[13px] font-pretendard-medium" style={{ color: '#1a1a1a' }}>
+      <Text className="mb-2 mt-5 text-[13px] font-pretendard-medium" style={{ color: colors.text.strong }}>
         시간
       </Text>
       <View className="flex-row flex-wrap gap-[5px]">

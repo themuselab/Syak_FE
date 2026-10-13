@@ -3,6 +3,7 @@ import { Linking, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { ReservationRoute } from '@/shared/domain/shops/shops.types';
+import { colors } from '@/shared/theme/colors';
 
 type Props = {
   phone: string | null;
@@ -34,7 +35,7 @@ export function ReservationBar({ phone, route, onReserveClick }: Props) {
         borderTopLeftRadius: 28,
         borderTopRightRadius: 28,
         borderTopWidth: 1,
-        borderTopColor: '#e6e6e6',
+        borderTopColor: colors.line.baseAlt2,
         paddingTop: 16,
         paddingHorizontal: 20,
         paddingBottom: insets.bottom + 16,
@@ -48,14 +49,14 @@ export function ReservationBar({ phone, route, onReserveClick }: Props) {
           style={{
             flex: 102,
             borderWidth: 1,
-            borderColor: '#e6e6e6',
+            borderColor: colors.line.baseAlt2,
             paddingVertical: 12,
             opacity: phone ? 1 : 0.4,
           }}
         >
           <Text
             className="font-pretendard-semibold text-[16px]"
-            style={{ color: '#7d7d7d', letterSpacing: -0.32 }}
+            style={{ color: colors.text.subtleAlt2, letterSpacing: -0.32 }}
           >
             전화로 예약
           </Text>
@@ -67,7 +68,7 @@ export function ReservationBar({ phone, route, onReserveClick }: Props) {
           className="flex-row items-center justify-center rounded-sm"
           style={{
             flex: 225,
-            backgroundColor: '#00de5a',
+            backgroundColor: colors.social.naver,
             paddingVertical: 12,
             gap: 9,
             opacity: route ? 1 : 0.4,
@@ -75,11 +76,11 @@ export function ReservationBar({ phone, route, onReserveClick }: Props) {
         >
           <Text
             className="font-pretendard-semibold text-[16px]"
-            style={{ color: '#ffffff', letterSpacing: -0.32 }}
+            style={{ color: colors.white, letterSpacing: -0.32 }}
           >
             {route?.label ?? '네이버 예약'}
           </Text>
-          <ArrowUpRight size={18} color="#ffffff" />
+          <ArrowUpRight size={18} color={colors.white} />
         </Pressable>
       </View>
     </View>

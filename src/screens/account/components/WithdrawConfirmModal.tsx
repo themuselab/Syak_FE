@@ -1,5 +1,6 @@
 import { X } from 'lucide-react-native';
 import { Modal, Pressable, Text, View } from 'react-native';
+import { colors, shadow } from '@/shared/theme/colors';
 
 type Props = {
   visible: boolean;
@@ -14,7 +15,7 @@ export function WithdrawConfirmModal({ visible, onClose, onConfirm, confirming }
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable
         className="flex-1 items-center justify-center px-5"
-        style={{ backgroundColor: '#00000099' }}
+        style={{ backgroundColor: colors.overlay.dim }}
         onPress={onClose}
       >
         {/* 카드 탭은 닫힘 전파 차단 */}
@@ -27,17 +28,13 @@ export function WithdrawConfirmModal({ visible, onClose, onConfirm, confirming }
             paddingBottom: 20,
             paddingLeft: 28,
             gap: 40,
-            shadowColor: '#000000',
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.13,
-            shadowRadius: 3.5,
-            elevation: 3,
+            ...shadow.modal,
           }}
         >
           <View className="gap-2">
             <View className="flex-row justify-end">
               <Pressable onPress={onClose} hitSlop={8} className="p-[5px]">
-                <X size={14} color="#555555" />
+                <X size={14} color={colors.text.muted} />
               </Pressable>
             </View>
             <View className="gap-4">
@@ -49,7 +46,7 @@ export function WithdrawConfirmModal({ visible, onClose, onConfirm, confirming }
               </Text>
               <Text
                 className="text-center font-pretendard"
-                style={{ fontSize: 16, color: '#495057' }}
+                style={{ fontSize: 16, color: colors.text.secondary }}
               >
                 예약 내역, 즐겨찾기, 취소석 알림에 관한 모든 내용이 삭제되며 복구할 수 없어요
               </Text>
@@ -68,7 +65,7 @@ export function WithdrawConfirmModal({ visible, onClose, onConfirm, confirming }
             <Pressable onPress={onConfirm} disabled={confirming} hitSlop={8}>
               <Text
                 className="text-center font-pretendard-semibold"
-                style={{ fontSize: 16, color: '#868e96', opacity: confirming ? 0.4 : 1 }}
+                style={{ fontSize: 16, color: colors.text.hint, opacity: confirming ? 0.4 : 1 }}
               >
                 계정 탈퇴
               </Text>

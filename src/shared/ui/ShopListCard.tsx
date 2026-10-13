@@ -4,7 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { colors } from '@/shared/theme/colors';
 
-const FAVORITE_COLOR = '#FFC107';
+const FAVORITE_COLOR = colors.accent.favorite;
 
 // 목록 카드에 가로로 늘어놓는 작업 사진 수(백엔드도 목록 응답을 3장으로 자른다).
 const MAX_PHOTOS = 3;
@@ -44,10 +44,10 @@ function Badge({ label }: { label: string }) {
 // 마감 시각에 맞춰 바뀌지는 않는다 — 영업시간 데이터가 들어오면 그때 시각 기준으로 바꾼다.
 function OpenBadge({ open }: { open: boolean }) {
   return (
-    <View className="rounded px-1.5 py-0.5" style={{ backgroundColor: open ? '#e6f7ed' : colors.gray[100] }}>
+    <View className="rounded px-1.5 py-0.5" style={{ backgroundColor: open ? colors.status.openBg : colors.gray[100] }}>
       <Text
         className="text-caption-s font-pretendard-medium"
-        style={{ color: open ? '#0f9d58' : colors.gray[600] }}
+        style={{ color: open ? colors.status.open : colors.gray[600] }}
       >
         {open ? '영업 중' : '영업 종료'}
       </Text>
@@ -67,7 +67,7 @@ export function ShopListCard({ shop, onPress, onToggleFavorite }: Props) {
   const photos = shop.photos.slice(0, MAX_PHOTOS);
 
   return (
-    <Pressable onPress={onPress} className="border-b px-5 py-4" style={{ borderColor: '#f3f3f3' }}>
+    <Pressable onPress={onPress} className="border-b px-5 py-4" style={{ borderColor: colors.line.divider }}>
       <View className="flex-row items-start justify-between">
         {/* flex-1: 배지 줄바꿈(flex-wrap)이 동작하려면 컬럼에 폭 제약이 필요 (QA #46) */}
         <View className="flex-1 gap-1 pr-2">
@@ -80,7 +80,7 @@ export function ShopListCard({ shop, onPress, onToggleFavorite }: Props) {
               {shop.name}
             </Text>
             {shop.reviewCount != null && (
-              <Text className="text-caption-m font-pretendard-medium" style={{ color: '#adb5bd' }}>
+              <Text className="text-caption-m font-pretendard-medium" style={{ color: colors.text.faint }}>
                 리뷰 {shop.reviewCount}
               </Text>
             )}
@@ -111,7 +111,7 @@ export function ShopListCard({ shop, onPress, onToggleFavorite }: Props) {
             <Image
               key={uri}
               source={{ uri }}
-              style={{ flex: 1, aspectRatio: 1, borderRadius: 6, backgroundColor: '#e3e3e3' }}
+              style={{ flex: 1, aspectRatio: 1, borderRadius: 6, backgroundColor: colors.line.strong }}
               contentFit="cover"
             />
           ))}

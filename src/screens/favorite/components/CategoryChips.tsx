@@ -1,4 +1,5 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { colors } from '@/shared/theme/colors';
 
 // 필터 카테고리: '전체' + 홈과 동일한 8종 시술 (순서는 즐겨찾기 디자인 lCEKa 기준).
 export const FAVORITE_CATEGORIES = [
@@ -40,12 +41,12 @@ export function CategoryChips({ active, onSelect }: Props) {
                 width: 60,
                 paddingVertical: 8,
                 borderWidth: 1,
-                borderColor: isActive ? '#c24a6b' : '#e6e6e6',
+                borderColor: isActive ? colors.brand.deep : colors.line.baseAlt2,
               }}
             >
               <Text
                 className="font-pretendard-medium"
-                style={{ fontSize: 14, color: isActive ? '#1a1a1a' : '#555555' }}
+                style={{ fontSize: 14, color: isActive ? colors.text.strong : colors.text.muted }}
               >
                 {category}
               </Text>

@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { Text, View } from 'react-native';
 
 import { Toggle } from '@/shared/ui/Toggle';
+import { colors } from '@/shared/theme/colors';
 
 // 설정 한 행: (아이콘) + 라벨 + 토글. design.pen 마이페이지 설정 행 기준(패딩 [12,0], 라벨 15 SemiBold #555).
 type Props = {
@@ -19,7 +20,7 @@ export function SettingToggleRow({ icon, label, value, onValueChange, disabled }
         {icon != null && (
           <Image source={icon} style={{ width: 20, height: 20 }} contentFit="contain" />
         )}
-        <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: '#555555' }}>
+        <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: colors.text.muted }}>
           {label}
         </Text>
       </View>

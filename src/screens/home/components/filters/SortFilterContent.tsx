@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 
 import { useHomeFilterStore, type SortKey } from '../../useHomeFilterStore';
+import { colors } from '@/shared/theme/colors';
 
 const OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'default', label: '기본순' },
@@ -9,7 +10,7 @@ const OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'partner', label: '샥 파트너' },
 ];
 
-const SELECTED = '#c9516e'; // 정렬 선택 텍스트 (디자인 원값)
+const SELECTED = colors.brand.selected; // 정렬 선택 텍스트 (디자인 원값)
 
 export function SortFilterContent({ onSelect }: { onSelect: () => void }) {
   const sort = useHomeFilterStore((s) => s.sort);
@@ -28,7 +29,7 @@ export function SortFilterContent({ onSelect }: { onSelect: () => void }) {
         >
           <Text
             className="text-body-m font-pretendard-medium"
-            style={{ color: sort === o.key ? SELECTED : '#1a1a1a' }}
+            style={{ color: sort === o.key ? SELECTED : colors.text.strong }}
           >
             {o.label}
           </Text>

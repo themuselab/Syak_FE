@@ -23,9 +23,9 @@ export function NotificationItem({
     <Pressable
       onPress={onPress}
       className="flex-row items-center gap-3 px-5 py-4"
-      style={{ borderBottomWidth: 1, borderBottomColor: '#f3f3f3' }}
+      style={{ borderBottomWidth: 1, borderBottomColor: colors.line.divider }}
     >
-      <View className="h-10 w-10 rounded-lg" style={{ backgroundColor: '#e3e3e3' }} />
+      <View className="h-10 w-10 rounded-lg" style={{ backgroundColor: colors.line.strong }} />
       <View className="flex-1 gap-2">
         <View className="flex-row items-center gap-1.5">
           {unread && (
@@ -33,15 +33,15 @@ export function NotificationItem({
               style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primary[500] }}
             />
           )}
-          <Text className="font-pretendard-medium" style={{ fontSize: 16, color: '#1a1a1a' }}>
+          <Text className="font-pretendard-medium" style={{ fontSize: 16, color: colors.text.strong }}>
             {item.shopName} {item.slotTime} 빈자리 알림!
           </Text>
         </View>
-        <Text className="font-pretendard-medium" style={{ fontSize: 13, color: '#7e7e7e' }}>
+        <Text className="font-pretendard-medium" style={{ fontSize: 13, color: colors.text.subtle }}>
           {BODY_TEXT}
         </Text>
       </View>
-      <Text className="font-pretendard" style={{ fontSize: 11, color: '#bfbfbf' }}>
+      <Text className="font-pretendard" style={{ fontSize: 11, color: colors.text.disabled }}>
         {formatRelativeTime(item.createdAt)}
       </Text>
     </Pressable>

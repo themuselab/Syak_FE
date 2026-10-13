@@ -1,6 +1,7 @@
 import { Text, View } from 'react-native';
 
 import type { InfoRow } from '../shopDetailToView';
+import { colors } from '@/shared/theme/colors';
 
 type Props = {
   info: InfoRow[];
@@ -12,7 +13,7 @@ export function InfoSection({ info }: Props) {
     <View className="gap-4">
       <Text
         className="font-pretendard-medium text-[18px]"
-        style={{ color: '#1a1a1a', letterSpacing: -0.36 }}
+        style={{ color: colors.text.strong, letterSpacing: -0.36 }}
       >
         정보
       </Text>
@@ -24,13 +25,13 @@ export function InfoSection({ info }: Props) {
             <Text
               className="font-pretendard-medium text-[15px]"
               numberOfLines={1}
-              style={{ color: '#7e7e7e', letterSpacing: -0.3, flexShrink: 0 }}
+              style={{ color: colors.text.subtle, letterSpacing: -0.3, flexShrink: 0 }}
             >
               {row.label}
             </Text>
             <Text
               className="font-pretendard-medium text-[15px]"
-              style={{ color: '#1a1a1a', letterSpacing: -0.3, flexShrink: 1, textAlign: 'right' }}
+              style={{ color: colors.text.strong, letterSpacing: -0.3, flexShrink: 1, textAlign: 'right' }}
             >
               {row.value}
             </Text>

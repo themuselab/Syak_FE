@@ -1,6 +1,6 @@
 import { Pressable, Text } from 'react-native';
 
-import { colors } from '@/shared/theme/colors';
+import { colors, shadow } from '@/shared/theme/colors';
 
 type Props = {
   label: string;
@@ -18,18 +18,14 @@ export function CategoryChip({ label, selected, onPress }: Props) {
       onPress={onPress}
       className="h-[33px] flex-row items-center justify-center rounded-full border px-3.5"
       style={{
-        backgroundColor: selected ? colors.primary[600] : '#ffffff',
+        backgroundColor: selected ? colors.primary[600] : colors.white,
         borderColor: selected ? colors.primary[600] : colors.primary[500],
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.12,
-        shadowRadius: 3.5,
-        elevation: 2,
+        ...shadow.sm,
       }}
     >
       <Text
         className="text-body-m font-pretendard-medium"
-        style={{ color: selected ? '#ffffff' : colors.primary[500] }}
+        style={{ color: selected ? colors.white : colors.primary[500] }}
       >
         {label}
       </Text>

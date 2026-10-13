@@ -157,7 +157,7 @@ export const ShopBottomSheet = forwardRef<ShopBottomSheetRef, Props>(function Sh
       keyboardBlurBehavior="restore"
       // 풀스크린에선 핸들을 숨기고 라운드를 없애 라우트 상세 화면과 동일하게 보이게.
       handleComponent={expanded ? null : undefined}
-      handleIndicatorStyle={{ backgroundColor: '#d9d9d9', width: 40, height: 5 }}
+      handleIndicatorStyle={{ backgroundColor: colors.line.handle, width: 40, height: 5 }}
       backgroundStyle={{
         borderTopLeftRadius: expanded ? 0 : activeFilter ? 20 : 28,
         borderTopRightRadius: expanded ? 0 : activeFilter ? 20 : 28,

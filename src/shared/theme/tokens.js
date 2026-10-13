@@ -66,4 +66,134 @@ const borderRadius = {
   full: '999px',
 };
 
-module.exports = { colors, fontFamily, fontSize, borderRadius };
+// ─────────────────────────────────────────────────────────────────────────────
+// 의미 기반 토큰 (2026-10-12 리팩토링)
+// 화면마다 흩어져 있던 하드코딩 hex 168건을 여기로 모았다. 값은 그대로 보존했으므로
+// 이 단계에서 화면이 바뀌지 않는다. 아래 "통합 후보" 주석의 색들은 육안 구분이 안 되는
+// 수준이라 디자이너 확인 후 한 단계로 합치면 토큰 수를 더 줄일 수 있다.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// 글자색
+const text = {
+  strong: '#1a1a1a',       // 제목·본문 강조 (최다 사용)
+  heading: '#212529',      // 통합 후보 → strong
+  dark: '#222222',         // 통합 후보 → strong
+  base: '#333333',
+  body: '#3f3f3f',         // 통합 후보 → base
+  secondary: '#495057',    // 통합 후보 → muted
+  muted: '#555555',
+  mutedAlt: '#5b5b5b',     // 통합 후보 → muted
+  subtleAlt: '#7a7a7a',    // 통합 후보 → subtle
+  subtleAlt2: '#7d7d7d',   // 통합 후보 → subtle
+  subtle: '#7e7e7e',
+  hint: '#868e96',
+  weak: '#999999',
+  faint: '#adb5bd',
+  disabled: '#bfbfbf',
+  placeholder: '#c3c3c3',
+  inverse: '#FFFFFF',
+};
+
+// 구분선·테두리
+const line = {
+  divider: '#f3f3f3',      // 카드 사이 얇은 구분선
+  base: '#ebebeb',
+  baseAlt: '#e8e8e8',      // 통합 후보 → base
+  baseAlt2: '#e6e6e6',     // 통합 후보 → base
+  strong: '#e3e3e3',
+  strongAlt: '#dee2e6',    // 통합 후보 → strong
+  handle: '#d9d9d9',       // 바텀시트 핸들 인디케이터
+};
+
+// 배경
+const surface = {
+  base: '#FFFFFF',
+  muted: '#f3f1f2',
+  mutedAlt: '#f1f1f1',     // 통합 후보 → muted
+  map: '#e9edf1',          // 지도 자리(키 없을 때 placeholder)
+  scrim: '#f8f9fa33',      // 반투명 헤더 배경
+};
+
+// 브랜드(핑크) — primary 스케일로 안 떨어지는 디자이너 시안 색들
+const brand = {
+  deep: '#c24a6b',         // 선택된 카테고리 칩 채움
+  selected: '#c9516e',     // 통합 후보 → deep
+  active: '#b32f58',
+  light: '#d46b8b',
+  pale: '#ef6491',
+  tint: '#fff1f6',         // 선택된 필터 칩 배경
+  tintAlt: '#fdeef2',      // 통합 후보 → tint
+  tintStrong: '#ffdfea',
+};
+
+// 상태
+const status = {
+  open: '#0f9d58',         // 영업 중 글자
+  openBg: '#e6f7ed',       // 영업 중 배경
+  error: '#e03131',
+};
+
+// 포인트
+const accent = {
+  favorite: '#FFC107',     // 즐겨찾기 별
+  location: '#007AFF',     // 내 위치 파랑 (= colors.myLocation)
+};
+
+// 소셜 로그인 버튼 (각 사 브랜드 규정 색 — 임의 변경 금지)
+const social = {
+  kakao: '#ffee01',
+  kakaoText: '#3c1e1e',
+  naver: '#00de5a',
+};
+
+// 오버레이·그림자
+const overlay = {
+  dim: '#00000099',        // 모달 딤
+  shadow: '#000000',       // 그림자 색
+};
+
+// 그림자 프리셋 — 6곳에 같은 블록이 복붙돼 있던 것을 모았다.
+// iOS(shadow*)와 Android(elevation)를 함께 지정해야 양쪽에 보인다(CLAUDE.md §8).
+const shadow = {
+  // 검색바·칩처럼 지도 위에 살짝 떠 있는 요소
+  sm: {
+    shadowColor: overlay.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3.5,
+    elevation: 2,
+  },
+  // "현 지도에서 검색"처럼 더 떠 보여야 하는 버튼
+  md: {
+    shadowColor: overlay.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  // 현재위치 버튼 — sm보다 한 단계 옅다
+  xs: {
+    shadowColor: overlay.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  // 모달 카드(로그인 유도·탈퇴 확인)
+  modal: {
+    shadowColor: overlay.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.13,
+    shadowRadius: 3.5,
+    elevation: 3,
+  },
+};
+
+
+module.exports = {
+  colors: { ...colors, text, line, surface, brand, status, accent, social, overlay },
+  fontFamily,
+  fontSize,
+  borderRadius,
+  shadow,
+};

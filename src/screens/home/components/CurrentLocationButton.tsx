@@ -1,7 +1,7 @@
 import { LocateFixed } from 'lucide-react-native';
 import { ActivityIndicator, Pressable } from 'react-native';
 
-import { colors } from '@/shared/theme/colors';
+import { colors, shadow } from '@/shared/theme/colors';
 
 type Props = {
   onPress?: () => void;
@@ -19,11 +19,7 @@ export function CurrentLocationButton({ onPress, active, loading }: Props) {
       className="h-10 w-10 items-center justify-center rounded-[20px] border bg-white"
       style={{
         borderColor: colors.gray[300],
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-        elevation: 2,
+        ...shadow.xs,
       }}
     >
       {loading ? (

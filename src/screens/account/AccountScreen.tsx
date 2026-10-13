@@ -68,10 +68,10 @@ export function AccountScreen() {
               className="flex-row items-center justify-between"
               style={{ paddingVertical: 12 }}
             >
-              <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: '#555555' }}>
+              <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: colors.text.muted }}>
                 닉네임
               </Text>
-              <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: '#adb5bd' }}>
+              <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: colors.text.faint }}>
                 {nickname ?? '설정하기'}
               </Text>
             </Pressable>
@@ -81,10 +81,10 @@ export function AccountScreen() {
               className="flex-row items-center justify-between"
               style={{ paddingVertical: 12 }}
             >
-              <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: '#555555' }}>
+              <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: colors.text.muted }}>
                 연결된 계정
               </Text>
-              <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: '#adb5bd' }}>
+              <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: colors.text.faint }}>
                 {linkedLabel}
               </Text>
             </View>

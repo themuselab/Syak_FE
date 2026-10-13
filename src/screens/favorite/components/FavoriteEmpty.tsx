@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { Pressable, Text, View } from 'react-native';
+import { colors } from '@/shared/theme/colors';
 
 type Props = {
   // true = 즐겨찾기 전체가 빈 상태(디자인 nBj0c — 버튼 포함).
@@ -14,7 +15,7 @@ export function FavoriteEmpty({ showHomeButton }: Props) {
       <View style={{ gap: 40 }}>
         <Text
           className="font-pretendard-medium text-center"
-          style={{ fontSize: 13, color: '#3f3f3f' }}
+          style={{ fontSize: 13, color: colors.text.body }}
         >
           즐겨찾는 샵이 없어요🥺
         </Text>

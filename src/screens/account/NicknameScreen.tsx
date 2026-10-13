@@ -7,6 +7,7 @@ import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import { useMe, useUpdateMe } from '@/shared/domain/user/user.queries';
 import { BackHeader } from '@/shared/ui/BackHeader';
 import { LoginPromptModal } from '@/shared/ui/LoginPromptModal';
+import { colors } from '@/shared/theme/colors';
 
 type FormValues = { nickname: string };
 
@@ -51,7 +52,7 @@ export function NicknameScreen() {
           <View className="flex-1" style={{ paddingHorizontal: 20 }}>
             <Text
               className="font-pretendard-medium"
-              style={{ fontSize: 16, color: '#868e96', letterSpacing: -0.32 }}
+              style={{ fontSize: 16, color: colors.text.hint, letterSpacing: -0.32 }}
             >
               샥에서 사용할 닉네임을 입력해주세요
             </Text>
@@ -71,15 +72,15 @@ export function NicknameScreen() {
                     onChangeText={onChange}
                     onBlur={onBlur}
                     placeholder="닉네임"
-                    placeholderTextColor="#c3c3c3"
+                    placeholderTextColor={colors.text.placeholder}
                     maxLength={20}
                     autoFocus
                     className="rounded-sm bg-white font-pretendard"
                     style={{
                       fontSize: 16,
-                      color: '#1a1a1a',
+                      color: colors.text.strong,
                       borderWidth: 1,
-                      borderColor: '#dee2e6',
+                      borderColor: colors.line.strongAlt,
                       paddingTop: 10,
                       paddingRight: 12,
                       paddingBottom: 10,
@@ -89,7 +90,7 @@ export function NicknameScreen() {
                 )}
               />
               {updateMe.isError && (
-                <Text className="font-pretendard-medium" style={{ fontSize: 13, color: '#e03131' }}>
+                <Text className="font-pretendard-medium" style={{ fontSize: 13, color: colors.status.error }}>
                   닉네임 저장에 실패했어요 — 잠시 후 다시 시도해 주세요
                 </Text>
               )}

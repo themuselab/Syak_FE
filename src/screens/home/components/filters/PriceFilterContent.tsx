@@ -1,6 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 
 import { useHomeFilterStore, type PriceKey } from '../../useHomeFilterStore';
+import { colors } from '@/shared/theme/colors';
 
 const OPTIONS: { key: PriceKey | 'all'; label: string }[] = [
   { key: 'all', label: '전체' },
@@ -9,7 +10,7 @@ const OPTIONS: { key: PriceKey | 'all'; label: string }[] = [
   { key: '3', label: '3만원대' },
 ];
 
-const SELECTED = '#c9516e';
+const SELECTED = colors.brand.selected;
 
 // 가격대 복수 선택(QA #14 — BE price_tiers 콤마 구분 지원). '전체' = 전부 해제(빈 배열).
 // 복수 유지형이라 선택 즉시 닫지 않음 — 닫기는 FilterView 하단 버튼(시술/시간과 동일).
@@ -33,7 +34,7 @@ export function PriceFilterContent() {
           >
             <Text
               className="text-body-m font-pretendard-medium"
-              style={{ color: selected ? SELECTED : '#1a1a1a' }}
+              style={{ color: selected ? SELECTED : colors.text.strong }}
             >
               {o.label}
             </Text>

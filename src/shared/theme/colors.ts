@@ -3,3 +3,7 @@
 import tokens from '@/shared/theme/tokens';
 
 export const colors = tokens.colors;
+
+// 그림자 프리셋 (iOS shadow* + Android elevation). 화면마다 복붙하지 말고 이걸 펼쳐 쓴다:
+//   style={{ ...shadow.sm, borderColor: ... }}
+export const shadow = tokens.shadow;

@@ -27,7 +27,7 @@ export function FilterChipBar() {
     useHomeFilterStore();
 
   return (
-    <View className="flex-row items-center border-b pb-[11px]" style={{ borderColor: '#f3f3f3' }}>
+    <View className="flex-row items-center border-b pb-[11px]" style={{ borderColor: colors.line.divider }}>
       {/* 좌측 고정 정렬 칩 (오른쪽 divider만). 보이는 아이콘이 18px(디자인)에 오도록
           lucide 아이콘 내부 여백(~3px) 보정 → pl 15px. (카드 썸네일 20px와 시각적 정렬) */}
       <Pressable

@@ -21,7 +21,7 @@ export function FilterChip({ label, selected, leftIcon, rightIcon, onPress }: Pr
       onPress={onPress}
       className="h-[33px] flex-row items-center gap-1 rounded-full border px-3"
       style={{
-        backgroundColor: selected ? colors.primary[50] : '#ffffff',
+        backgroundColor: selected ? colors.primary[50] : colors.white,
         borderColor: selected ? colors.primary[500] : colors.gray[300],
       }}
     >

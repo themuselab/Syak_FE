@@ -64,10 +64,10 @@ export function FilterView({ filterKey, onClose }: { filterKey: FilterKey; onClo
   return (
     <View className="flex-1">
       {/* 제목 + divider. 좌측 뒤로가기로 목록 복귀(디자인 요청) — 제목 중앙 유지 위해 절대배치. */}
-      <View className="border-b justify-center" style={{ borderColor: '#f3f3f3' }}>
+      <View className="border-b justify-center" style={{ borderColor: colors.line.divider }}>
         <Text
           className="pb-3 pt-1 text-center text-[15px] font-pretendard-medium"
-          style={{ color: '#1a1a1a' }}
+          style={{ color: colors.text.strong }}
         >
           {TITLE[filterKey]}
         </Text>
@@ -77,7 +77,7 @@ export function FilterView({ filterKey, onClose }: { filterKey: FilterKey; onClo
           className="absolute left-3"
           accessibilityLabel="뒤로"
         >
-          <ChevronLeft size={22} color="#1a1a1a" />
+          <ChevronLeft size={22} color={colors.text.strong} />
         </Pressable>
       </View>
 
@@ -108,12 +108,12 @@ export function FilterView({ filterKey, onClose }: { filterKey: FilterKey; onClo
           className="h-11 flex-1 items-center justify-center rounded-sm border"
           style={{
             borderColor: hasSelection ? colors.primary[500] : colors.gray[300],
-            backgroundColor: hasSelection ? colors.primary[500] : '#ffffff',
+            backgroundColor: hasSelection ? colors.primary[500] : colors.white,
           }}
         >
           <Text
             className="text-label-l font-pretendard-semibold"
-            style={{ color: hasSelection ? '#ffffff' : colors.gray[900] }}
+            style={{ color: hasSelection ? colors.white : colors.gray[900] }}
           >
             {hasSelection ? '선택' : '닫기'}
           </Text>

@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { ScrollView, View } from 'react-native';
+import { colors } from '@/shared/theme/colors';
 
 type Props = {
   photos: string[];
@@ -26,7 +27,7 @@ export function ImageCarousel({ photos }: Props) {
         : Array.from({ length: 3 }).map((_, i) => (
             <View
               key={i}
-              style={{ width: 126, height: 152, borderRadius: 20, backgroundColor: '#e3e3e3' }}
+              style={{ width: 126, height: 152, borderRadius: 20, backgroundColor: colors.line.strong }}
             />
           ))}
     </ScrollView>

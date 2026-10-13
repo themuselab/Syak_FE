@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors } from '@/shared/theme/colors';
 
-const FAVORITE_COLOR = '#FFC107';
+const FAVORITE_COLOR = colors.accent.favorite;
 
 type Props = {
   favorite: boolean;
@@ -20,7 +20,7 @@ export function DetailHeader({ favorite, onToggleFavorite, onBack }: Props) {
     <View className="bg-white" style={{ paddingTop: insets.top }}>
       <View className="h-11 flex-row items-center justify-between pl-[17px] pr-5">
         <Pressable onPress={onBack ?? (() => router.back())} hitSlop={8}>
-          <ArrowLeft size={24} color="#bfbfbf" />
+          <ArrowLeft size={24} color={colors.text.disabled} />
         </Pressable>
         <Pressable onPress={onToggleFavorite} hitSlop={8}>
           <Star

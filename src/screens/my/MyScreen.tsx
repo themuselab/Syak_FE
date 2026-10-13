@@ -31,7 +31,7 @@ import { SettingToggleRow } from './components/SettingToggleRow';
 // 디자인: designs/마이페이지/*, design.pen (M6Lry 회원·OFF / y1ARc 회원·ON+슬라이더 / nnRIy 비회원)
 // 회원/비회원은 useAuthStore.user로 분기. 알림 설정은 GET/PATCH /notifications/settings 연동
 // (값은 서버 파생 — PATCH 응답이 캐시를 교체하므로 로컬 미러링·롤백 불필요).
-const FAVORITE_COLOR = '#FFC107'; // 즐겨찾기 골드(기존 DetailHeader와 동일)
+const FAVORITE_COLOR = colors.accent.favorite; // 즐겨찾기 골드(기존 DetailHeader와 동일)
 const iconLocation = require('../../../assets/icons/my-location-permission.png');
 const iconNear = require('../../../assets/icons/my-near-alarm.png');
 const iconAppNews = require('../../../assets/icons/my-app-news.png');
@@ -161,10 +161,10 @@ export function MyScreen() {
                   paddingVertical: 8,
                   paddingHorizontal: 12,
                   borderWidth: 1,
-                  borderColor: '#e6e6e6',
+                  borderColor: colors.line.baseAlt2,
                 }}
               >
-                <Text className="font-pretendard-medium" style={{ fontSize: 13, color: '#555555' }}>
+                <Text className="font-pretendard-medium" style={{ fontSize: 13, color: colors.text.muted }}>
                   계정 관리
                 </Text>
               </Pressable>
@@ -179,12 +179,12 @@ export function MyScreen() {
               style={{ paddingVertical: 12 }}
             >
               <Star size={16} color={FAVORITE_COLOR} fill={FAVORITE_COLOR} />
-              <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: '#555555' }}>
+              <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: colors.text.muted }}>
                 즐겨찾기
               </Text>
             </Pressable>
 
-            <View style={{ height: 1, backgroundColor: '#f3f3f3' }} />
+            <View style={{ height: 1, backgroundColor: colors.line.divider }} />
 
             <SettingToggleRow
               icon={iconLocation}

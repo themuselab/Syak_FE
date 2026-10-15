@@ -22,26 +22,27 @@ export function NotificationItem({
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center gap-3 px-5 py-4"
+      className="flex-row items-start gap-3 px-5 py-3.5"
       style={{ borderBottomWidth: 1, borderBottomColor: colors.line.divider }}
     >
-      <View className="h-10 w-10 rounded-lg" style={{ backgroundColor: colors.line.strong }} />
-      <View className="flex-1 gap-2">
+      <View className="h-10 w-10 rounded-sm" style={{ backgroundColor: colors.line.base }} />
+      <View className="flex-1 gap-1 pt-0.5">
         <View className="flex-row items-center gap-1.5">
           {unread && (
             <View
               style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primary[500] }}
             />
           )}
-          <Text className="font-pretendard-medium" style={{ fontSize: 16, color: colors.text.strong }}>
+          <Text className="font-pretendard-semibold" numberOfLines={1} style={{ fontSize: 14, color: colors.text.strong, flexShrink: 1 }}>
             {item.shopName} {item.slotTime} 빈자리 알림!
           </Text>
         </View>
-        <Text className="font-pretendard-medium" style={{ fontSize: 13, color: colors.text.subtle }}>
+        <Text className="font-pretendard" numberOfLines={1} style={{ fontSize: 12, color: colors.text.subtle }}>
           {BODY_TEXT}
         </Text>
       </View>
-      <Text className="font-pretendard" style={{ fontSize: 11, color: colors.text.disabled }}>
+      {/* 시간은 오른쪽 위(시안) */}
+      <Text className="pt-0.5 font-pretendard" style={{ fontSize: 11, color: colors.text.disabled }}>
         {formatRelativeTime(item.createdAt)}
       </Text>
     </Pressable>

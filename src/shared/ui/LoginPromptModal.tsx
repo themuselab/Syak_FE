@@ -1,13 +1,19 @@
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { X } from 'lucide-react-native';
 import { Modal, Pressable, Text, View } from 'react-native';
+
 import { colors, shadow } from '@/shared/theme/colors';
 
-// 비회원 로그인 유도 모달 (재사용).
-// 디자인: designs/비회원로그인 알림/*, design.pen frame B9m9C (카드 KfxCM, 딤 JihSb)
-// 디자인 전용 hex(#00000099/#c24a6b/#e8e8e8/#555555)는 토큰 스케일에 없어 .pen 실측값 사용.
-// (#c24a6b는 토큰 primary.500(#d23e6a)과 근사하지만 .pen 실측값을 따른다.)
-// 트리거는 호출부에서 제어 — 추후 비회원 게이팅 시 visible로 연결한다.
+const SYMBOL = require('../../../assets/images/login-prompt-symbol.png'); // 383x383 (빛나는 원형 심볼)
+
+// 비회원 로그인 유도 모달 (디자이너 시안 2026-10-15 "로그인유도 팝업 시안").
+//   [심볼]
+//   로그인하고
+//   샥을 이용해보세요!        ← "샥"만 핑크
+//   [로그인하러 가기]
+//   나중에 할게요
+// 위치 권한 팝업과 같은 카드 모양·크기 체계. 트리거는 호출부(useLoginGate / LoginRequired)가 제어.
 type Props = {
   visible: boolean;
   onClose: () => void;
@@ -27,38 +33,38 @@ export function LoginPromptModal({ visible, onClose, onPressLogin }: Props) {
         {/* 카드 탭은 닫힘 전파 차단 */}
         <Pressable
           onPress={() => {}}
-          className="w-full justify-between rounded-lg bg-white"
-          style={{
-            minHeight: 222,
-            paddingTop: 28,
-            paddingRight: 28,
-            paddingBottom: 20,
-            paddingLeft: 28,
-            ...shadow.modal,
-          }}
+          className="w-full items-center rounded-lg bg-white"
+          style={{ paddingTop: 20, paddingHorizontal: 20, paddingBottom: 16, ...shadow.modal }}
         >
-          <View className="gap-2">
-            <View className="flex-row justify-end">
-              <Pressable onPress={onClose} hitSlop={8} className="p-[5px]">
-                <X size={14} color={colors.text.muted} />
-              </Pressable>
-            </View>
-            <Text
-              className="text-center font-pretendard-semibold text-black"
-              style={{ fontSize: 20, lineHeight: 28 }}
-            >
-              로그인하고{'\n'}
-              <Text style={{ color: colors.brand.deep }}>샥-</Text> 이용해보세요!
-            </Text>
+          <View className="w-full flex-row justify-end">
+            <Pressable onPress={onClose} hitSlop={10} accessibilityLabel="닫기" className="p-1">
+              <X size={20} color={colors.text.muted} />
+            </Pressable>
           </View>
+
+          <Image source={SYMBOL} style={{ width: 84, height: 84 }} contentFit="contain" />
+
+          <Text
+            className="mt-3 text-center font-pretendard-semibold"
+            style={{ fontSize: 18, lineHeight: 26, color: colors.text.strong }}
+          >
+            {'로그인하고\n'}
+            <Text style={{ color: colors.primary[500] }}>샥</Text>을 이용해보세요!
+          </Text>
 
           <Pressable
             onPress={handleLogin}
-            className="h-12 items-center justify-center rounded-sm"
-            style={{ backgroundColor: colors.brand.deep, borderWidth: 1, borderColor: colors.line.baseAlt }}
+            className="mt-7 h-12 w-full items-center justify-center rounded-sm"
+            style={{ backgroundColor: colors.primary[500] }}
           >
-            <Text className="font-pretendard-semibold text-white" style={{ fontSize: 16 }}>
+            <Text className="font-pretendard-semibold" style={{ fontSize: 16, color: colors.white }}>
               로그인하러 가기
+            </Text>
+          </Pressable>
+
+          <Pressable onPress={onClose} hitSlop={6} className="mt-3 py-1">
+            <Text className="text-body-m font-pretendard" style={{ color: colors.text.muted }}>
+              나중에 할게요
             </Text>
           </Pressable>
         </Pressable>

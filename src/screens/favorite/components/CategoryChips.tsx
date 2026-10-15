@@ -1,18 +1,10 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
+
+import { SERVICE_FIELDS } from '@/screens/home/serviceFields';
 import { colors } from '@/shared/theme/colors';
 
-// 필터 카테고리: '전체' + 홈과 동일한 8종 시술 (순서는 즐겨찾기 디자인 lCEKa 기준).
-export const FAVORITE_CATEGORIES = [
-  '전체',
-  '네일',
-  '헤어',
-  '속눈썹',
-  '왁싱',
-  '반영구',
-  '피부',
-  '마사지',
-  '태닝',
-] as const;
+// 필터 카테고리: '전체' + 홈과 같은 시술 분야 목록(home/serviceFields.ts 한 곳에서 관리).
+export const FAVORITE_CATEGORIES = ['전체', ...SERVICE_FIELDS] as const;
 export type FavoriteCategory = (typeof FAVORITE_CATEGORIES)[number];
 
 type Props = {
@@ -46,7 +38,7 @@ export function CategoryChips({ active, onSelect }: Props) {
             >
               <Text
                 className="font-pretendard-medium"
-                style={{ fontSize: 14, color: isActive ? colors.text.strong : colors.text.muted }}
+                style={{ fontSize: 14, color: isActive ? colors.brand.deep : colors.text.muted }}
               >
                 {category}
               </Text>

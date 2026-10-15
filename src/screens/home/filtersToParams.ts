@@ -32,7 +32,7 @@ export function filtersToParams(s: FilterSnapshot): ShopListParams {
   if (s.sort !== 'default') params.sort = s.sort;
 
   // 상단 칩에서 고른 것: 시술 분야 하나 또는 샥 파트너.
-  if (s.picked?.kind === 'category' && (SERVICE_FIELDS as string[]).includes(s.picked.label)) {
+  if (s.picked?.kind === 'category' && (SERVICE_FIELDS as readonly string[]).includes(s.picked.label)) {
     params.categories = [s.picked.label as ShopCategory];
   }
   if (s.picked?.kind === 'partner') params.is_partner = true;

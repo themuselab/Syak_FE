@@ -23,37 +23,37 @@ export function WithdrawConfirmModal({ visible, onClose, onConfirm, confirming }
           onPress={() => {}}
           className="w-full rounded-[20px] bg-white"
           style={{
-            paddingTop: 28,
-            paddingRight: 28,
-            paddingBottom: 20,
-            paddingLeft: 28,
-            gap: 40,
+            paddingTop: 20,
+            paddingRight: 20,
+            paddingBottom: 16,
+            paddingLeft: 20,
+            gap: 28,
             ...shadow.modal,
           }}
         >
           <View className="gap-2">
             <View className="flex-row justify-end">
               <Pressable onPress={onClose} hitSlop={8} className="p-[5px]">
-                <X size={14} color={colors.text.muted} />
+                <X size={20} color={colors.text.muted} />
               </Pressable>
             </View>
-            <View className="gap-4">
+            <View className="gap-2">
               <Text
-                className="text-center font-pretendard-medium text-black"
-                style={{ fontSize: 20 }}
+                className="text-center font-pretendard-semibold"
+                style={{ fontSize: 18, color: colors.text.strong }}
               >
                 계정을 탈퇴하시겠어요?
               </Text>
               <Text
                 className="text-center font-pretendard"
-                style={{ fontSize: 16, color: colors.text.secondary }}
+                style={{ fontSize: 14, lineHeight: 20, color: colors.text.muted }}
               >
                 예약 내역, 즐겨찾기, 취소석 알림에 관한 모든 내용이 삭제되며 복구할 수 없어요
               </Text>
             </View>
           </View>
 
-          <View className="gap-4">
+          <View className="gap-3">
             <Pressable
               onPress={onClose}
               className="h-12 items-center justify-center rounded-sm bg-primary-500"
@@ -64,8 +64,8 @@ export function WithdrawConfirmModal({ visible, onClose, onConfirm, confirming }
             </Pressable>
             <Pressable onPress={onConfirm} disabled={confirming} hitSlop={8}>
               <Text
-                className="text-center font-pretendard-semibold"
-                style={{ fontSize: 16, color: colors.text.hint, opacity: confirming ? 0.4 : 1 }}
+                className="text-center font-pretendard"
+                style={{ fontSize: 14, color: colors.text.muted, opacity: confirming ? 0.4 : 1 }}
               >
                 계정 탈퇴
               </Text>

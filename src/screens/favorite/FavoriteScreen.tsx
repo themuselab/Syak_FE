@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 
+import { useMyLocationStore } from '@/shared/lib/myLocation.store';
 import { useBottomInset } from '@/shared/lib/safeArea';
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import {
@@ -23,19 +24,24 @@ import { locationLabelOf, nextAvailableToday } from '@/screens/home/shopToView';
 import { CategoryChips, type FavoriteCategory } from './components/CategoryChips';
 import { FavoriteEmpty } from './components/FavoriteEmpty';
 
-// 상세(ShopDetail) → 카드 정보. 홈 카드와 같은 규칙(동네·예약 가능 시각)을 공유한다.
-// 즐겨찾기 목록은 지도와 무관해 내 위치를 넘기지 않는다 → 거리 없이 동네만.
-function detailToCard(detail: ShopDetail, favorite: boolean): ShopCardInfo {
+// 상세(ShopDetail) → 카드 정보. 홈 카드와 같은 규칙(동네·거리·예약 가능 시각)을 공유한다.
+// 시안의 "320m 전농동"처럼 위치 동의 시 내 위치 기준 거리도 보인다(전역 스토어 값).
+function detailToCard(
+  detail: ShopDetail,
+  favorite: boolean,
+  myLocation: { lat: number; lng: number } | null,
+): ShopCardInfo {
   const next = nextAvailableToday(detail);
   return {
     name: detail.name,
     dealLabel: detail.eventDesc,
     priceTier: detail.priceTier && detail.priceTier !== '미정' ? detail.priceTier : null,
-    locationLabel: locationLabelOf(detail),
+    locationLabel: locationLabelOf(detail, myLocation),
     availability: next ? `오늘 ${next} 예약 가능` : null,
     previewReview: detail.reviews[0]?.body ?? detail.previewReview ?? null,
     favorite,
     photos: detail.photos,
+    reviewCount: detail.reviewCount,
   };
 }
 
@@ -46,6 +52,7 @@ function detailToCard(detail: ShopDetail, favorite: boolean): ShopCardInfo {
 // 고정하고 별 상태만 라이브 캐시(useFavoriteShopIds)로 표시. 재진입 시 해제분이 빠진다.
 export function FavoriteScreen() {
   const bottomInset = useBottomInset();
+  const myLocation = useMyLocationStore((s) => s.coords);
   const user = useAuthStore((s) => s.user);
   const isLoggedIn = user != null;
 
@@ -78,7 +85,7 @@ export function FavoriteScreen() {
         shopId: f.shopId,
         detail: detailQueries[i]?.data ?? null,
         card: detailQueries[i]?.data
-          ? detailToCard(detailQueries[i].data, favoriteIds.has(f.shopId))
+          ? detailToCard(detailQueries[i].data, favoriteIds.has(f.shopId), myLocation)
           : ({
               // 상세 도착 전 임시 카드 — 즐겨찾기 스냅샷에 있는 이름/지역만 쓴다.
               name: f.shopName,
@@ -91,7 +98,7 @@ export function FavoriteScreen() {
               photos: [],
             } satisfies ShopCardInfo),
       })),
-    [snapshot, detailQueries, favoriteIds],
+    [snapshot, detailQueries, favoriteIds, myLocation],
   );
 
   // 카테고리 필터: 상세의 categories 기준(미도착 샵은 '전체'에서만 노출).
@@ -139,6 +146,7 @@ export function FavoriteScreen() {
               contentContainerStyle={{ paddingBottom: bottomInset + 12 }}
               renderItem={({ item }) => (
                 <ShopListCard
+                  variant="compact"
                   shop={item.card}
                   onPress={() => router.push(`/shop/${item.shopId}`)}
                   onToggleFavorite={() => toggleFavorite(item.shopId)}

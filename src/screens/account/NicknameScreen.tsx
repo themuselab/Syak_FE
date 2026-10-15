@@ -48,7 +48,7 @@ export function NicknameScreen() {
           <View className="flex-1" style={{ paddingHorizontal: 20 }}>
             <Text
               className="font-pretendard-medium"
-              style={{ fontSize: 16, color: colors.text.hint, letterSpacing: -0.32 }}
+              style={{ fontSize: 14, color: colors.text.subtle }}
             >
               샥에서 사용할 닉네임을 입력해주세요
             </Text>
@@ -76,7 +76,7 @@ export function NicknameScreen() {
                       fontSize: 16,
                       color: colors.text.strong,
                       borderWidth: 1,
-                      borderColor: colors.line.strongAlt,
+                      borderColor: colors.line.base,
                       paddingTop: 10,
                       paddingRight: 12,
                       paddingBottom: 10,

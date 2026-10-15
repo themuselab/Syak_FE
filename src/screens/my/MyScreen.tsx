@@ -11,10 +11,12 @@ import {
   setAppNewsEnabled,
 } from '@/shared/domain/notification/appNewsLocal';
 import {
+  useNotifications,
   useNotificationSettings,
   useUpdateNotificationSettings,
 } from '@/shared/domain/notification/notification.queries';
 import { registerDeviceForAppNews } from '@/shared/domain/notification/push';
+import { getPushPermission, togglePushPermission } from '@/shared/lib/pushPermission';
 import { useMe } from '@/shared/domain/user/user.queries';
 import {
   getCurrentCoords,
@@ -55,6 +57,21 @@ export function MyScreen() {
       getLocationPermission().then(({ granted }) => setLocationPermission(granted));
     }, []),
   );
+
+  // "알림" 토글 = OS 푸시 알림 권한(위치 권한 토글과 같은 패턴). 설정 앱에서 바꾸고 돌아오면 포커스 재조회.
+  const [pushPermission, setPushPermission] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      getPushPermission().then(({ granted }) => setPushPermission(granted));
+    }, []),
+  );
+  const handlePushToggle = (next: boolean) => {
+    togglePushPermission(next).then(setPushPermission);
+  };
+
+  // "샥 알림" 메뉴의 분홍 점 = 안 읽은 샵 알림이 있을 때(시안 아이콘의 점을 미읽음 표시로 썼다).
+  const { data: notifications } = useNotifications(isLoggedIn);
+  const hasUnread = (notifications ?? []).some((n) => n.readAt === null);
 
   // 앱 소식 토글 = 디바이스 단위 설정(2026-07-18 BE 개편, QA 비로그인 #4 — 비회원도 동작).
   // 로컬 저장값이 원본, 변경 시 POST /notifications/devices 재등록으로 서버 반영.
@@ -176,28 +193,52 @@ export function MyScreen() {
               </Text>
             </Pressable>
 
-            {/* 알림 목록. 홈 검색바의 알림 벨이 시안(2026-10-15)에서 빠져 진입점을 여기로 옮겼다.
+            {/* 샥 알림 = 알림 목록. 홈 검색바의 알림 벨이 시안(2026-10-15)에서 빠져 진입점이 여기다.
                 비회원은 알림 화면이 앱 소식만 보여주고 샵 알림은 로그인 유도한다(화면이 담당). */}
             <Pressable
               onPress={() => router.push('/notifications')}
               className="flex-row items-center gap-2"
               style={{ paddingVertical: 12 }}
             >
-              <Bell size={16} color={colors.primary[500]} fill={colors.primary[500]} />
+              <View>
+                <Bell size={16} color={colors.gray[400]} fill={colors.gray[400]} />
+                {hasUnread && (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: -1,
+                      right: -1,
+                      width: 6,
+                      height: 6,
+                      borderRadius: 3,
+                      backgroundColor: colors.primary[500],
+                    }}
+                  />
+                )}
+              </View>
               <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: colors.text.muted }}>
-                알림
+                샥 알림
               </Text>
             </Pressable>
 
             <View style={{ height: 1, backgroundColor: colors.line.divider }} />
 
+            {/* 상위 "알림" = OS 푸시 권한. 아래 항목들은 한 단계 들여쓴다(시안). */}
             <SettingToggleRow
+              iconNode={<Bell size={16} color={colors.gray[400]} fill={colors.gray[400]} />}
+              label="알림"
+              value={pushPermission}
+              onValueChange={handlePushToggle}
+            />
+            <SettingToggleRow
+              indent
               icon={iconLocation}
               label="위치 권한"
               value={locationPermission}
               onValueChange={handleLocationToggle}
             />
             <SettingToggleRow
+              indent
               icon={iconNear}
               label="내 주변 알림"
               value={nearEnabled}
@@ -214,6 +255,8 @@ export function MyScreen() {
               />
             )}
             <SettingToggleRow
+              indent
+              iconNode={<Star size={16} color={colors.gray[400]} fill={colors.gray[400]} />}
               label="즐겨찾기 알림"
               value={settings?.favoriteEnabled ?? false}
               onValueChange={handleFavoriteToggle}
@@ -221,6 +264,7 @@ export function MyScreen() {
             />
             {/* 앱 소식 = 디바이스 단위(계정 무관) — 위치 권한 토글처럼 비회원도 활성 */}
             <SettingToggleRow
+              indent
               icon={iconAppNews}
               label="앱 소식"
               value={appNews}

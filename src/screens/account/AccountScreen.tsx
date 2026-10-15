@@ -67,7 +67,11 @@ export function AccountScreen() {
               <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: colors.text.muted }}>
                 닉네임
               </Text>
-              <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: colors.text.faint }}>
+              {/* 미설정이면 "설정하기"를 진하게(눌러야 하는 행동), 설정돼 있으면 회색 값(시안) */}
+              <Text
+                className="font-pretendard-semibold"
+                style={{ fontSize: 15, color: nickname ? colors.text.faint : colors.text.strong }}
+              >
                 {nickname ?? '설정하기'}
               </Text>
             </Pressable>

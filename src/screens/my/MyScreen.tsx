@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { Star } from 'lucide-react-native';
+import { Bell, Star } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -173,6 +173,19 @@ export function MyScreen() {
               <Star size={16} color={FAVORITE_COLOR} fill={FAVORITE_COLOR} />
               <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: colors.text.muted }}>
                 즐겨찾기
+              </Text>
+            </Pressable>
+
+            {/* 알림 목록. 홈 검색바의 알림 벨이 시안(2026-10-15)에서 빠져 진입점을 여기로 옮겼다.
+                비회원은 알림 화면이 앱 소식만 보여주고 샵 알림은 로그인 유도한다(화면이 담당). */}
+            <Pressable
+              onPress={() => router.push('/notifications')}
+              className="flex-row items-center gap-2"
+              style={{ paddingVertical: 12 }}
+            >
+              <Bell size={16} color={colors.primary[500]} fill={colors.primary[500]} />
+              <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: colors.text.muted }}>
+                알림
               </Text>
             </Pressable>
 

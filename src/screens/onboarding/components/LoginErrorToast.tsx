@@ -1,23 +1,25 @@
+import { AlertCircle } from 'lucide-react-native';
 import { Text, View } from 'react-native';
-import { colors } from '@/shared/theme/colors';
 
-type Props = {
-  visible: boolean;
-  message?: string;
-};
+import { colors, shadow } from '@/shared/theme/colors';
 
-// 로그인 실패 토스트 (디자인: 로그인 실패시.png). 하단 중앙, 반투명 배경.
-export function LoginErrorToast({
-  visible,
-  message = '로그인에 실패했어요. 잠시 후 다시 시도해 주세요.',
-}: Props) {
-  if (!visible) return null;
+type Props = { message: string };
+
+// 로그인 실패 안내(디자이너 시안 2026-10-15).
+// 화면 하단에 띄우던 반투명 토스트에서, 버튼 패널 안 "비회원으로 둘러보기" 자리를 대체하는
+// 흰 카드로 바뀌었다. 둘이 동시에 보이지 않으므로 레이아웃이 밀리지 않는다.
+export function LoginErrorToast({ message }: Props) {
   return (
     <View
-      className="absolute items-center justify-center rounded-sm"
-      style={{ left: 23, right: 23, bottom: 32, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: colors.surface.scrim }}
+      className="flex-row items-center justify-center gap-1.5 rounded-sm px-3 py-2.5"
+      style={{ backgroundColor: colors.white, ...shadow.sm }}
     >
-      <Text className="font-pretendard-medium text-gray-500" style={{ fontSize: 15 }}>
+      <AlertCircle size={16} color={colors.primary[500]} />
+      <Text
+        className="text-label-m font-pretendard-medium"
+        numberOfLines={2}
+        style={{ color: colors.text.muted, flexShrink: 1 }}
+      >
         {message}
       </Text>
     </View>

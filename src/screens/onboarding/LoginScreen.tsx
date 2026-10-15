@@ -13,6 +13,7 @@ import {
 } from '@/shared/domain/auth/socialAuth';
 
 import { LoginErrorToast } from './components/LoginErrorToast';
+import { LoginPanel } from './components/LoginPanel';
 import { OnboardingBackground } from './components/OnboardingBackground';
 import { SocialLoginButton } from './components/SocialLoginButton';
 import { SyakLogo } from './components/SyakLogo';
@@ -22,7 +23,7 @@ const appleIcon = require('../../../assets/icons/social-apple.png');
 const kakaoIcon = require('../../../assets/icons/social-kakao.png');
 const naverIcon = require('../../../assets/icons/social-naver.png');
 
-// 로그인 화면. 디자인: designs/온보딩/온보딩-1.png (+ 로그인 실패시.png 토스트)
+// 로그인 화면. 디자인: 디자이너 시안 2026-10-15 (핑크 그라데이션 + 흰 로고 + 반투명 버튼 패널).
 // 소셜 토큰은 getSocialToken(어댑터)로 받아 useSocialLogin으로 백엔드에 전달한다.
 // 실제 소셜 SDK 연동(어댑터) 전까지는 버튼 탭 시 "준비 중" 토스트가 뜬다.
 export function LoginScreen() {
@@ -51,17 +52,24 @@ export function LoginScreen() {
 
   return (
     <OnboardingBackground>
-      <View className="flex-1 px-5">
-        <View style={{ flex: 5 }} className="items-center justify-center">
-          <SyakLogo width={172} height={68} />
+      <View className="flex-1 px-5 pb-8">
+        {/* 로고 + 카피. 스플래시의 가운데 로고가 여기서 위로 올라온 모양이다. */}
+        <View className="flex-1 items-center justify-center">
+          <SyakLogo size={112} />
+          <Text
+            className="mt-6 text-center text-body-l font-pretendard-medium"
+            style={{ color: colors.white, opacity: 0.9, lineHeight: 24 }}
+          >
+            {'원하는 뷰티샵,\n빈자리 예약까지 한 번에'}
+          </Text>
         </View>
 
-        <View className="gap-3">
+        <LoginPanel>
           <View className="gap-2">
             {/* Apple 로그인은 iOS 전용(앱스토어 심사 필수) — 안드로이드에선 숨김 (QA #0) */}
             {Platform.OS === 'ios' && (
               <SocialLoginButton
-                label="Apple로 계속하기"
+                label="Apple 로그인"
                 backgroundColor={colors.overlay.shadow}
                 textColor={colors.white}
                 icon={appleIcon}
@@ -70,7 +78,7 @@ export function LoginScreen() {
               />
             )}
             <SocialLoginButton
-              label="카카오로 계속하기"
+              label="카카오 로그인"
               backgroundColor={colors.social.kakao}
               textColor={colors.social.kakaoText}
               icon={kakaoIcon}
@@ -78,7 +86,7 @@ export function LoginScreen() {
               disabled={busy}
             />
             <SocialLoginButton
-              label="네이버로 계속하기"
+              label="네이버 로그인"
               backgroundColor={colors.social.naver}
               textColor={colors.white}
               icon={naverIcon}
@@ -86,17 +94,19 @@ export function LoginScreen() {
               disabled={busy}
             />
           </View>
-          <Pressable onPress={goBrowse} disabled={busy} className="items-center justify-center p-2">
-            <Text className="text-label-l font-pretendard-semibold text-gray-500">
-              비회원으로 둘러보기
-            </Text>
-          </Pressable>
-        </View>
 
-        <View style={{ flex: 2 }} />
+          {/* 실패 시에는 "비회원으로 둘러보기" 자리에 토스트가 들어간다(시안). 둘이 겹치지 않는다. */}
+          {errorMessage !== null ? (
+            <LoginErrorToast message={errorMessage} />
+          ) : (
+            <Pressable onPress={goBrowse} disabled={busy} className="items-center justify-center py-1">
+              <Text className="text-label-l font-pretendard-semibold" style={{ color: colors.white }}>
+                비회원으로 둘러보기
+              </Text>
+            </Pressable>
+          )}
+        </LoginPanel>
       </View>
-
-      <LoginErrorToast visible={errorMessage !== null} message={errorMessage ?? undefined} />
     </OnboardingBackground>
   );
 }

@@ -9,7 +9,7 @@ import { OnboardingBackground } from './components/OnboardingBackground';
 import { SyakLogo } from './components/SyakLogo';
 import { colors } from '@/shared/theme/colors';
 
-// 첫 진입 로딩(스플래시) 화면. 디자인: designs/온보딩/온보딩.png
+// 첫 진입 로딩(스플래시) 화면. 디자인: 디자이너 시안 2026-10-15(핑크 그라데이션 + 흰 로고).
 // 세션 확인: GET /users/me 성공 → 로그인 상태(setUser) → /home, 실패(401 등) → /login.
 export function SplashScreen() {
   const setUser = useAuthStore((s) => s.setUser);
@@ -41,10 +41,14 @@ export function SplashScreen() {
 
   return (
     <OnboardingBackground>
-      <View className="flex-1 items-center justify-center gap-4">
-        <SyakLogo width={220} height={88} />
-        <Text className="text-heading-xl font-pretendard-semibold" style={{ color: colors.brand.light }}>
-          대기 예약은 syak에서 샥!
+      {/* 로고는 화면 정중앙. 로그인 화면에서는 같은 로고가 위쪽으로 올라간다. */}
+      <View className="flex-1 items-center justify-center">
+        <SyakLogo size={112} />
+        <Text
+          className="mt-5 text-body-l font-pretendard-medium"
+          style={{ color: colors.white, opacity: 0.9 }}
+        >
+          뷰티 예약의 새로운 방법, 샥
         </Text>
       </View>
     </OnboardingBackground>

@@ -11,7 +11,7 @@ import { SHEET_DEFAULT_SNAP, SHEET_MIN_HEIGHT } from '../homeLayout';
 import type { ShopCardView } from '../shopToView';
 import { useHomeFilterStore } from '../useHomeFilterStore';
 import { FilterChipBar } from './FilterChipBar';
-import { FilterView } from './filters/FilterView';
+import { FilterPanel } from './filters/FilterPanel';
 import { ShopListEmpty } from './ShopListEmpty';
 import { ShopListError } from './ShopListError';
 
@@ -70,10 +70,13 @@ export const ShopBottomSheet = forwardRef<ShopBottomSheetRef, Props>(function Sh
   // windowHeight를 쓰면 안드 상태바 처리에 따라 검색바를 덮거나 틈이 생긴다.
   // 측정 전(containerHeight 0)엔 기존 90% 폴백.
   const snapPoints = useMemo(() => {
+    // 필터 패널은 전체가 아니라 80%까지만 올린다(디자이너 요청) — 위로 지도가 조금 보여야
+    // "목록 위에 잠깐 띄운 설정"으로 읽힌다.
+    if (activeFilter) return ['80%'];
     if (focused) return ['35%', '100%'];
     const max = containerHeight > 0 && topOffset > 0 ? containerHeight - topOffset - 8 : '90%';
     return [SHEET_MIN_HEIGHT, SHEET_DEFAULT_SNAP, max];
-  }, [focused, topOffset, containerHeight]);
+  }, [activeFilter, focused, topOffset, containerHeight]);
 
   // 목록 모드의 기본 스냅(40%). 포커스 모드는 0 = 35%.
   const defaultIndex = focused ? 0 : 1;
@@ -89,26 +92,24 @@ export const ShopBottomSheet = forwardRef<ShopBottomSheetRef, Props>(function Sh
     sheetRef.current?.snapToIndex(selectedShop ? 0 : 1);
   }, [selectedShop?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 현재 스냅 인덱스(렌더에 쓰지 않아 ref) — 필터 열 때 올릴지 판단용.
+  // 현재 스냅 인덱스(렌더에 쓰지 않아 ref) — 필터를 닫을 때 원래 높이로 돌려놓기 위해 기억한다.
   const indexRef = useRef(defaultIndex);
-  const raisedForFilter = useRef(false);
+  const indexBeforeFilter = useRef<number | null>(null);
 
   const handleChange = (index: number) => {
     indexRef.current = index;
     if (focused) setExpanded(index === 1);
   };
 
-  // 최소 높이(96px)에서 필터를 열면 제목·버튼까지 다 가려지므로 그때만 기본 40%로 올린다.
-  // 그보다 위에 둔 상태라면 사용자가 둔 위치를 존중해 건드리지 않는다(기존 정책).
+  // 필터를 열면 스냅이 80% 하나로 바뀐다 → 그 지점으로 애니메이션. 닫으면 열기 전 높이로 복귀.
+  // (스냅 개수가 바뀌므로 인덱스를 명시하지 않으면 엉뚱한 높이로 떨어진다)
   useEffect(() => {
     if (activeFilter) {
-      if (indexRef.current === 0) {
-        raisedForFilter.current = true;
-        sheetRef.current?.snapToIndex(1);
-      }
-    } else if (raisedForFilter.current) {
-      raisedForFilter.current = false;
+      if (indexBeforeFilter.current === null) indexBeforeFilter.current = indexRef.current;
       sheetRef.current?.snapToIndex(0);
+    } else if (indexBeforeFilter.current !== null) {
+      sheetRef.current?.snapToIndex(indexBeforeFilter.current);
+      indexBeforeFilter.current = null;
     }
   }, [activeFilter]);
 
@@ -164,7 +165,7 @@ export const ShopBottomSheet = forwardRef<ShopBottomSheetRef, Props>(function Sh
       }}
     >
       {activeFilter ? (
-        <FilterView filterKey={activeFilter} onClose={() => setActiveFilter(null)} />
+        <FilterPanel onClose={() => setActiveFilter(null)} />
       ) : selectedShop ? (
         <ShopDetailSheet
           shopId={selectedShop.id}

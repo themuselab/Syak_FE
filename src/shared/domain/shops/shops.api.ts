@@ -14,6 +14,9 @@ function buildShopQuery(params: ShopListParams): string {
   if (params.categories?.length) sp.set('categories', params.categories.join(','));
   if (params.districts?.length) sp.set('districts', params.districts.join(','));
   if (params.price_tiers?.length) sp.set('price_tiers', params.price_tiers.join(','));
+  if (params.price_min != null) sp.set('price_min', String(params.price_min));
+  if (params.price_max != null) sp.set('price_max', String(params.price_max));
+  if (params.is_partner) sp.set('is_partner', 'true');
   if (params.sort && params.sort !== 'default') sp.set('sort', params.sort);
   if (params.has_event) sp.set('has_event', 'true');
   if (params.has_slot) sp.set('has_slot', 'true');

@@ -1,5 +1,5 @@
 import type { ShopListItem, ShopPinRow } from '@/shared/domain/shops/shops.types';
-import { formatDistrict } from '@/shared/lib/region';
+import { distanceMeters, formatDistance } from '@/shared/lib/geo';
 
 // 지도 마커 종류(=핀 PNG). assets/icons/pin-{kind}.png와 직결.
 //  default(분홍 상점) = 일반 샵 / discount(노랑 %) = 이벤트 / reservable(파랑 알람시계) = 예약 가능
@@ -20,10 +20,11 @@ export function markerKindOf(toggles?: MarkerToggles): MarkerKind {
 export type ShopCardView = {
   id: string;
   name: string;
-  reviewCount: number | null; // null이면 카드에서 숨김
-  subtitle: string;
-  badges: string[];
-  todayOpen: boolean;
+  dealLabel: string | null; // 이벤트 설명("첫방문 특가") — 메타 줄 맨 앞 핑크
+  priceTier: string | null; // "2만원대" ("미정"은 숨김)
+  locationLabel: string; // "320m 전농동" / 위치 미동의면 "전농동"
+  availability: string | null; // "오늘 15:00 예약 가능" — 오늘 남은 슬롯이 없으면 null
+  previewReview: string | null;
   markerKind: MarkerKind;
   favorite: boolean;
   lat: number | null;
@@ -31,39 +32,69 @@ export type ShopCardView = {
   photos: string[];
 };
 
-// 카드 두 번째 줄. 한 줄 소개가 있으면 그걸 쓰고, 없으면 업종 → 지역 순으로 대체한다.
-// (introduction은 스크래퍼가 채우기 전까지 비어 있어 당분간 대부분 업종이 보인다)
-export function cardSubtitle(item: {
-  introduction: string | null;
-  categories: string[];
-  district: string | null;
-}): string {
-  const intro = item.introduction?.trim();
-  if (intro) return intro;
-  if (item.categories.length) return item.categories.join(' · ');
-  // region은 백엔드가 항상 "서울"로 보내는 부정확한 값이라 미사용 — district 기반 표기.
-  return formatDistrict(item.district);
+// 동네 표기. 도로명 주소에는 동이 거의 없어서(표본 188건 중 확실한 건 5건) 다음 순서로 고른다:
+//  1) 주소 끝 괄호 안 법정동 — "…로 123 (전농동)"
+//  2) 읍·면 토큰 — "포천시 소흘읍 …"
+//  3) 구·시 (district의 마지막 토큰) — "서울 구로구" → "구로구"
+// "상가동"처럼 건물 이름이 동으로 끝나는 경우가 있어 일반 "…동" 토큰은 쓰지 않는다.
+// 동까지 정확히 보이려면 좌표 역지오코딩으로 동을 저장해야 한다(백엔드 데이터 작업).
+export function areaLabel(item: { roadAddress: string | null; district: string | null }): string {
+  const addr = item.roadAddress ?? '';
+  const paren = addr.match(/\((\S+?[동가])(?:[,)]|\s)/);
+  if (paren) return paren[1];
+  const eupmyeon = addr.match(/(?:^|\s)(\S+?[읍면])(?:\s|$)/);
+  if (eupmyeon) return eupmyeon[1];
+  const parts = (item.district ?? '').trim().split(/\s+/);
+  return parts[parts.length - 1] ?? '';
+}
+
+// 오늘 남은 가장 이른 예약 가능 시각. slotSummary는 "오늘" 디자이너별 가능 시각 목록이다.
+// 지금 시각 이전 슬롯은 이미 지났으므로 뺀다. 형식은 "HH:MM"으로 맞춰 문자열 비교한다.
+export function nextAvailableToday(
+  item: { todayOpen: boolean; slotSummary: { times: string[] }[] },
+  now: Date = new Date(),
+): string | null {
+  if (!item.todayOpen) return null;
+  const pad = (t: string) => (t.length === 4 ? `0${t}` : t);
+  const nowHM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  let earliest: string | null = null;
+  for (const d of item.slotSummary) {
+    for (const t of d.times) {
+      const hm = pad(t);
+      if (hm >= nowHM && (earliest === null || hm < earliest)) earliest = hm;
+    }
+  }
+  return earliest;
+}
+
+// 위치 동의 여부에 따라 동네 표기를 다르게 한다(디자이너 코멘트):
+//  동의 O → "320m 전농동"(내 위치 기준 거리 + 동) / 동의 X → "전농동"
+export function locationLabelOf(
+  item: { lat: number | null; lng: number | null; roadAddress: string | null; district: string | null },
+  myLocation?: { lat: number; lng: number } | null,
+): string {
+  const area = areaLabel(item);
+  if (!myLocation || item.lat == null || item.lng == null) return area;
+  const dist = formatDistance(distanceMeters(myLocation, { lat: item.lat, lng: item.lng }));
+  return area ? `${dist} ${area}` : dist;
 }
 
 export function toShopCardView(
   item: ShopListItem,
   favoriteIds: Set<string>,
   toggles?: MarkerToggles,
+  myLocation?: { lat: number; lng: number } | null,
 ): ShopCardView {
-  const badges: string[] = [];
-  if (item.eventDesc) badges.push(item.eventDesc); // 이벤트 설명(있으면 첫 배지)
-  if (item.priceTier) badges.push(item.priceTier); // 가격대 "2만원대"
-
-  const markerKind = markerKindOf(toggles);
-
+  const next = nextAvailableToday(item);
   return {
     id: item.id,
     name: item.name,
-    reviewCount: item.reviewCount,
-    subtitle: cardSubtitle(item),
-    badges,
-    todayOpen: item.todayOpen,
-    markerKind,
+    dealLabel: item.eventDesc,
+    priceTier: item.priceTier && item.priceTier !== '미정' ? item.priceTier : null,
+    locationLabel: locationLabelOf(item, myLocation),
+    availability: next ? `오늘 ${next} 예약 가능` : null,
+    previewReview: item.previewReview,
+    markerKind: markerKindOf(toggles),
     favorite: favoriteIds.has(item.id),
     lat: item.lat,
     lng: item.lng,

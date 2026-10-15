@@ -96,6 +96,17 @@ function icon(url: string, size: { width: number; height: number }): NaverAny {
   };
 }
 
+// 네이버 SDK 호출 가드. SDK 내부 예외가 그대로 effect 밖으로 새면 React가 루트 트리를 통째로
+// 내려 앱 전체가 백지가 된다 — 지도 인증 실패 상태(미등록 도메인)에서 핀을 갱신하다 실제로
+// 그렇게 터졌다. 지도는 부가 기능이므로 실패해도 목록·검색은 살아 있어야 한다.
+function safe(label: string, fn: () => void) {
+  try {
+    fn();
+  } catch (e) {
+    console.warn(`[home] naver map ${label} failed`, e);
+  }
+}
+
 // 웹(웹뷰 포함)용 네이버 지도. 네이티브 HomeMap.tsx와 props·동작을 맞춘다.
 // 네이티브와 다른 점: 클러스터링이 없다(네이버 공식 MarkerClustering은 별도 소스가 필요).
 // 목록이 60개로 제한돼 있어 당장은 핀이 겹쳐도 읽히지만, 필요해지면 그때 붙인다.
@@ -118,7 +129,7 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
     useImperativeHandle(ref, () => ({
       moveTo: (lat, lng) => {
         const w = window as NaverAny;
-        if (mapRef.current) mapRef.current.morph(new w.naver.maps.LatLng(lat, lng), 14);
+        if (mapRef.current) safe('morph', () => mapRef.current.morph(new w.naver.maps.LatLng(lat, lng), 14));
       },
     }));
 
@@ -126,7 +137,7 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
     useEffect(() => {
       let alive = true;
       loadNaverMaps()
-        .then(() => {
+        .then(() => safe('init', () => {
           if (!alive || !containerRef.current || mapRef.current) return;
           const w = window as NaverAny;
           const map = new w.naver.maps.Map(containerRef.current, {
@@ -159,7 +170,7 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
             });
           });
           setReady(true);
-        })
+        }))
         .catch((e) => console.warn('[home] naver map load failed', e));
       return () => {
         alive = false;
@@ -169,7 +180,9 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
     // 콘텐츠 패딩 — 헤더/바텀시트에 지도 컨트롤·로고가 가리지 않게(네이티브 mapPadding과 같은 역할).
     useEffect(() => {
       if (mapRef.current) {
-        mapRef.current.setOptions({ padding: { top: topPadding ?? 0, bottom: bottomPadding ?? 0 } });
+        safe('padding', () =>
+          mapRef.current.setOptions({ padding: { top: topPadding ?? 0, bottom: bottomPadding ?? 0 } }),
+        );
       }
     }, [ready, topPadding, bottomPadding]);
 
@@ -210,11 +223,11 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
     }, [pins, selectedShopId, isDotZoom]);
 
     useEffect(() => {
-      if (ready) syncMarkers();
+      if (ready) safe('markers', syncMarkers);
     }, [ready, syncMarkers]);
 
     // 내 위치 점
-    useEffect(() => {
+    useEffect(() => safe('my-location', () => {
       const w = window as NaverAny;
       const map = mapRef.current;
       if (!map) return;
@@ -233,15 +246,16 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
           zIndex: 5,
         });
       }
-    }, [ready, myLocation]);
+    }), [ready, myLocation]);
 
     // 언마운트 시 마커 정리 (지도 인스턴스는 컨테이너와 함께 사라진다)
     useEffect(
-      () => () => {
-        for (const m of markersRef.current.values()) m.setMap(null);
-        markersRef.current.clear();
-        myMarkerRef.current?.setMap(null);
-      },
+      () => () =>
+        safe('cleanup', () => {
+          for (const m of markersRef.current.values()) m.setMap(null);
+          markersRef.current.clear();
+          myMarkerRef.current?.setMap(null);
+        }),
       [],
     );
 

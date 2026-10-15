@@ -19,6 +19,8 @@ export type ShopListItem = {
   reviewCount: number;
   photos: string[]; // 목록=작업 사진 최대 3장(없으면 대표 이미지 1장) / 상세=갤러리 전체
   introduction: string | null; // 한 줄 소개(스크래퍼가 채우기 전까지 null)
+  previewReview: string | null; // 리뷰 1건 미리보기 — 목록 카드 하단 한 줄
+  roadAddress: string | null; // 도로명 주소 — 목록 카드의 동네(동) 표기용
 };
 
 // 상세 응답의 메뉴 한 건 (detail.menus 그대로).
@@ -53,7 +55,6 @@ export type ShopDetail = ShopListItem & {
   bookingType: BookingRouteType | null; // 대표 링크의 수단 (naver 있으면 naver 최우선)
   reservationRoutes: ReservationRoute[];
   phone: string | null;
-  roadAddress: string | null;
   menus: ShopMenu[];
   reviews: ShopReview[];
 };
@@ -66,7 +67,8 @@ export type ShopListResponse = {
 };
 
 // 백엔드가 실제로 받는 값으로 좁힌 타입 (syakBE Shop.ts / ShopFilter.ts 기준).
-export type ShopSort = 'default' | 'price_asc' | 'price_desc' | 'partner';
+// 'default' = 관련도순, 'review' = 리뷰 많은순 (필터 패널 정렬 섹션)
+export type ShopSort = 'default' | 'price_asc' | 'price_desc' | 'partner' | 'review';
 export type ShopCategory =
   | '네일'
   | '헤어'
@@ -100,6 +102,9 @@ export type ShopListParams = {
   categories?: ShopCategory[];
   districts?: string[];
   price_tiers?: ShopPriceTier[];
+  price_min?: number; // 원. 필터 패널 가격 슬라이더(만원 단위)에서 변환
+  price_max?: number;
+  is_partner?: boolean; // 샥 파트너만
   sort?: ShopSort;
   has_event?: boolean;
   has_slot?: boolean;

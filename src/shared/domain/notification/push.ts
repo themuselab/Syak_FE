@@ -95,6 +95,9 @@ export function usePushSetup(): void {
   const prevIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    // 웹(= 웹뷰 안 화면)에는 네이티브 알림 모듈이 없다. 푸시는 네이티브 셸이 받아 브리지로 넘긴다.
+    // 웹에서 getLastNotificationResponseAsync 등을 부르면 "not available on web" 예외가 난다.
+    if (Platform.OS === 'web') return;
     registerDeviceForAppNews();
     // 포그라운드 수신 → 알림 목록 캐시 갱신
     const recv = Notifications.addNotificationReceivedListener(() => {

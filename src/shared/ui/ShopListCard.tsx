@@ -1,59 +1,26 @@
 import { Image } from 'expo-image';
-import { Star } from 'lucide-react-native';
-import { Pressable, Text, View } from 'react-native';
+import { Clock, Star } from 'lucide-react-native';
+import { Fragment } from 'react';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { colors } from '@/shared/theme/colors';
-
-const FAVORITE_COLOR = colors.accent.favorite;
-
-// 목록 카드에 가로로 늘어놓는 작업 사진 수(백엔드도 목록 응답을 3장으로 자른다).
-const MAX_PHOTOS = 3;
 
 // 카드가 실제로 쓰는 필드만의 구조적 타입 — 홈 ShopCardView(지도 필드 포함)와
 // 즐겨찾기 화면의 상세 파생 카드가 모두 이 형태를 만족한다.
 export type ShopCardInfo = {
   name: string;
-  reviewCount: number | null; // null이면 숨김
-  // 한 줄 소개. 백엔드 introduction이 비면 카테고리 → 주소 순으로 대체한다(shopToView).
-  subtitle: string;
-  badges: string[];
-  todayOpen: boolean;
+  dealLabel: string | null; // "첫방문 특가"
+  priceTier: string | null; // "2만원대"
+  locationLabel: string; // "320m 전농동"
+  availability: string | null; // "오늘 15:00 예약 가능"
+  previewReview: string | null;
   favorite: boolean;
-  photos: string[]; // 포트폴리오(작업 사진). 없으면 대표 이미지 1장, 그것도 없으면 빈 배열
+  photos: string[];
 };
 
-function Badge({ label }: { label: string }) {
-  const isDeal = label.includes('특가') || label.includes('이벤트');
-  return (
-    <View
-      className="rounded px-1.5 py-0.5"
-      style={{ backgroundColor: isDeal ? colors.primary[50] : colors.gray[100] }}
-    >
-      <Text
-        className="text-caption-s font-pretendard-medium"
-        numberOfLines={1}
-        style={{ color: isDeal ? colors.primary[600] : colors.gray[600] }}
-      >
-        {label}
-      </Text>
-    </View>
-  );
-}
-
-// 영업 상태 배지. 백엔드가 주는 건 "오늘 영업하는 날인가"(today_open) 한 건이라
-// 마감 시각에 맞춰 바뀌지는 않는다 — 영업시간 데이터가 들어오면 그때 시각 기준으로 바꾼다.
-function OpenBadge({ open }: { open: boolean }) {
-  return (
-    <View className="rounded px-1.5 py-0.5" style={{ backgroundColor: open ? colors.status.openBg : colors.gray[100] }}>
-      <Text
-        className="text-caption-s font-pretendard-medium"
-        style={{ color: open ? colors.status.open : colors.gray[600] }}
-      >
-        {open ? '영업 중' : '영업 종료'}
-      </Text>
-    </View>
-  );
-}
+// 사진은 세로로 긴 3:4 비율로 가로 스크롤(시안). 마지막 장이 살짝 잘려 보여야 넘겨볼 수 있다는 게 읽힌다.
+const PHOTO_W = 112;
+const PHOTO_H = 150;
 
 type Props = {
   shop: ShopCardInfo;
@@ -61,64 +28,106 @@ type Props = {
   onToggleFavorite?: () => void;
 };
 
-// 매장 카드: 이름/리뷰/한 줄 소개/배지 + 즐겨찾기 별, 그 아래 작업 사진 가로 3장.
-// 사진을 눌러도 카드와 같이 상세로 간다(네이버 플레이스식). (홈 목록·즐겨찾기 목록 공용)
+// 매장 카드 (디자이너 시안 2026-10-15). 홈 목록·즐겨찾기 목록 공용.
+//   이름                                  ★
+//   첫방문 특가 · 2만원대 · 320m 전농동
+//   ⏰ 오늘 15:00 예약 가능
+//   [사진][사진][사진]→
+//   [리뷰 한 줄]
 export function ShopListCard({ shop, onPress, onToggleFavorite }: Props) {
-  const photos = shop.photos.slice(0, MAX_PHOTOS);
+  // 메타 줄: 값이 있는 것만 · 로 잇는다. 이벤트 문구만 핑크.
+  const meta: { text: string; pink?: boolean }[] = [];
+  if (shop.dealLabel) meta.push({ text: shop.dealLabel, pink: true });
+  if (shop.priceTier) meta.push({ text: shop.priceTier });
+  if (shop.locationLabel) meta.push({ text: shop.locationLabel });
 
   return (
-    <Pressable onPress={onPress} className="border-b px-5 py-4" style={{ borderColor: colors.line.divider }}>
-      <View className="flex-row items-start justify-between">
-        {/* flex-1: 배지 줄바꿈(flex-wrap)이 동작하려면 컬럼에 폭 제약이 필요 (QA #46) */}
+    <Pressable onPress={onPress} className="border-b py-4" style={{ borderColor: colors.line.divider }}>
+      <View className="flex-row items-start justify-between px-5">
         <View className="flex-1 gap-1 pr-2">
-          <View className="flex-row items-center gap-2">
-            <Text
-              className="text-heading-m font-pretendard-semibold text-gray-900"
-              numberOfLines={1}
-              style={{ flexShrink: 1 }}
-            >
-              {shop.name}
-            </Text>
-            {shop.reviewCount != null && (
-              <Text className="text-caption-m font-pretendard-medium" style={{ color: colors.text.faint }}>
-                리뷰 {shop.reviewCount}
-              </Text>
-            )}
-          </View>
-          <Text className="text-body-m font-pretendard text-gray-600" numberOfLines={1}>
-            {shop.subtitle}
+          <Text
+            className="text-heading-m font-pretendard-semibold"
+            numberOfLines={1}
+            style={{ color: colors.text.strong }}
+          >
+            {shop.name}
           </Text>
-          <View className="flex-row flex-wrap items-center gap-1">
-            {shop.badges.map((b) => (
-              <Badge key={b} label={b} />
-            ))}
-            <OpenBadge open={shop.todayOpen} />
-          </View>
+
+          {meta.length > 0 && (
+            // 한 줄 고정. 실제 이벤트 문구는 "첫방문50% 할인 /손젤 22.500/발젤…"처럼 길어서 줄바꿈되면
+            // 둘째 줄이 "•"로 시작했다. 이벤트 문구만 줄어들며 말줄임되고 가격·동네는 항상 보인다.
+            <View className="flex-row items-center">
+              {meta.map((m, i) => (
+                <Fragment key={`${i}-${m.text}`}>
+                  {i > 0 && (
+                    <Text className="mx-1.5 text-caption-m" style={{ color: colors.line.strong }}>
+                      •
+                    </Text>
+                  )}
+                  <Text
+                    className="text-body-m font-pretendard"
+                    numberOfLines={1}
+                    style={{
+                      color: m.pink ? colors.primary[500] : colors.text.subtle,
+                      flexShrink: m.pink ? 1 : 0,
+                    }}
+                  >
+                    {m.text}
+                  </Text>
+                </Fragment>
+              ))}
+            </View>
+          )}
+
+          {shop.availability && (
+            <View className="flex-row items-center gap-1">
+              <Clock size={14} color={colors.primary[500]} />
+              <Text className="text-body-m font-pretendard-medium" style={{ color: colors.primary[500] }}>
+                {shop.availability}
+              </Text>
+            </View>
+          )}
         </View>
+
         <Pressable onPress={onToggleFavorite} hitSlop={8}>
           <Star
             size={24}
-            color={shop.favorite ? FAVORITE_COLOR : colors.gray[300]}
-            fill={shop.favorite ? FAVORITE_COLOR : 'transparent'}
+            color={shop.favorite ? colors.accent.favorite : colors.gray[300]}
+            fill={shop.favorite ? colors.accent.favorite : 'transparent'}
           />
         </Pressable>
       </View>
 
-      {/* 작업 사진(포트폴리오). 사진이 없는 샵은 줄 자체를 비워 카드 높이를 줄인다. */}
-      {photos.length > 0 && (
-        <View className="mt-2.5 flex-row gap-1">
-          {photos.map((uri) => (
-            <Image
-              key={uri}
-              source={{ uri }}
-              style={{ flex: 1, aspectRatio: 1, borderRadius: 6, backgroundColor: colors.line.strong }}
-              contentFit="cover"
-            />
+      {/* 작업 사진(포트폴리오). 눌러도 카드와 같이 상세로 간다. 사진이 없는 샵은 줄을 비운다. */}
+      {shop.photos.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          className="mt-3"
+          contentContainerStyle={{ gap: 4, paddingHorizontal: 20 }}
+        >
+          {shop.photos.map((uri) => (
+            <Pressable key={uri} onPress={onPress}>
+              <Image
+                source={{ uri }}
+                style={{
+                  width: PHOTO_W,
+                  height: PHOTO_H,
+                  borderRadius: 6,
+                  backgroundColor: colors.surface.mutedAlt,
+                }}
+                contentFit="cover"
+              />
+            </Pressable>
           ))}
-          {/* 사진이 3장 미만이면 빈 칸으로 채워 폭(1/3)을 고정한다 — 2장이 반반으로 커지지 않게. */}
-          {Array.from({ length: MAX_PHOTOS - photos.length }).map((_, i) => (
-            <View key={`gap-${i}`} style={{ flex: 1 }} />
-          ))}
+        </ScrollView>
+      )}
+
+      {shop.previewReview && (
+        <View className="mx-5 mt-2.5 rounded-sm px-3 py-2.5" style={{ backgroundColor: colors.surface.muted }}>
+          <Text className="text-body-m font-pretendard" numberOfLines={2} style={{ color: colors.text.muted }}>
+            {shop.previewReview}
+          </Text>
         </View>
       )}
     </Pressable>

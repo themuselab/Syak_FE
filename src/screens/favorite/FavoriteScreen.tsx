@@ -18,22 +18,22 @@ import { BackHeader } from '@/shared/ui/BackHeader';
 import { LoginRequired } from '@/shared/ui/loginGate';
 import { ShopListCard, type ShopCardInfo } from '@/shared/ui/ShopListCard';
 
-import { cardSubtitle } from '@/screens/home/shopToView';
+import { locationLabelOf, nextAvailableToday } from '@/screens/home/shopToView';
 
 import { CategoryChips, type FavoriteCategory } from './components/CategoryChips';
 import { FavoriteEmpty } from './components/FavoriteEmpty';
 
-// 상세(ShopDetail) → 카드 정보. 배지·소개 규칙은 홈 toShopCardView와 동일하게 공유한다.
+// 상세(ShopDetail) → 카드 정보. 홈 카드와 같은 규칙(동네·예약 가능 시각)을 공유한다.
+// 즐겨찾기 목록은 지도와 무관해 내 위치를 넘기지 않는다 → 거리 없이 동네만.
 function detailToCard(detail: ShopDetail, favorite: boolean): ShopCardInfo {
-  const badges: string[] = [];
-  if (detail.eventDesc) badges.push(detail.eventDesc);
-  if (detail.priceTier) badges.push(detail.priceTier);
+  const next = nextAvailableToday(detail);
   return {
     name: detail.name,
-    reviewCount: detail.reviewCount,
-    subtitle: cardSubtitle(detail),
-    badges,
-    todayOpen: detail.todayOpen,
+    dealLabel: detail.eventDesc,
+    priceTier: detail.priceTier && detail.priceTier !== '미정' ? detail.priceTier : null,
+    locationLabel: locationLabelOf(detail),
+    availability: next ? `오늘 ${next} 예약 가능` : null,
+    previewReview: detail.reviews[0]?.body ?? detail.previewReview ?? null,
     favorite,
     photos: detail.photos,
   };
@@ -82,10 +82,11 @@ export function FavoriteScreen() {
           : ({
               // 상세 도착 전 임시 카드 — 즐겨찾기 스냅샷에 있는 이름/지역만 쓴다.
               name: f.shopName,
-              reviewCount: null,
-              subtitle: f.shopRegion ?? '',
-              badges: [],
-              todayOpen: false,
+              dealLabel: null,
+              priceTier: null,
+              locationLabel: f.shopRegion ?? '',
+              availability: null,
+              previewReview: null,
               favorite: favoriteIds.has(f.shopId),
               photos: [],
             } satisfies ShopCardInfo),

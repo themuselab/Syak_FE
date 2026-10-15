@@ -9,6 +9,7 @@ import { useFavoriteShopIds, useToggleFavorite } from '@/shared/domain/favorite/
 import { useSlotSearch } from '@/shared/domain/reservation/reservation.queries';
 import { useShops } from '@/shared/domain/shops/shops.queries';
 import type { MapBounds } from '@/shared/domain/shops/shops.types';
+import { distanceMeters } from '@/shared/lib/geo';
 import { getCurrentCoords } from '@/shared/lib/location';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { colors, shadow } from '@/shared/theme/colors';
@@ -16,7 +17,6 @@ import { useLoginGate } from '@/shared/ui/loginGate';
 
 import { CategoryChipBar } from './components/CategoryChipBar';
 import { CurrentLocationButton } from './components/CurrentLocationButton';
-import { HomeHeader } from './components/HomeHeader';
 import { HomeMap, type HomeMapRef } from './components/HomeMap';
 import { SearchBar } from './components/SearchBar';
 import { ShopBottomSheet, type ShopBottomSheetRef } from './components/ShopBottomSheet';
@@ -77,11 +77,10 @@ export function HomeScreen() {
   }, []);
 
   const sort = useHomeFilterStore((s) => s.sort);
-  const regions = useHomeFilterStore((s) => s.regions);
-  const prices = useHomeFilterStore((s) => s.prices);
+  const picked = useHomeFilterStore((s) => s.picked);
+  const priceRange = useHomeFilterStore((s) => s.priceRange);
   const date = useHomeFilterStore((s) => s.date);
   const times = useHomeFilterStore((s) => s.times);
-  const serviceFields = useHomeFilterStore((s) => s.serviceFields);
   const toggles = useHomeFilterStore((s) => s.toggles);
   const search = useHomeFilterStore((s) => s.search);
   const reset = useHomeFilterStore((s) => s.reset);
@@ -91,22 +90,19 @@ export function HomeScreen() {
 
   const params = useMemo(
     () =>
-      filtersToParams({ search: debouncedSearch, sort, regions, prices, date, times, serviceFields, toggles }),
-    [debouncedSearch, sort, regions, prices, date, times, serviceFields, toggles],
+      filtersToParams({ search: debouncedSearch, sort, picked, priceRange, date, times, toggles }),
+    [debouncedSearch, sort, picked, priceRange, date, times, toggles],
   );
 
   // 시간 필터: 선택한 날짜×시간에 빈 슬롯 있는 샵을 /slots/search로 받아 목록과 교집합.
-  const slotParams = useMemo(() => toSlotSearchParams({ date, times, regions }), [date, times, regions]);
+  const slotParams = useMemo(() => toSlotSearchParams({ date, times }), [date, times]);
 
   // 목록 조회 (웹모델: 목록·핀이 같은 소스 → 항상 일치):
-  //  - 지역 필터가 있으면 그 지역(districts) 전체로 조회 → 위치/bounds 안 보냄(먼 지역 필터해도 나오게).
-  //  - 없으면 지도 화면영역(bounds) 안 샵 + 중심(mapCenter) 거리순. 지도 이동 시 idle이 갱신(자동, 웹처럼).
-  const hasRegionFilter = regions.length > 0;
-  // 검색은 지역 검색 전용이라 결과가 지금 보이는 지도 밖(예: "천호")이다. bounds·위치를 보내면
+  //  지도 화면영역(bounds) 안 샵 + 중심(mapCenter) 거리순. 지도 이동 시 idle이 갱신(자동, 웹처럼).
+  // 검색어가 있으면 결과가 지금 보이는 지도 밖(예: "천호")일 수 있다. bounds·위치를 보내면
   // 백엔드가 화면영역/반경 5km로 잘라내 "조건에 맞는 샵 없음"이 되므로 검색 중엔 빼고 보낸다.
   const hasSearch = debouncedSearch.trim().length > 0;
   const listParams = useMemo(() => {
-    if (hasRegionFilter) return slotParams !== null ? { ...params, limit: 100 } : params;
     if (hasSearch) return { ...params, limit: slotParams !== null ? 100 : 60 };
     // 화면 안 "가까운순" 상위 60개만 — 목록·핀 공용. (500개는 카드/이미지 과다로 버벅·이미지 빈칸)
     return {
@@ -119,7 +115,7 @@ export function HomeScreen() {
       neLng: mapBounds.neLng,
       limit: 60,
     };
-  }, [params, slotParams, hasRegionFilter, hasSearch, mapCenter, mapBounds]);
+  }, [params, slotParams, hasSearch, mapCenter, mapBounds]);
 
   const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useShops(listParams);
@@ -142,8 +138,8 @@ export function HomeScreen() {
       items = items.filter((it) => allowed.has(it.id));
     }
     // toggles 전달: 토글이 켜진 동안은 핀 색을 그 조건으로 통일한다(할인=노랑/당일예약=파랑).
-    return items.map((it) => toShopCardView(it, favoriteIds, toggles));
-  }, [data, slotParams, slotSearch.data, favoriteIds, toggles]);
+    return items.map((it) => toShopCardView(it, favoriteIds, toggles, myLocation));
+  }, [data, slotParams, slotSearch.data, favoriteIds, toggles, myLocation]);
 
   // 지도 핀 = 목록(shops)과 동일 소스 → 핀과 바텀시트 리스트가 항상 일치("이 핀이 리스트 여기").
   const pins = useMemo(
@@ -174,6 +170,10 @@ export function HomeScreen() {
     pannedSearchRef.current = q;
     mapRef.current?.moveTo(first.lat!, first.lng!);
   }, [debouncedSearch, shops]);
+
+  // "현 지도에서 검색"은 지도가 내 위치(없으면 기본 중심)에서 벗어났을 때만 띄운다
+  // (디자이너 시안 프레임 "현위치 벗어날시"). 기준 거리는 동네 한 블록 정도인 500m.
+  const awayFromHere = distanceMeters(mapCenter, myLocation ?? GANGNAM) > 500;
 
   const selectedShop = useMemo(
     () => shops.find((s) => s.id === selectedShopId) ?? null,
@@ -270,36 +270,31 @@ export function HomeScreen() {
           style={{ paddingTop: insets.top + 4 }}
           onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
         >
-          {/* 검색바 + 알림·프로필을 한 줄로(디자이너 시안). 포커스 중엔 아이콘을 숨겨 검색창이 넓어진다. */}
-          <View pointerEvents="box-none" className="flex-row items-center gap-1 px-5">
-            <View pointerEvents="box-none" className="flex-1">
-              <SearchBar focused={searchFocused} onFocusChange={setSearchFocused} />
-            </View>
-            {!searchFocused && <HomeHeader />}
+          {/* 검색바 — 프로필 아이콘이 안쪽에 들어있다(시안). 알림 벨은 시안에서 빠졌다. */}
+          <View pointerEvents="box-none" className="px-5">
+            <SearchBar focused={searchFocused} onFocusChange={setSearchFocused} />
           </View>
 
-          {/* 시술분야 카테고리 — 시트를 열지 않고 바로 거른다. 헤더 View 안이라 headerHeight 측정에
-              포함되고, 시트 최대 확장·mapPadding이 자동으로 따라간다. 검색 중엔 숨긴다. */}
-          {!searchFocused && (
+          {/* 샥 파트너 + 시술분야 칩. 헤더 View 안이라 headerHeight 측정에 포함되고, 시트 최대 확장·
+              mapPadding이 자동으로 따라간다. 검색 중이거나 이미 하나를 골랐으면 숨긴다(시안). */}
+          {!searchFocused && !picked && (
             <View pointerEvents="box-none" className="pt-2">
               <CategoryChipBar />
             </View>
           )}
 
-          {/* 현 지도에서 검색 — 검색바 바로 아래. 지역 필터·검색 중엔 화면영역으로 조회하지 않으므로 숨김. */}
-          {!hasRegionFilter && !hasSearch && !searchFocused && (
+          {/* 현 지도에서 검색 — 지도를 내 위치에서 옮겼을 때만. 검색어 중엔 화면영역으로 조회하지 않아 숨김. */}
+          {awayFromHere && !hasSearch && !searchFocused && (
             <View pointerEvents="box-none" className="items-center pt-2">
               <Pressable
                 onPress={searchHere}
                 className="flex-row items-center gap-1.5 rounded-full bg-white px-4 py-2"
-                style={{
-                  ...shadow.md,
-                }}
+                style={shadow.md}
               >
-                <RefreshCcw size={15} color={colors.primary[500]} />
+                <RefreshCcw size={15} color={colors.text.muted} />
                 <Text
                   className="text-label-l font-pretendard-semibold"
-                  style={{ color: colors.primary[500] }}
+                  style={{ color: colors.text.strong }}
                 >
                   현 지도에서 검색
                 </Text>

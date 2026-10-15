@@ -1,48 +1,63 @@
 import { Image } from 'expo-image';
-import { ArrowDownUp, ChevronDown } from 'lucide-react-native';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { ChevronDown, SlidersHorizontal } from 'lucide-react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import { colors } from '@/shared/theme/colors';
-import { useHomeFilterStore, type SortKey } from '../useHomeFilterStore';
-import { FilterChip } from './FilterChip';
 
-// 칩 아이콘은 지도 핀과 같은 컬러 글리프(디자이너 시안) — lucide 모노톤이 아니다.
-// 핀 PNG에서 글리프를 뽑아 만든 것이라 핀 색과 정확히 같다.
+import {
+  type DateKey,
+  isFullPrice,
+  PRICE_MAX,
+  type PriceRange,
+  useHomeFilterStore,
+} from '../useHomeFilterStore';
+import { FilterChip } from './FilterChip';
+import { SORT_OPTIONS } from './filters/FilterPanel';
+
+// 칩 아이콘은 지도 핀과 같은 컬러 글리프(핀 PNG에서 추출) — 핀 색과 정확히 같다.
 const ICON_SAMEDAY = require('../../../../assets/icons/chip-sameday.png');
 const ICON_DISCOUNT = require('../../../../assets/icons/chip-discount.png');
 const ICON_STYLE = { width: 15, height: 15, marginRight: 1 } as const;
 
-const SORT_LABEL: Record<SortKey, string> = {
-  default: '기본순',
-  price_asc: '가격 낮은순',
-  price_desc: '가격 높은순',
-  partner: '샥 파트너',
-};
+const DATE_LABEL: Record<DateKey, string> = { today: '오늘', tomorrow: '내일', day_after: '모레' };
 
-// 바텀시트 칩바: 좌측 고정 정렬칩(divider) + 가로 스크롤 칩. 칩 탭 → activeFilter 전환/모드 토글.
-// 지도 모드(당일 예약·이벤트)는 상호 배타라 하나를 켜면 다른 하나가 꺼진다(store의 toggle).
-// 홈 상단에는 시술분야 카테고리 칩(CategoryChipBar)이 올라간다 — 역할이 겹치지 않는다.
+function priceLabel([min, max]: PriceRange): string {
+  if (min > 0 && max >= PRICE_MAX) return `${min}만원 이상`;
+  if (min <= 0) return `${max}만원 이하`;
+  return `${min}~${max}만원`;
+}
+
+function timeLabel(date: DateKey | null, times: string[]): string {
+  const day = DATE_LABEL[date ?? 'today'];
+  if (!times.length) return day;
+  return times.length === 1 ? `${day} ${times[0]}` : `${day} ${times[0]} 외 ${times.length - 1}`;
+}
+
+// 바텀시트 칩바 (디자이너 시안 2026-10-15).
+//  왼쪽: 지도 모드 토글(당일 예약 / 할인·이벤트 — 상호 배타)
+//  가운데: 관련도순·가격·예약시간 — 현재 고른 값을 라벨로 보여주고, 누르면 통합 필터 패널이 열린다
+//  오른쪽 고정: 필터 버튼 — 같은 패널을 연다
 export function FilterChipBar() {
-  const { sort, regions, prices, date, times, serviceFields, services, toggles, toggle, setActiveFilter } =
-    useHomeFilterStore();
+  const sort = useHomeFilterStore((s) => s.sort);
+  const priceRange = useHomeFilterStore((s) => s.priceRange);
+  const date = useHomeFilterStore((s) => s.date);
+  const times = useHomeFilterStore((s) => s.times);
+  const toggles = useHomeFilterStore((s) => s.toggles);
+  const toggle = useHomeFilterStore((s) => s.toggle);
+  const setActiveFilter = useHomeFilterStore((s) => s.setActiveFilter);
+
+  const sortLabel = SORT_OPTIONS.find((o) => o.key === sort)?.label ?? '관련도순';
+  const priceOn = !isFullPrice(priceRange);
+  const timeOn = date !== null || times.length > 0;
+  const chevron = (c: string) => <ChevronDown size={14} color={c} />;
 
   return (
     <View className="flex-row items-center border-b pb-[11px]" style={{ borderColor: colors.line.divider }}>
-      {/* 좌측 고정 정렬 칩 (오른쪽 divider만). 보이는 아이콘이 18px(디자인)에 오도록
-          lucide 아이콘 내부 여백(~3px) 보정 → pl 15px. (카드 썸네일 20px와 시각적 정렬) */}
-      <Pressable
-        onPress={() => setActiveFilter('sort')}
-        className="h-[33px] flex-row items-center gap-1 border-r pr-3 pl-[15px]"
-        style={{ borderColor: colors.gray[300] }}
-      >
-        <ArrowDownUp size={14} color={colors.gray[800]} />
-        <Text className="text-body-m font-pretendard-medium text-gray-800">{SORT_LABEL[sort]}</Text>
-      </Pressable>
-
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 6, paddingHorizontal: 6 }}
+        className="flex-1"
+        contentContainerStyle={{ gap: 6, paddingLeft: 20, paddingRight: 8, alignItems: 'center' }}
       >
         <FilterChip
           label="당일 예약"
@@ -51,36 +66,41 @@ export function FilterChipBar() {
           onPress={() => toggle('sameDay')}
         />
         <FilterChip
-          label="이벤트"
+          label="할인·이벤트"
           selected={toggles.discount}
           leftIcon={() => <Image source={ICON_DISCOUNT} style={ICON_STYLE} contentFit="contain" />}
           onPress={() => toggle('discount')}
         />
+        <View className="mx-1 h-5 w-px" style={{ backgroundColor: colors.line.base }} />
         <FilterChip
-          label="가격"
-          selected={prices.length > 0}
-          rightIcon={(c) => <ChevronDown size={14} color={c} />}
+          label={sortLabel}
+          selected={sort !== 'default'}
+          rightIcon={chevron}
+          onPress={() => setActiveFilter('sort')}
+        />
+        <FilterChip
+          label={priceOn ? priceLabel(priceRange) : '가격'}
+          selected={priceOn}
+          rightIcon={chevron}
           onPress={() => setActiveFilter('price')}
         />
         <FilterChip
-          label="지역"
-          selected={regions.length > 0}
-          rightIcon={(c) => <ChevronDown size={14} color={c} />}
-          onPress={() => setActiveFilter('region')}
-        />
-        <FilterChip
-          label="예약 시간"
-          selected={!!date || times.length > 0}
-          rightIcon={(c) => <ChevronDown size={14} color={c} />}
+          label={timeOn ? timeLabel(date, times) : '예약시간'}
+          selected={timeOn}
+          rightIcon={chevron}
           onPress={() => setActiveFilter('time')}
         />
-        <FilterChip
-          label="시술"
-          selected={serviceFields.length > 0 || services.length > 0}
-          rightIcon={(c) => <ChevronDown size={14} color={c} />}
-          onPress={() => setActiveFilter('service')}
-        />
       </ScrollView>
+
+      {/* 필터 버튼 — 스크롤 밖에 고정해 칩이 많아도 항상 보이게 */}
+      <Pressable
+        onPress={() => setActiveFilter('sort')}
+        accessibilityLabel="필터"
+        className="mr-5 h-[33px] w-[33px] items-center justify-center rounded-full border"
+        style={{ borderColor: colors.gray[300], backgroundColor: colors.white }}
+      >
+        <SlidersHorizontal size={16} color={colors.gray[800]} />
+      </Pressable>
     </View>
   );
 }

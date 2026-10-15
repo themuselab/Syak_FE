@@ -3,6 +3,7 @@ import { Clock, Star } from 'lucide-react-native';
 import { Fragment } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { sizedImage } from '@/shared/lib/image';
 import { colors } from '@/shared/theme/colors';
 
 // 카드가 실제로 쓰는 필드만의 구조적 타입 — 홈 ShopCardView(지도 필드 포함)와
@@ -92,7 +93,13 @@ export function ShopListCard({ shop, onPress, onToggleFavorite, variant = 'feed'
         style={{ borderColor: colors.line.divider }}
       >
         {thumb ? (
-          <Image source={{ uri: thumb }} style={{ width: 64, height: 64, borderRadius: 8 }} contentFit="cover" />
+          <Image
+            source={{ uri: sizedImage(thumb, 'thumb') }}
+            recyclingKey={thumb}
+            cachePolicy="memory-disk"
+            style={{ width: 64, height: 64, borderRadius: 8 }}
+            contentFit="cover"
+          />
         ) : (
           <View style={{ width: 64, height: 64, borderRadius: 8, backgroundColor: colors.line.base }} />
         )}
@@ -156,7 +163,10 @@ export function ShopListCard({ shop, onPress, onToggleFavorite, variant = 'feed'
           {shop.photos.map((uri) => (
             <Pressable key={uri} onPress={onPress}>
               <Image
-                source={{ uri }}
+                // 원본(최대 1MB) 대신 카드 크기로 줄인 사진 — 목록 로딩·앱 메모리(크래시) 대책
+                source={{ uri: sizedImage(uri, 'card') }}
+                recyclingKey={uri}
+                cachePolicy="memory-disk"
                 style={{
                   width: PHOTO_W,
                   height: PHOTO_H,

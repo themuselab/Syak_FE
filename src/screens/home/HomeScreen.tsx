@@ -2,7 +2,7 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { router } from 'expo-router';
 import { RefreshCcw } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Keyboard, Platform, Pressable, Text, View } from 'react-native';
+import { AppState, Keyboard, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useFavoriteShopIds, useToggleFavorite } from '@/shared/domain/favorite/favorite.queries';
@@ -132,6 +132,8 @@ export function HomeScreen() {
   const toggles = useHomeFilterStore((s) => s.toggles);
   const search = useHomeFilterStore((s) => s.search);
   const reset = useHomeFilterStore((s) => s.reset);
+  const activeFilter = useHomeFilterStore((s) => s.activeFilter);
+  const setActiveFilter = useHomeFilterStore((s) => s.setActiveFilter);
 
   // 검색어는 타이핑마다 store에 반영되므로 서버 요청은 디바운스 값으로만.
   const debouncedSearch = useDebouncedValue(search);
@@ -302,7 +304,8 @@ export function HomeScreen() {
             Keyboard.dismiss(); // 검색 키보드가 지도 탭으로 닫히지 않던 문제(QA #60)
             // 시트 밖(지도)을 누르면: 상세 포커스 중이면 해제(→목록), 목록이면 시트를 최소로 접어
             // 지도를 넓게 본다. 접힘은 gorhom 스냅 애니메이션으로 부드럽게 내려간다(디자인 요청).
-            if (selectedShopId) setSelectedShopId(null);
+            if (activeFilter) setActiveFilter(null);
+            else if (selectedShopId) setSelectedShopId(null);
             else sheetRef.current?.collapse();
           }}
           myLocation={myLocation}
@@ -363,6 +366,16 @@ export function HomeScreen() {
             loading={nearbyLoading}
           />
         </View>
+
+        {/* 필터 패널(80%)이 열려 있으면 시트 밖 어디를 눌러도 패널을 닫는다. 지도뿐 아니라 검색바·칩
+            위를 눌러도 닫혀야 해서, 지도 탭 이벤트 대신 화면 전체를 덮는 투명 막을 둔다(시트는 이 위). */}
+        {activeFilter && (
+          <Pressable
+            accessibilityLabel="필터 닫기"
+            onPress={() => setActiveFilter(null)}
+            style={StyleSheet.absoluteFill}
+          />
+        )}
 
         <ShopBottomSheet
           ref={sheetRef}

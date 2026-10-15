@@ -1,6 +1,6 @@
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, BackHandler, Keyboard, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Keyboard, Platform, View } from 'react-native';
 
 import { useBottomInset } from '@/shared/lib/safeArea';
 import { ShopDetailSheet } from '@/screens/shop-detail/ShopDetailSheet';
@@ -108,8 +108,20 @@ export const ShopBottomSheet = forwardRef<ShopBottomSheetRef, Props>(function Sh
       if (indexBeforeFilter.current === null) indexBeforeFilter.current = indexRef.current;
       sheetRef.current?.snapToIndex(0);
     } else if (indexBeforeFilter.current !== null) {
-      sheetRef.current?.snapToIndex(indexBeforeFilter.current);
+      const target = indexBeforeFilter.current;
       indexBeforeFilter.current = null;
+      // 닫는 순간 스냅이 1개(80%) → 3개로 바뀌는데, gorhom 내부는 한두 프레임 늦게 새 스냅을 받는다.
+      // 그 사이에 snapToIndex(1·2)를 부르면 "index out of snap points range" 예외가 effect 밖으로 새
+      // 앱 전체가 백지가 됐다(필터 "닫기"·바깥 탭 모두). 새 스냅이 들어간 뒤 프레임에 옮긴다.
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          try {
+            sheetRef.current?.snapToIndex(target);
+          } catch {
+            sheetRef.current?.snapToIndex(1); // 그래도 범위가 안 맞으면 기본 높이(40%)
+          }
+        }),
+      );
     }
   }, [activeFilter]);
 
@@ -195,6 +207,13 @@ export const ShopBottomSheet = forwardRef<ShopBottomSheetRef, Props>(function Sh
               keyboardDismissMode="on-drag"
               keyboardShouldPersistTaps="handled"
               onEndReached={onEndReached}
+              // 카드마다 사진이 3장이라 한 번에 많이 그리면 메모리가 치솟는다(앱 크래시 위험).
+              // 화면 근처만 그리고, 네이티브에선 화면 밖 카드를 떼어내 사진 메모리를 놓는다.
+              // (웹은 removeClippedSubviews가 빈칸 버그를 내서 끈다)
+              initialNumToRender={4}
+              maxToRenderPerBatch={4}
+              windowSize={5}
+              removeClippedSubviews={Platform.OS !== 'web'}
               onEndReachedThreshold={0.5}
               ListFooterComponent={
                 isFetchingNextPage ? (

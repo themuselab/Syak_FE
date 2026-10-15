@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { ScrollView, View } from 'react-native';
+import { sizedImage } from '@/shared/lib/image';
 import { colors } from '@/shared/theme/colors';
 
 type Props = {
@@ -19,7 +20,8 @@ export function ImageCarousel({ photos }: Props) {
         ? photos.map((uri, i) => (
             <Image
               key={`${uri}-${i}`}
-              source={{ uri }}
+              source={{ uri: sizedImage(uri, 'carousel') }}
+              cachePolicy="memory-disk"
               style={{ width: 126, height: 152, borderRadius: 16 }}
               contentFit="cover"
             />

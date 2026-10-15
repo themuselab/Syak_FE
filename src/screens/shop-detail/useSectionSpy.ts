@@ -58,7 +58,10 @@ export function useSectionSpy() {
   };
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const y = e.nativeEvent.contentOffset.y + tabBarHeight.current + 1;
+    // 섹션 맨 위엔 회색 띠(8)와 위 여백(24)이 있어서, 제목이 탭바 바로 아래 와도 섹션 시작점은
+    // 아직 탭바보다 아래다. 그 여백만큼 일찍 활성 탭을 바꿔야 "보이는 제목 = 활성 탭"이 맞는다.
+    const SECTION_LEAD = 32;
+    const y = e.nativeEvent.contentOffset.y + tabBarHeight.current + SECTION_LEAD;
     let next: TabKey = 'home';
     for (const key of SPY_SECTIONS) {
       const top = offsets.current[key];

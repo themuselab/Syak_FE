@@ -1,72 +1,70 @@
 import { Star } from 'lucide-react-native';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { colors } from '@/shared/theme/colors';
 
 import type { ShopDetailView } from '../shopDetailToView';
-import { Badge } from './Badge';
-
-const FAVORITE_COLOR = colors.accent.favorite;
 
 type Props = {
-  shop: Pick<ShopDetailView, 'name' | 'category' | 'reviewCount' | 'badges'>;
-  // 타이틀 행 오른쪽 즐겨찾기 별(특정샵 포커스 시트 디자인 euK3A) — 홈 시트에서만 전달.
+  shop: Pick<ShopDetailView, 'name' | 'category' | 'locationLabel' | 'rating' | 'reviewCount'>;
+  // 홈 포커스 시트(35%)에서만 타이틀 행에 별을 둔다. 라우트 화면은 헤더 별을 쓴다.
   favorite?: boolean;
   onToggleFavorite?: () => void;
 };
 
-// 이름 + 분류 + 리뷰수 (+옵션: 별) / 배지. 좌측 정렬.
+// 샵 이름 블록 (디자이너 시안 2026-10-15).
+//   예쁜 네일  네일샵
+//   320m 전농동 • ★ 4.9 (리뷰 98)
+// 평점은 DB에 없어서 지금은 "리뷰 98"만 나온다(평점이 생기면 별과 함께 자동 노출).
 export function ShopTitleBlock({ shop, favorite, onToggleFavorite }: Props) {
+  const reviewText = shop.rating != null ? `${shop.rating.toFixed(1)} (리뷰 ${shop.reviewCount})` : `리뷰 ${shop.reviewCount}`;
+
   return (
-    <View className="gap-2 px-5">
+    <View className="gap-1.5 px-5">
       <View className="flex-row items-center justify-between">
-        <View className="flex-row items-center gap-5">
-          <View className="flex-row items-center gap-2">
-            <Text
-              className="font-pretendard-semibold text-[24px]"
-              style={{ color: colors.overlay.shadow, letterSpacing: -0.48 }}
-            >
-              {shop.name}
-            </Text>
-            <Text className="font-pretendard text-[15px]" style={{ color: colors.text.muted }}>
+        <View className="flex-1 flex-row items-baseline gap-2 pr-2">
+          <Text
+            className="font-pretendard-semibold"
+            numberOfLines={1}
+            style={{ fontSize: 22, color: colors.text.strong, letterSpacing: -0.44, flexShrink: 1 }}
+          >
+            {shop.name}
+          </Text>
+          {!!shop.category && (
+            <Text className="text-body-m font-pretendard" style={{ color: colors.text.subtle }}>
               {shop.category}
             </Text>
-          </View>
-          <Text className="font-pretendard text-[12px]" style={{ color: colors.text.disabled }}>
-            리뷰 {shop.reviewCount}
-          </Text>
+          )}
         </View>
         {onToggleFavorite && (
           <Pressable onPress={onToggleFavorite} hitSlop={8}>
             <Star
               size={24}
-              color={favorite ? FAVORITE_COLOR : colors.gray[300]}
-              fill={favorite ? FAVORITE_COLOR : 'transparent'}
+              color={favorite ? colors.accent.favorite : colors.gray[300]}
+              fill={favorite ? colors.accent.favorite : 'transparent'}
             />
           </Pressable>
         )}
       </View>
 
-      {/* 이벤트·가격대 배지: 여러 개일 때 잘리지 않게 좌우 슬라이드(캐러셀).
-          긴 이벤트 문구는 Badge maxWidth로 한 장씩 잘라 보여준다(디자인 TO-BE). */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 4, paddingRight: 4 }}
-      >
-        {shop.badges.map((b, i) => {
-          const isDeal = b.includes('특가') || b.includes('이벤트');
-          return (
-            <Badge
-              key={`${b}-${i}`}
-              label={b}
-              bg={isDeal ? colors.brand.tint : colors.surface.mutedAlt}
-              color={isDeal ? colors.brand.active : colors.text.subtleAlt}
-              maxWidth={215}
-            />
-          );
-        })}
-      </ScrollView>
+      <View className="flex-row items-center">
+        {!!shop.locationLabel && (
+          <>
+            <Text className="text-caption-m font-pretendard" style={{ color: colors.text.subtle }}>
+              {shop.locationLabel}
+            </Text>
+            <Text className="mx-1.5 text-caption-m" style={{ color: colors.line.strong }}>
+              •
+            </Text>
+          </>
+        )}
+        {shop.rating != null && (
+          <Star size={13} color={colors.accent.favorite} fill={colors.accent.favorite} style={{ marginRight: 3 }} />
+        )}
+        <Text className="text-caption-m font-pretendard" style={{ color: colors.text.subtle }}>
+          {reviewText}
+        </Text>
+      </View>
     </View>
   );
 }

@@ -7,6 +7,7 @@ import { track } from '@/shared/lib/analytics';
 import { postReservationClick } from '@/shared/domain/reservation/reservation.api';
 import { useShopSlots } from '@/shared/domain/reservation/reservation.queries';
 import { useShop } from '@/shared/domain/shops/shops.queries';
+import { useMyLocationStore } from '@/shared/lib/myLocation.store';
 import { colors } from '@/shared/theme/colors';
 
 import { DetailHeader } from './components/DetailHeader';
@@ -20,19 +21,28 @@ type Props = {
   onToggleFavorite: () => void;
   expanded: boolean; // 시트 풀스크린 여부 — true일 때만 헤더·예약바 표시(접힘 35%는 본문 상단만)
   onCollapse: () => void; // 헤더 뒤로가기 → 시트 접기
+  onClose: () => void; // 헤더 ✕ → 상세 닫고 목록으로(선택 해제)
 };
 
 // 홈 포커스 시트용 인라인 상세(특정샵 포커스 디자인 euK3A). 라우트 화면(ShopDetailScreen)과
 // 같은 쿼리키(['shops',id]/['slots',id])·본문(ShopDetailBody)을 공유 — 시트에서 본 데이터가
 // 라우트 진입 시 캐시로 재사용된다. 로그인 게이팅(LoginPromptModal)은 홈이 담당(onToggleFavorite).
-export function ShopDetailSheet({ shopId, favorite, onToggleFavorite, expanded, onCollapse }: Props) {
+export function ShopDetailSheet({
+  shopId,
+  favorite,
+  onToggleFavorite,
+  expanded,
+  onCollapse,
+  onClose,
+}: Props) {
+  const myLocation = useMyLocationStore((s) => s.coords);
   const shopQuery = useShop(shopId);
   const slotsQuery = useShopSlots(shopId);
 
   const shop = useMemo(
     () =>
-      shopQuery.data ? toShopDetailView(shopQuery.data, slotsQuery.data?.slots ?? []) : null,
-    [shopQuery.data, slotsQuery.data],
+      shopQuery.data ? toShopDetailView(shopQuery.data, slotsQuery.data?.slots ?? [], myLocation) : null,
+    [shopQuery.data, slotsQuery.data, myLocation],
   );
 
   // GA4 shop_view: 시트에 샵이 뜨면 1회 (홈 지도 → 샵 상세 조회, 웹과 동일 이벤트)
@@ -45,7 +55,12 @@ export function ShopDetailSheet({ shopId, favorite, onToggleFavorite, expanded, 
     return (
       <View className="flex-1 bg-white">
         {expanded && (
-          <DetailHeader favorite={favorite} onToggleFavorite={onToggleFavorite} onBack={onCollapse} />
+          <DetailHeader
+            favorite={favorite}
+            onToggleFavorite={onToggleFavorite}
+            onBack={onCollapse}
+            onClose={onClose}
+          />
         )}
         {shopQuery.isError ? (
           <View className="items-center gap-3 pt-12">
@@ -73,7 +88,12 @@ export function ShopDetailSheet({ shopId, favorite, onToggleFavorite, expanded, 
   return (
     <View className="flex-1 bg-white">
       {expanded && (
-        <DetailHeader favorite={favorite} onToggleFavorite={onToggleFavorite} onBack={onCollapse} />
+        <DetailHeader
+            favorite={favorite}
+            onToggleFavorite={onToggleFavorite}
+            onBack={onCollapse}
+            onClose={onClose}
+          />
       )}
 
       {/* 별은 항상 1개만. 풀스크린은 위 DetailHeader의 별을 쓰므로 타이틀 별을 끄고,
@@ -87,6 +107,7 @@ export function ShopDetailSheet({ shopId, favorite, onToggleFavorite, expanded, 
 
       {expanded && (
         <ReservationBar
+          instagram={shop.instagram}
           phone={shop.phone}
           route={shop.bookingRoute}
           onReserveClick={() => {

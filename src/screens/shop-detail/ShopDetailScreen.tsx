@@ -7,6 +7,7 @@ import { useFavoriteShopIds, useToggleFavorite } from '@/shared/domain/favorite/
 import { postReservationClick } from '@/shared/domain/reservation/reservation.api';
 import { useShopSlots } from '@/shared/domain/reservation/reservation.queries';
 import { useShop } from '@/shared/domain/shops/shops.queries';
+import { useMyLocationStore } from '@/shared/lib/myLocation.store';
 import { colors } from '@/shared/theme/colors';
 import { useLoginGate } from '@/shared/ui/loginGate';
 
@@ -23,13 +24,14 @@ type Props = {
 // 본문(타이틀·캐러셀·sticky 탭·스크롤스파이·섹션)은 ShopDetailBody — 홈 포커스 시트와 공유.
 // 즐겨찾기는 /favorites 서버 연동(홈과 단일 캐시) — 비회원은 LoginPromptModal 게이팅.
 export function ShopDetailScreen({ shopId }: Props) {
+  const myLocation = useMyLocationStore((s) => s.coords);
   const shopQuery = useShop(shopId ?? '', !!shopId);
   const slotsQuery = useShopSlots(shopId ?? '', !!shopId);
 
   const shop = useMemo(
     () =>
-      shopQuery.data ? toShopDetailView(shopQuery.data, slotsQuery.data?.slots ?? []) : null,
-    [shopQuery.data, slotsQuery.data],
+      shopQuery.data ? toShopDetailView(shopQuery.data, slotsQuery.data?.slots ?? [], myLocation) : null,
+    [shopQuery.data, slotsQuery.data, myLocation],
   );
 
   // GA4 shop_view: 샵 상세 진입 시 1회 (웹 detail_view→shop_view와 동일 이벤트, 통합 퍼널)
@@ -90,6 +92,7 @@ export function ShopDetailScreen({ shopId }: Props) {
       />
 
       <ReservationBar
+        instagram={shop.instagram}
         phone={shop.phone}
         route={shop.bookingRoute}
         onReserveClick={() => {

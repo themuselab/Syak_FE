@@ -2,9 +2,11 @@ import { useEffect, type ReactElement, type ReactNode } from 'react';
 import type { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { View } from 'react-native';
 
+import { colors } from '@/shared/theme/colors';
+
 import { AvailabilitySection } from './components/AvailabilitySection';
+import { HomeInfoSection } from './components/HomeInfoSection';
 import { ImageCarousel } from './components/ImageCarousel';
-import { InfoSection } from './components/InfoSection';
 import { MenuSection } from './components/MenuSection';
 import { ReviewSection } from './components/ReviewSection';
 import { SectionTabs } from './components/SectionTabs';
@@ -36,7 +38,7 @@ type Props = {
   onToggleFavorite?: () => void;
 };
 
-// 상세 본문(타이틀·캐러셀·sticky 탭·섹션 4개) — 라우트 화면과 홈 포커스 시트가 공유.
+// 상세 본문 — 라우트 화면과 홈 포커스 시트가 공유.
 export function ShopDetailBody({ shop, renderScroll, favorite, onToggleFavorite }: Props) {
   const spy = useSectionSpy();
 
@@ -45,9 +47,13 @@ export function ShopDetailBody({ shop, renderScroll, favorite, onToggleFavorite 
     spy.reset();
   }, [shop.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 섹션 사이 굵은 회색 띠(시안). 띠를 섹션 안쪽 맨 위에 둬서 탭으로 점프하면 띠부터 보인다.
+  const band = <View style={{ height: 8, backgroundColor: colors.surface.muted }} />;
+
+  // 순서(디자이너 시안 2026-10-15): 제목·사진 → 탭 → 홈(이벤트·정보·소개) → 가격 → 빈자리 → 리뷰.
   const children: ReactNode[] = [
-    // index 0: 홈 영역 (타이틀 + 캐러셀)
-    <View key="home" className="gap-5 pt-4">
+    // index 0: 제목 + 사진
+    <View key="top" className="gap-5 pt-4 pb-5">
       <ShopTitleBlock shop={shop} favorite={favorite} onToggleFavorite={onToggleFavorite} />
       <ImageCarousel photos={shop.photos} />
     </View>,
@@ -55,20 +61,31 @@ export function ShopDetailBody({ shop, renderScroll, favorite, onToggleFavorite 
     <View key="tabs" onLayout={spy.onTabBarLayout}>
       <SectionTabs active={spy.activeTab} onPressTab={spy.onPressTab} />
     </View>,
-    // index 2~5: 섹션 (각 onLayout으로 스크롤 오프셋 수집)
-    <View key="availability" className="px-5 pt-7" onLayout={spy.onSectionLayout('availability')}>
-      <AvailabilitySection availability={shop.availability} />
+    // index 2: 홈 영역 — 탭 바로 아래라 "홈" 탭(맨 위)에 속한다
+    <View key="home" className="pb-6">
+      <HomeInfoSection shop={shop} />
     </View>,
-    <View key="menu" className="px-5 pt-8" onLayout={spy.onSectionLayout('menu')}>
-      <MenuSection menus={shop.menus} />
+    // index 3~5: 스크롤스파이 섹션 (각 onLayout으로 스크롤 오프셋 수집)
+    <View key="menu" onLayout={spy.onSectionLayout('menu')}>
+      {band}
+      <View className="px-5 pb-6 pt-6">
+        <MenuSection menus={shop.menus} />
+      </View>
     </View>,
-    <View key="info" className="px-5 pt-8" onLayout={spy.onSectionLayout('info')}>
-      <InfoSection info={shop.info} />
+    <View key="availability" onLayout={spy.onSectionLayout('availability')}>
+      {band}
+      <View className="px-5 pb-6 pt-6">
+        <AvailabilitySection timeline={shop.timeline} />
+      </View>
     </View>,
-    <View key="review" className="px-5 pt-8" onLayout={spy.onSectionLayout('review')}>
-      <ReviewSection reviewCount={shop.reviewCount} reviews={shop.reviews} />
+    <View key="review" onLayout={spy.onSectionLayout('review')}>
+      {band}
+      <View className="px-5 pt-6">
+        <ReviewSection reviewCount={shop.reviewCount} reviews={shop.reviews} />
+      </View>
     </View>,
   ];
+
 
   return renderScroll(
     {

@@ -5,15 +5,13 @@ import { TouchableOpacity } from '@gorhom/bottom-sheet';
 import { Text, View } from 'react-native';
 import { colors } from '@/shared/theme/colors';
 
-export type TabKey = 'home' | 'availability' | 'menu' | 'info' | 'review';
+export type TabKey = 'home' | 'menu' | 'availability' | 'review';
 
-// 탭 5개가 각각 flex-1이라 360dp 화면에선 탭 하나가 약 64px. '메뉴·가격'(16px 폰트, 약 80px)은
-// 여기서 두 줄로 꺾였다 → '가격'으로 축약(QA 3차, 디자이너 확인 항목).
+// 디자이너 시안 2026-10-15: 홈 · 가격 · 빈자리 · 리뷰 (정보 탭은 홈 아래로 합쳐졌다).
 export const TABS: { key: TabKey; label: string }[] = [
   { key: 'home', label: '홈' },
-  { key: 'availability', label: '빈자리' },
   { key: 'menu', label: '가격' },
-  { key: 'info', label: '정보' },
+  { key: 'availability', label: '빈자리' },
   { key: 'review', label: '리뷰' },
 ];
 
@@ -25,33 +23,35 @@ type Props = {
 // 섹션 탭 바. 스크롤스파이용 — 활성 탭 밑줄 + 핑크 텍스트. 상단 sticky.
 export function SectionTabs({ active, onPressTab }: Props) {
   return (
-    <View className="flex-row bg-white px-5">
+    <View className="flex-row border-b bg-white px-5" style={{ borderColor: colors.line.divider }}>
       {TABS.map((tab) => {
         const isActive = tab.key === active;
         return (
-          <TouchableOpacity
-            key={tab.key}
-            onPress={() => onPressTab(tab.key)}
-            hitSlop={{ top: 6, bottom: 6 }}
-            // gorhom TouchableOpacity엔 NativeWind className이 적용되지 않아(서드파티 컴포넌트)
-            // flex-1이 무시돼 탭이 글자 너비로 붙어버렸다(QA #21). 레이아웃을 style로 지정. (홈/빈자리/가격/정보/리뷰)
-            style={{
-              flex: 1,
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: 8,
-              borderBottomWidth: 1,
-              borderBottomColor: isActive ? colors.primary[500] : 'transparent',
-            }}
-          >
-            <Text
-              className="font-pretendard-medium text-[16px]"
-              numberOfLines={1}
-              style={{ color: isActive ? colors.brand.active : colors.text.subtleAlt2, letterSpacing: -0.32 }}
+          // 웹(react-native-web)에선 gorhom TouchableOpacity의 style flex:1이 적용되지 않아 탭이
+          // 글자 폭으로 왼쪽에 몰렸다. 바깥 View가 4등분 폭을 잡고, 터치 영역은 그 안을 꽉 채운다.
+          <View key={tab.key} style={{ flex: 1 }}>
+            <TouchableOpacity
+              onPress={() => onPressTab(tab.key)}
+              hitSlop={{ top: 6, bottom: 6 }}
+              style={{
+                width: '100%',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 8,
+                borderBottomWidth: 2,
+                marginBottom: -1,
+                borderBottomColor: isActive ? colors.primary[500] : 'transparent',
+              }}
             >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
+              <Text
+                className="font-pretendard-medium text-[16px]"
+                numberOfLines={1}
+                style={{ color: isActive ? colors.primary[500] : colors.text.subtle, letterSpacing: -0.32 }}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          </View>
         );
       })}
     </View>

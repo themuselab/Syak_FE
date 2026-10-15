@@ -173,6 +173,7 @@ export const ShopBottomSheet = forwardRef<ShopBottomSheetRef, Props>(function Sh
           onToggleFavorite={() => onToggleFavorite(selectedShop.id)}
           expanded={expanded}
           onCollapse={() => sheetRef.current?.snapToIndex(0)}
+          onClose={onDeselect}
         />
       ) : (
         <>

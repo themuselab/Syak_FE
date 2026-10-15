@@ -13,21 +13,21 @@ export function ImageCarousel({ photos }: Props) {
       horizontal
       showsHorizontalScrollIndicator={false}
       style={{ height: 152 }}
-      contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}
+      contentContainerStyle={{ paddingHorizontal: 20, gap: 6 }}
     >
       {photos.length > 0
         ? photos.map((uri, i) => (
             <Image
               key={`${uri}-${i}`}
               source={{ uri }}
-              style={{ width: 126, height: 152, borderRadius: 20 }}
+              style={{ width: 126, height: 152, borderRadius: 16 }}
               contentFit="cover"
             />
           ))
         : Array.from({ length: 3 }).map((_, i) => (
             <View
               key={i}
-              style={{ width: 126, height: 152, borderRadius: 20, backgroundColor: colors.line.strong }}
+              style={{ width: 126, height: 152, borderRadius: 16, backgroundColor: colors.line.strong }}
             />
           ))}
     </ScrollView>

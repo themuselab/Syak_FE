@@ -10,6 +10,7 @@ import { useSlotSearch } from '@/shared/domain/reservation/reservation.queries';
 import { useShops } from '@/shared/domain/shops/shops.queries';
 import type { MapBounds } from '@/shared/domain/shops/shops.types';
 import { distanceMeters } from '@/shared/lib/geo';
+import { useMyLocationStore } from '@/shared/lib/myLocation.store';
 import {
   getCurrentCoords,
   getLocationPermission,
@@ -60,10 +61,9 @@ export function HomeScreen() {
   // 지도 화면영역(bounds) — 목록·핀 공통 조회 기준(웹모델: 보이는 영역=목록=핀). 카메라 idle마다 갱신.
   const [mapBounds, setMapBounds] = useState<MapBounds>(INITIAL_BOUNDS);
   // 내 위치 점(파란 마커) = 실제 GPS 좌표. 지도 중심과 별개.
-  const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null);
-  // AppState 리스너(한 번만 등록)에서 최신 값을 읽기 위한 ref.
-  const myLocationRef = useRef(myLocation);
-  myLocationRef.current = myLocation;
+  // 내 위치는 전역 스토어 — 목록 카드·샵 상세 거리 표기가 같은 값을 쓴다.
+  const myLocation = useMyLocationStore((s) => s.coords);
+  const setMyLocation = useMyLocationStore((s) => s.setCoords);
   // GPS 좌표 획득 대기(수 초 걸릴 수 있음) — 버튼에 스피너를 띄워 "눌러도 무반응"을 없앤다(QA #56).
   const [nearbyLoading, setNearbyLoading] = useState(false);
   // 헤더+검색바 오버레이 높이(onLayout 측정) — 시트 최대 확장 한계 계산용 (QA #50).
@@ -99,18 +99,18 @@ export function HomeScreen() {
         setPermissionModal(true);
       }
     });
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- 마운트 1회만
 
   // 설정 앱에서 권한을 켜고 돌아오면 바로 내 위치를 반영한다(앱 재시작 없이).
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
-      if (state !== 'active' || myLocationRef.current) return;
+      if (state !== 'active' || useMyLocationStore.getState().coords) return;
       getLocationPermission().then(({ granted }) => {
         if (granted) getCurrentCoords().then((c) => c && applyMyLocation(c));
       });
     });
     return () => sub.remove();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- 리스너 1회 등록
 
   // "위치 권한 설정하기": 아직 물어볼 수 있으면 OS 팝업, 이미 영구 거부했으면 설정 앱으로.
   const handleAllowLocation = async () => {

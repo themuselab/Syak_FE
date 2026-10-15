@@ -5,7 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { TabKey } from './components/SectionTabs';
 
 // 스크롤스파이 대상 섹션 (홈은 맨 위 = offset 0). 탭 순서와 동일.
-const SPY_SECTIONS: TabKey[] = ['availability', 'menu', 'info', 'review'];
+// 홈(탭 바로 아래 정보 영역)은 맨 위 기준이라 목록에 없다. 순서는 화면 순서와 같다.
+const SPY_SECTIONS: TabKey[] = ['menu', 'availability', 'review'];
 
 // 스크롤 컨테이너가 라우트(ScrollView)와 홈 시트(BottomSheetScrollView)로 달라
 // 인스턴스 타입 대신 구조적 타입으로 받는다 — 둘 다 이 시그니처의 scrollTo를 가진다.

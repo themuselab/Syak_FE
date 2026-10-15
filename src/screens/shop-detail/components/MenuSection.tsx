@@ -12,10 +12,7 @@ type Props = {
 export function MenuSection({ menus }: Props) {
   return (
     <View className="gap-4">
-      <Text
-        className="font-pretendard-medium text-[18px]"
-        style={{ color: colors.text.strong, letterSpacing: -0.36 }}
-      >
+      <Text className="text-heading-m font-pretendard-semibold" style={{ color: colors.text.strong }}>
         가격
       </Text>
       {menus.length === 0 && (
@@ -23,7 +20,7 @@ export function MenuSection({ menus }: Props) {
           메뉴 정보를 준비 중이에요
         </Text>
       )}
-      <View className="gap-4">
+      <View className="gap-3">
         {menus.map((m, i) => (
           // 폭이 모자랄 때 줄어드는 쪽은 메뉴명(말줄임), 가격은 flexShrink 0으로 고정.
           // 가격을 안 막으면 '75,000원'의 '원'이 줄바꿈 기회로 잡혀 두 줄로 꺾인다(QA #57).

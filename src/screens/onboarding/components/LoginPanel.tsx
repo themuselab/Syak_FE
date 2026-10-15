@@ -1,43 +1,34 @@
-import { type ReactNode, useEffect, useRef } from 'react';
-import { Animated, Easing, Platform, View } from 'react-native';
+import type { ReactNode } from 'react';
+import { Animated, View } from 'react-native';
+
+import { colors } from '@/shared/theme/colors';
 
 // 로그인 버튼 묶음을 감싸는 반투명 패널.
-// 스플래시에서 넘어올 때 아래에서 올라오며 나타난다(디자이너 요청 2026-10-15) —
-// 스플래시는 로고만 가운데 있다가 로그인 화면에서 이 패널이 붙는 흐름이라,
-// 그냥 "툭" 나타나면 화면이 바뀐 게 아니라 깜빡인 것처럼 보인다.
-//
-// useNativeDriver는 네이티브에서만 true. react-native-web은 네이티브 드라이버가 없어서
-// true로 두면 애니메이션이 아예 시작되지 않고 opacity:0에 멈춘다 — 즉 웹(웹뷰)에서
-// 로그인 버튼이 통째로 안 보인다. 실제로 그렇게 터졌다.
+// 등장 애니메이션은 화면(LoginScreen)이 가진 progress(0→1) 하나로 로고 이동과 함께 돌린다 —
+// 스플래시의 로고·문구가 위로 올라가는 동시에 이 패널이 아래에서 올라와야 자연스럽다(디자이너 요청).
 
-type Props = { children: ReactNode };
+type Props = {
+  progress: Animated.Value;
+  /** 등장 전(스플래시 단계)에는 버튼이 눌리면 안 된다 */
+  interactive: boolean;
+  children: ReactNode;
+};
 
-export function LoginPanel({ children }: Props) {
-  const progress = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(progress, {
-      toValue: 1,
-      duration: 520,
-      delay: 120, // 화면 전환이 끝난 뒤 시작해야 전환 애니메이션과 겹치지 않는다
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: Platform.OS !== 'web',
-    }).start();
-  }, [progress]);
-
+export function LoginPanel({ progress, interactive, children }: Props) {
   return (
     <Animated.View
+      pointerEvents={interactive ? 'auto' : 'none'}
       style={{
-        opacity: progress,
+        opacity: progress.interpolate({ inputRange: [0, 0.35, 1], outputRange: [0, 0.2, 1] }),
         transform: [
-          { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [40, 0] }) },
+          { translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [120, 0] }) },
         ],
       }}
     >
       <View
         className="gap-3 rounded-lg px-4 pb-4 pt-4"
-        // 핑크 배경 위 반투명 흰 패널. 시안에서 추출한 불투명도(0.12).
-        style={{ backgroundColor: 'rgba(255,255,255,0.12)' }}
+        // 핑크 배경 위 반투명 흰 패널(tokens onboarding.glass — 시안에서 역산한 12%).
+        style={{ backgroundColor: colors.onboarding.glass }}
       >
         {children}
       </View>

@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, Platform, Pressable, Text, View } from 'react-native';
 
 import { ApiError, ErrorCode } from '@/shared/api/errors';
 import { useSocialLogin } from '@/shared/domain/auth/auth.queries';
@@ -26,7 +26,18 @@ const naverIcon = require('../../../assets/icons/social-naver.png');
 // 로그인 화면. 디자인: 디자이너 시안 2026-10-15 (핑크 그라데이션 + 흰 로고 + 반투명 버튼 패널).
 // 소셜 토큰은 getSocialToken(어댑터)로 받아 useSocialLogin으로 백엔드에 전달한다.
 // 실제 소셜 SDK 연동(어댑터) 전까지는 버튼 탭 시 "준비 중" 토스트가 뜬다.
-export function LoginScreen() {
+type Props = {
+  /**
+   * 스플래시에서 이어지는 모드. 처음엔 로고·태그라인이 화면 정중앙(스플래시 모양)에 있다가
+   * revealed가 true가 되면 로고·문구가 위로 올라가고 버튼 패널이 아래에서 올라온다 — 한 화면 안의
+   * 연속 애니메이션이라 "화면이 바뀌는" 끊김이 없다(디자이너 요청).
+   * /login 라우트로 직접 들어오면(로그인 유도 팝업 등) 로고는 제자리, 패널만 올라온다.
+   */
+  intro?: boolean;
+  revealed?: boolean;
+};
+
+export function LoginScreen({ intro = false, revealed = true }: Props) {
   const socialLogin = useSocialLogin();
   const [loadingProvider, setLoadingProvider] = useState<SocialProvider | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -50,21 +61,81 @@ export function LoginScreen() {
   const goBrowse = () => router.replace('/home'); // 비회원 둘러보기 (user=null 유지)
   const busy = loadingProvider !== null;
 
+  // ── 스플래시 → 로그인 전환 ──
+  // 레이아웃은 처음부터 "로그인 모양"이다. 스플래시 단계에선 로고 묶음을 화면 정중앙까지 내려
+  // 보여주고(translateY = shift), 전환 때 0으로 올린다. shift는 실측해서 기기 높이와 무관하다.
+  const progress = useRef(new Animated.Value(0)).current;
+  const [screenH, setScreenH] = useState(0);
+  const [group, setGroup] = useState<{ y: number; h: number } | null>(null);
+  const shift = intro && group && screenH ? screenH / 2 - (group.y + group.h / 2) : 0;
+  // 실측 전 한 프레임은 숨긴다 — 안 그러면 로고가 위에 떴다가 가운데로 툭 떨어진다.
+  const measured = !intro || (group !== null && screenH > 0);
+
+  useEffect(() => {
+    if (!revealed || !measured) return;
+    Animated.timing(progress, {
+      toValue: 1,
+      duration: intro ? 760 : 520,
+      delay: intro ? 0 : 120,
+      easing: Easing.bezier(0.22, 1, 0.36, 1), // 빠르게 출발해 부드럽게 멈춤
+      // react-native-web엔 네이티브 드라이버가 없다 — true면 웹에서 애니메이션이 시작되지 않는다.
+      useNativeDriver: Platform.OS !== 'web',
+    }).start();
+  }, [revealed, measured, intro, progress]);
+
+  const groupStyle = intro
+    ? { transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [shift, 0] }) }] }
+    : undefined;
+
   return (
     <OnboardingBackground>
-      <View className="flex-1 px-5 pb-8">
-        {/* 로고 + 카피. 스플래시의 가운데 로고가 여기서 위로 올라온 모양이다. */}
+      <View
+        className="flex-1 px-5 pb-8"
+        style={{ opacity: measured ? 1 : 0 }}
+        onLayout={(e) => setScreenH(e.nativeEvent.layout.height)}
+      >
+        {/* 로고 + 문구. 스플래시 단계엔 화면 가운데(태그라인), 전환되면 위로 올라가며 로그인 문구로 바뀐다. */}
         <View className="flex-1 items-center justify-center">
-          <SyakLogo size={112} />
-          <Text
-            className="mt-6 text-center text-body-l font-pretendard-medium"
-            style={{ color: colors.white, opacity: 0.9, lineHeight: 24 }}
+          <Animated.View
+            style={[{ alignItems: 'center' }, groupStyle]}
+            onLayout={(e) => {
+              const { y, height } = e.nativeEvent.layout;
+              if (!group) setGroup({ y, h: height });
+            }}
           >
-            {'원하는 뷰티샵,\n빈자리 예약까지 한 번에'}
-          </Text>
+            <SyakLogo size={112} />
+            <View className="mt-6 items-center justify-start" style={{ minHeight: 48 }}>
+              {/* 로그인 문구 — 전환 후반에 나타난다 */}
+              <Animated.Text
+                className="text-center text-body-l font-pretendard-medium"
+                style={{
+                  color: colors.white,
+                  lineHeight: 24,
+                  opacity: intro
+                    ? progress.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, 0, 0.9] })
+                    : 0.9,
+                }}
+              >
+                {'원하는 뷰티샵,\n빈자리 예약까지 한 번에'}
+              </Animated.Text>
+              {/* 스플래시 태그라인 — 같은 자리에서 전환 초반에 사라진다 */}
+              {intro && (
+                <Animated.Text
+                  className="absolute text-center text-body-l font-pretendard-medium"
+                  style={{
+                    top: 0,
+                    color: colors.white,
+                    opacity: progress.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0.9, 0, 0] }),
+                  }}
+                >
+                  뷰티 예약의 새로운 방법, 샥
+                </Animated.Text>
+              )}
+            </View>
+          </Animated.View>
         </View>
 
-        <LoginPanel>
+        <LoginPanel progress={progress} interactive={revealed}>
           <View className="gap-2">
             {/* Apple 로그인은 iOS 전용(앱스토어 심사 필수) — 안드로이드에선 숨김 (QA #0) */}
             {Platform.OS === 'ios' && (

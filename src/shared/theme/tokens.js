@@ -146,6 +146,14 @@ const social = {
   naver: '#00de5a',
 };
 
+// 온보딩(스플래시·로그인) — 디자이너 시안 2026-10-15에서 추출
+const onboarding = {
+  // 세로 그라데이션: 시안 상단 #F8ADC7 → 하단 #D6426F (중간 지점 #F1709A)
+  gradient: ['#f8adc7', '#f1709a', '#d6426f'],
+  // 버튼 패널 = 흰색 12% 반투명. 시안 픽셀(#DD4E7B → #E1638A)에서 역산한 값
+  glass: 'rgba(255,255,255,0.12)',
+};
+
 // 오버레이·그림자
 const overlay = {
   dim: '#00000099',        // 모달 딤
@@ -191,7 +199,7 @@ const shadow = {
 
 
 module.exports = {
-  colors: { ...colors, text, line, surface, brand, status, accent, social, overlay },
+  colors: { ...colors, text, line, surface, brand, status, accent, social, overlay, onboarding },
   fontFamily,
   fontSize,
   borderRadius,

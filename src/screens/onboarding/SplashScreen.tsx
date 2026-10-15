@@ -1,18 +1,19 @@
 import { router } from 'expo-router';
-import { useEffect } from 'react';
-import { Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
 
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import { getMe } from '@/shared/domain/user/user.api';
 
-import { OnboardingBackground } from './components/OnboardingBackground';
-import { SyakLogo } from './components/SyakLogo';
-import { colors } from '@/shared/theme/colors';
+import { LoginScreen } from './LoginScreen';
 
-// 첫 진입 로딩(스플래시) 화면. 디자인: 디자이너 시안 2026-10-15(핑크 그라데이션 + 흰 로고).
-// 세션 확인: GET /users/me 성공 → 로그인 상태(setUser) → /home, 실패(401 등) → /login.
+// 첫 진입 화면. 디자인: 디자이너 시안 2026-10-15(핑크 그라데이션 + 흰 로고).
+// 세션 확인: GET /users/me 성공 → 로그인 상태(setUser) → /home.
+// 실패(비로그인) → 화면을 바꾸지 않고 그 자리에서 로그인으로 전환한다 — 로고·문구가 위로 올라가고
+// 버튼 패널이 아래에서 올라오는 한 번의 연속 애니메이션(디자이너 요청). 예전엔 /login으로
+// replace해서 화면이 통째로 바뀌는 끊김이 있었다.
 export function SplashScreen() {
   const setUser = useAuthStore((s) => s.setUser);
+  const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -20,18 +21,20 @@ export function SplashScreen() {
     const minDelay = new Promise<void>((resolve) => setTimeout(resolve, 1200));
 
     (async () => {
-      let dest: '/home' | '/login' = '/login';
+      let loggedIn = false;
       try {
         const me = await getMe();
         if (!cancelled) {
           setUser({ id: me.id, nickname: me.nickname, profileImage: me.profileImage });
-          dest = '/home';
+          loggedIn = true;
         }
       } catch {
-        dest = '/login'; // 비로그인/세션 없음
+        loggedIn = false; // 비로그인/세션 없음
       }
       await minDelay;
-      if (!cancelled) router.replace(dest);
+      if (cancelled) return;
+      if (loggedIn) router.replace('/home');
+      else setRevealed(true);
     })();
 
     return () => {
@@ -39,18 +42,5 @@ export function SplashScreen() {
     };
   }, [setUser]);
 
-  return (
-    <OnboardingBackground>
-      {/* 로고는 화면 정중앙. 로그인 화면에서는 같은 로고가 위쪽으로 올라간다. */}
-      <View className="flex-1 items-center justify-center">
-        <SyakLogo size={112} />
-        <Text
-          className="mt-5 text-body-l font-pretendard-medium"
-          style={{ color: colors.white, opacity: 0.9 }}
-        >
-          뷰티 예약의 새로운 방법, 샥
-        </Text>
-      </View>
-    </OnboardingBackground>
-  );
+  return <LoginScreen intro revealed={revealed} />;
 }

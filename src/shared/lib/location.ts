@@ -1,4 +1,5 @@
 import * as Location from 'expo-location';
+import { Linking, Platform } from 'react-native';
 
 // 위치 권한 상태 조회(요청 팝업 없음). 마이페이지 "위치 권한" 토글 표시용(QA 비로그인 #3).
 export async function getLocationPermission(): Promise<{ granted: boolean; canAskAgain: boolean }> {
@@ -17,6 +18,17 @@ export async function requestLocationPermission(): Promise<boolean> {
     return status === 'granted';
   } catch {
     return false;
+  }
+}
+
+// 위치 권한을 이미 영구 거부한 경우(canAskAgain=false) OS 팝업이 다시 뜨지 않는다 — 앱 설정 화면으로 보낸다.
+// 웹에는 설정 화면이 없으므로 아무것도 하지 않는다(브라우저 권한은 브라우저 UI로만 바꿀 수 있다).
+export async function openLocationSettings(): Promise<void> {
+  if (Platform.OS === 'web') return;
+  try {
+    await Linking.openSettings();
+  } catch {
+    // 설정 열기 실패는 치명적이지 않다 — 사용자는 기본 위치로 계속 쓸 수 있다.
   }
 }
 

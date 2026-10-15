@@ -2,7 +2,7 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { router } from 'expo-router';
 import { RefreshCcw } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, Pressable, Text, View } from 'react-native';
+import { AppState, Keyboard, Platform, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useFavoriteShopIds, useToggleFavorite } from '@/shared/domain/favorite/favorite.queries';
@@ -10,9 +10,14 @@ import { useSlotSearch } from '@/shared/domain/reservation/reservation.queries';
 import { useShops } from '@/shared/domain/shops/shops.queries';
 import type { MapBounds } from '@/shared/domain/shops/shops.types';
 import { distanceMeters } from '@/shared/lib/geo';
-import { getCurrentCoords } from '@/shared/lib/location';
+import {
+  getCurrentCoords,
+  getLocationPermission,
+  openLocationSettings,
+} from '@/shared/lib/location';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { colors, shadow } from '@/shared/theme/colors';
+import { LocationPermissionModal } from '@/shared/ui/LocationPermissionModal';
 import { useLoginGate } from '@/shared/ui/loginGate';
 
 import { CategoryChipBar } from './components/CategoryChipBar';
@@ -37,6 +42,10 @@ function boundsAround(c: { lat: number; lng: number }): MapBounds {
 }
 const INITIAL_BOUNDS: MapBounds = boundsAround(GANGNAM);
 
+// 위치 권한 안내 팝업은 앱 실행 중 한 번만 자동으로 띄운다. 홈에 돌아올 때마다 뜨면 귀찮다.
+// (현재위치 버튼을 누르면 권한이 없을 때 다시 뜬다 — 사용자가 직접 원한 경우라서)
+let permissionPromptShown = false;
+
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const mapRef = useRef<HomeMapRef>(null);
@@ -52,6 +61,9 @@ export function HomeScreen() {
   const [mapBounds, setMapBounds] = useState<MapBounds>(INITIAL_BOUNDS);
   // 내 위치 점(파란 마커) = 실제 GPS 좌표. 지도 중심과 별개.
   const [myLocation, setMyLocation] = useState<{ lat: number; lng: number } | null>(null);
+  // AppState 리스너(한 번만 등록)에서 최신 값을 읽기 위한 ref.
+  const myLocationRef = useRef(myLocation);
+  myLocationRef.current = myLocation;
   // GPS 좌표 획득 대기(수 초 걸릴 수 있음) — 버튼에 스피너를 띄워 "눌러도 무반응"을 없앤다(QA #56).
   const [nearbyLoading, setNearbyLoading] = useState(false);
   // 헤더+검색바 오버레이 높이(onLayout 측정) — 시트 최대 확장 한계 계산용 (QA #50).
@@ -64,17 +76,53 @@ export function HomeScreen() {
   // 덮거나 틈이 생긴다(사용자 피드백) — 시트·내 위치 버튼 모두 이 실측값을 쓴다.
   const [containerHeight, setContainerHeight] = useState(0);
 
-  // 홈 최초 진입 시 위치 권한 요청. 허용 → 내 위치 점 + 지도 이동. 중심/영역도 내 위치로 즉시 세팅
-  // (카메라 idle 전 강남 조회 깜빡임 방지) → 이후 idle이 실제 화면영역으로 갱신. 미동의 → 강남 유지.
+  // 위치 권한 안내 팝업(디자이너 시안 "위치권한 팝업").
+  const [permissionModal, setPermissionModal] = useState(false);
+
+  // 내 위치로 지도·목록 기준점을 옮긴다. 중심/영역을 즉시 세팅해 카메라 idle 전 강남 조회
+  // 깜빡임을 막고, 이후 idle이 실제 화면영역으로 갱신한다.
+  const applyMyLocation = (coords: { lat: number; lng: number }) => {
+    setMyLocation(coords);
+    setMapCenter(coords);
+    setMapBounds(boundsAround(coords));
+    mapRef.current?.moveTo(coords.lat, coords.lng);
+  };
+
+  // 홈 최초 진입: 권한이 이미 있으면 바로 내 위치. 없으면 OS 팝업을 바로 띄우지 않고 안내 팝업부터
+  // (예전엔 진입하자마자 OS 팝업이 떠서 왜 필요한지 모른 채 거부하기 쉬웠다). 미동의 → 강남 유지.
   useEffect(() => {
-    getCurrentCoords().then((coords) => {
-      if (!coords) return;
-      setMyLocation(coords);
-      setMapCenter(coords);
-      setMapBounds(boundsAround(coords));
-      mapRef.current?.moveTo(coords.lat, coords.lng);
+    getLocationPermission().then(({ granted }) => {
+      if (granted) {
+        getCurrentCoords().then((c) => c && applyMyLocation(c));
+      } else if (!permissionPromptShown) {
+        permissionPromptShown = true;
+        setPermissionModal(true);
+      }
     });
   }, []);
+
+  // 설정 앱에서 권한을 켜고 돌아오면 바로 내 위치를 반영한다(앱 재시작 없이).
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active' || myLocationRef.current) return;
+      getLocationPermission().then(({ granted }) => {
+        if (granted) getCurrentCoords().then((c) => c && applyMyLocation(c));
+      });
+    });
+    return () => sub.remove();
+  }, []);
+
+  // "위치 권한 설정하기": 아직 물어볼 수 있으면 OS 팝업, 이미 영구 거부했으면 설정 앱으로.
+  const handleAllowLocation = async () => {
+    setPermissionModal(false);
+    const { canAskAgain } = await getLocationPermission();
+    if (!canAskAgain && Platform.OS !== 'web') {
+      await openLocationSettings();
+      return;
+    }
+    const coords = await getCurrentCoords(); // 여기서 OS 권한 팝업이 뜬다
+    if (coords) applyMyLocation(coords);
+  };
 
   const sort = useHomeFilterStore((s) => s.sort);
   const picked = useHomeFilterStore((s) => s.picked);
@@ -222,15 +270,17 @@ export function HomeScreen() {
   };
 
   // 현재위치 버튼: 최신 GPS로 내 위치 점 + 지도 재중심. 목록·핀은 지도 이동 후 카메라 idle이 갱신.
+  // 권한이 없으면 아무 반응 없이 끝나던 것을, 안내 팝업으로 바꿨다(눌러도 무반응 방지).
   const handleRecenter = async () => {
+    const { granted } = await getLocationPermission();
+    if (!granted) {
+      setPermissionModal(true);
+      return;
+    }
     setNearbyLoading(true);
     try {
       const coords = await getCurrentCoords(true); // 항상 최신 GPS
-      if (!coords) return;
-      setMyLocation(coords);
-      setMapCenter(coords);
-      setMapBounds(boundsAround(coords)); // idle 전에도 즉시 내 위치 영역 조회
-      mapRef.current?.moveTo(coords.lat, coords.lng);
+      if (coords) applyMyLocation(coords);
     } finally {
       setNearbyLoading(false);
     }
@@ -334,6 +384,11 @@ export function HomeScreen() {
           containerHeight={containerHeight}
         />
 
+        <LocationPermissionModal
+          visible={permissionModal}
+          onAllow={handleAllowLocation}
+          onClose={() => setPermissionModal(false)}
+        />
         {loginModal}
       </View>
     </BottomSheetModalProvider>

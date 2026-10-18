@@ -9,7 +9,6 @@ import { useFavoriteShopIds, useToggleFavorite } from '@/shared/domain/favorite/
 import { useSlotSearch } from '@/shared/domain/reservation/reservation.queries';
 import { useShops } from '@/shared/domain/shops/shops.queries';
 import type { MapBounds } from '@/shared/domain/shops/shops.types';
-import { distanceMeters } from '@/shared/lib/geo';
 import { useMyLocationStore } from '@/shared/lib/myLocation.store';
 import {
   getCurrentCoords,
@@ -56,10 +55,17 @@ export function HomeScreen() {
   const favoriteIds = useFavoriteShopIds(isLoggedIn); // 비회원 → 빈 Set(별 항상 꺼짐)
   const toggleFavoriteOnServer = useToggleFavorite();
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
-  // 지도 중심(카메라 idle마다 갱신) — 거리순 정렬 기준.
+  // 조회 기준 — 목록·핀이 이 중심(거리순)·영역(bounds) 안의 샵을 보여준다.
+  // 지도를 움직여도 바뀌지 않는다. "현 지도에서 검색"을 눌러야 지금 보이는 영역으로 바뀐다(요청).
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>(GANGNAM);
-  // 지도 화면영역(bounds) — 목록·핀 공통 조회 기준(웹모델: 보이는 영역=목록=핀). 카메라 idle마다 갱신.
   const [mapBounds, setMapBounds] = useState<MapBounds>(INITIAL_BOUNDS);
+  // 지금 화면에 보이는 영역(카메라가 멈출 때마다 갱신). 조회 기준과 다르면 "현 지도에서 검색"이 뜬다.
+  const viewRef = useRef<{ center: { lat: number; lng: number }; bounds?: MapBounds } | null>(null);
+  const [mapMoved, setMapMoved] = useState(false);
+  // 앱이 직접 카메라를 옮긴 직후(첫 진입·내 위치·현재위치 버튼·검색 결과로 이동)의 멈춤은 사용자가
+  // 옮긴 게 아니므로 그대로 조회 기준으로 삼는다. 이 시각까지의 멈춤만 자동 반영한다.
+  // (카메라가 이미 그 자리라 멈춤 이벤트가 안 오면 다음 사용자 이동까지 자동 반영되지 않게 시간으로 끊는다)
+  const autoCommitUntilRef = useRef(Date.now() + 8000);
   // 내 위치 점(파란 마커) = 실제 GPS 좌표. 지도 중심과 별개.
   // 내 위치는 전역 스토어 — 목록 카드·샵 상세 거리 표기가 같은 값을 쓴다.
   const myLocation = useMyLocationStore((s) => s.coords);
@@ -82,6 +88,7 @@ export function HomeScreen() {
   // 내 위치로 지도·목록 기준점을 옮긴다. 중심/영역을 즉시 세팅해 카메라 idle 전 강남 조회
   // 깜빡임을 막고, 이후 idle이 실제 화면영역으로 갱신한다.
   const applyMyLocation = (coords: { lat: number; lng: number }) => {
+    autoCommitUntilRef.current = Date.now() + 3000;
     setMyLocation(coords);
     setMapCenter(coords);
     setMapBounds(boundsAround(coords));
@@ -148,7 +155,7 @@ export function HomeScreen() {
   const slotParams = useMemo(() => toSlotSearchParams({ date, times }), [date, times]);
 
   // 목록 조회 (웹모델: 목록·핀이 같은 소스 → 항상 일치):
-  //  지도 화면영역(bounds) 안 샵 + 중심(mapCenter) 거리순. 지도 이동 시 idle이 갱신(자동, 웹처럼).
+  //  조회 기준 영역(bounds) 안 샵 + 중심(mapCenter) 거리순. 지도를 옮긴 뒤 "현 지도에서 검색"을 눌러야 바뀐다.
   // 검색어가 있으면 결과가 지금 보이는 지도 밖(예: "천호")일 수 있다. bounds·위치를 보내면
   // 백엔드가 화면영역/반경 5km로 잘라내 "조건에 맞는 샵 없음"이 되므로 검색 중엔 빼고 보낸다.
   const hasSearch = debouncedSearch.trim().length > 0;
@@ -218,12 +225,9 @@ export function HomeScreen() {
     const first = shops.find((s) => s.lat != null && s.lng != null);
     if (!first) return;
     pannedSearchRef.current = q;
+    autoCommitUntilRef.current = Date.now() + 3000;
     mapRef.current?.moveTo(first.lat!, first.lng!);
   }, [debouncedSearch, shops]);
-
-  // "현 지도에서 검색"은 지도가 내 위치(없으면 기본 중심)에서 벗어났을 때만 띄운다
-  // (디자이너 시안 프레임 "현위치 벗어날시"). 기준 거리는 동네 한 블록 정도인 500m.
-  const awayFromHere = distanceMeters(mapCenter, myLocation ?? GANGNAM) > 500;
 
   const selectedShop = useMemo(
     () => shops.find((s) => s.id === selectedShopId) ?? null,
@@ -245,24 +249,42 @@ export function HomeScreen() {
   // 비회원은 로그인 유도, 회원은 서버 토글(낙관적 업데이트라 즉시 반영).
   const toggleFavorite = (id: string) => requireLogin(() => toggleFavoriteOnServer(id));
 
-  // "현 지도에서 검색": 지금 보이는 영역으로 즉시 재조회. 지도 이동 시 자동 갱신과 병행하는
-  // 수동 트리거(사용자가 직접 확인하고 싶을 때) — 조회 기준(bounds)은 이미 현재 화면이다.
-  const searchHere = () => {
-    refetch();
-    if (slotParams !== null) slotSearch.refetch();
+  // bounds는 소수 3자리(~100m)로 반올림 — 미세하게 다른 영역으로 재조회하지 않게.
+  const roundBounds = (b: MapBounds): MapBounds => {
+    const r = (n: number) => Math.round(n * 1000) / 1000;
+    return { swLat: r(b.swLat), swLng: r(b.swLng), neLat: r(b.neLat), neLng: r(b.neLng) };
   };
 
-  // 지도 카메라가 멈추면(idle) 중심·영역을 갱신 → 목록·핀이 그 화면영역으로 자동 재조회(웹모델).
-  // bounds는 소수 4자리(~11m)로 반올림해 미세 흔들림에 의한 불필요한 재조회를 억제.
+  // 보이는 영역을 조회 기준으로 확정 → 목록·핀 재조회.
+  const commitView = (view: { center: { lat: number; lng: number }; bounds?: MapBounds }) => {
+    setMapCenter(view.center);
+    if (view.bounds) setMapBounds(roundBounds(view.bounds));
+    setMapMoved(false);
+  };
+
+  // "현 지도에서 검색": 지금 보이는 영역으로 다시 조회한다. 지도를 움직이는 것만으로는 목록이 바뀌지 않는다.
+  const searchHere = () => {
+    if (viewRef.current) commitView(viewRef.current);
+    else refetch();
+  };
+
+  // 카메라가 멈추면 "지금 보이는 영역"만 기억한다. 앱이 직접 옮긴 직후면 바로 조회 기준으로 삼고,
+  // 사용자가 옮긴 거면 조회 기준과 달라졌을 때만 "현 지도에서 검색"을 띄운다(시트·여백 변화로 생기는
+  // 미세한 멈춤 이벤트에는 버튼이 뜨지 않게 반올림한 영역으로 비교).
   const handleCameraIdle = (e: { lat: number; lng: number; bounds?: MapBounds }) => {
-    setMapCenter({ lat: e.lat, lng: e.lng });
-    if (e.bounds) {
-      const r = (n: number) => Math.round(n * 1000) / 1000; // ~100m 단위 반올림(미세 이동 재조회 억제)
-      setMapBounds({
-        swLat: r(e.bounds.swLat), swLng: r(e.bounds.swLng),
-        neLat: r(e.bounds.neLat), neLng: r(e.bounds.neLng),
-      });
+    const view = { center: { lat: e.lat, lng: e.lng }, bounds: e.bounds };
+    viewRef.current = view;
+    if (Date.now() <= autoCommitUntilRef.current) {
+      autoCommitUntilRef.current = 0;
+      commitView(view);
+      return;
     }
+    if (!e.bounds) return;
+    const b = roundBounds(e.bounds);
+    const same =
+      b.swLat === mapBounds.swLat && b.swLng === mapBounds.swLng &&
+      b.neLat === mapBounds.neLat && b.neLng === mapBounds.neLng;
+    setMapMoved(!same);
   };
 
   // 핀 탭: 목록(shops)에 있으면 인라인 포커스(기존 UX), 목록 밖(영역 전체 핀)이면 상세로 이동.
@@ -337,7 +359,7 @@ export function HomeScreen() {
           )}
 
           {/* 현 지도에서 검색 — 지도를 내 위치에서 옮겼을 때만. 검색어 중엔 화면영역으로 조회하지 않아 숨김. */}
-          {awayFromHere && !hasSearch && !searchFocused && (
+          {mapMoved && !hasSearch && !searchFocused && (
             <View pointerEvents="box-none" className="items-center pt-2">
               <Pressable
                 onPress={searchHere}

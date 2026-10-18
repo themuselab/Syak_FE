@@ -1,3 +1,7 @@
+import { Platform } from 'react-native';
+
+import { callShell, inShell, ShellCallError } from '@/shell/bridgeClient';
+
 import type { SocialProvider } from './auth.types';
 
 // 소셜 SDK 토큰 어댑터.
@@ -50,6 +54,21 @@ export class SocialAuthTimeoutError extends Error {
 export type SocialCredential = { token: string; name?: string };
 
 export async function getSocialToken(provider: SocialProvider): Promise<SocialCredential> {
+  // 웹뷰 셸 안의 웹 화면: 소셜 SDK는 네이티브에만 있으므로 셸에 토큰을 부탁한다.
+  // 받은 토큰으로 서버 로그인은 웹이 직접 한다 → 로그인 쿠키가 웹뷰 안에 저장된다.
+  if (Platform.OS === 'web') {
+    if (!inShell()) throw new SocialAuthNotReadyError(provider); // 일반 브라우저에선 소셜 로그인 불가
+    try {
+      return await callShell({ type: 'socialLogin', provider });
+    } catch (e) {
+      // 셸이 알려준 실패 종류를 원래 에러로 되돌려 LoginScreen이 같은 문구를 띄우게 한다.
+      const kind = e instanceof ShellCallError ? e.kind : 'failed';
+      if (kind === 'cancelled') throw new SocialAuthCancelledError(provider);
+      if (kind === 'timeout') throw new SocialAuthTimeoutError(provider);
+      if (kind === 'not_ready') throw new SocialAuthNotReadyError(provider);
+      throw e;
+    }
+  }
   return withTimeout(requestSocialToken(provider), provider);
 }
 

@@ -6,6 +6,18 @@
 - 결정일: 2026-10-12 / 결정: **전부 웹뷰(완전 전환)** — 홈 지도까지 웹으로.
 - 목적: **유지보수**. 디자인·기능 변경이 앱 심사·EAS 빌드 없이 배포 한 번으로 끝나게 한다.
 
+> ### 실제 구현 현황 (2026-10-18) — 아래 계획과 다르게 갔다
+> - **웹 저장소(`syak`)는 건드리지 않았다.** 이 저장소(`Syak_FE`)의 웹 빌드(`expo export --platform web`)를
+>   Vercel(`app.themuselab.kr`)에 올리고, 같은 저장소의 네이티브 앱이 그 주소를 웹뷰로 연다. 한 코드베이스.
+> - 스위치: EAS 빌드 환경변수 `EXPO_PUBLIC_WEBVIEW_URL`. 값이 있으면 셸(웹뷰), 비우면 기존 네이티브 화면(= 되돌리기).
+> - 브리지(4-3 대체): 메시지 계약 `src/shell/bridge.types.ts` 한 파일. 웹 쪽 `src/shell/bridgeClient.ts`
+>   (`callShell`·`onShellEvent`·`useShellInfo`), 셸 쪽 `src/shell/WebViewShell.tsx`.
+>   요청: socialLogin / 위치 권한·좌표 / 푸시 권한·토큰 / openSettings / openExternal. 이벤트: navigate(알림 탭) / pushReceived.
+> - 인증: 셸은 SDK 토큰만 받아 웹에 넘기고, **웹이 직접 백엔드 로그인** → 쿠키가 웹뷰에 저장(같은 사이트라 HttpOnly 유지). 4-1의 1회용 code 불필요.
+> - 안전 영역: 셸이 `window.__SYAK_SHELL__.insets`로 넘기고 `ShellInsets`가 `useSafeAreaInsets()` 값으로 주입 → 화면 코드 수정 없음.
+> - 셸 의존 UI(Apple 버튼·insets)는 **마운트 후** 적용(`useShellInfo`) — 정적 export HTML과 첫 렌더가 달라 생기던 하이드레이션 오류 #418 방지.
+> - 검증: 헤드리스 크롬에 가짜 셸을 심어 브리지 요청 흐름 확인(로그인 취소·위치·푸시 토큰·외부 링크). 실기기 확인은 TestFlight.
+
 ---
 
 ## 1. 왜 (현재 겪는 비용)

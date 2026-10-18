@@ -1,8 +1,9 @@
 import { ArrowUpRight, Phone } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { Linking, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { openExternal } from '@/shared/lib/openExternal';
 import type { ReservationRoute } from '@/shared/domain/shops/shops.types';
 import { colors } from '@/shared/theme/colors';
 import { InstagramIcon } from '@/shared/ui/InstagramIcon';
@@ -22,7 +23,7 @@ type Props = {
 // 띄운다 — 예약 경로를 숨기면 손님이 예약할 방법이 사라진다.
 export function ReservationBar({ instagram, phone, route, onReserveClick }: Props) {
   const insets = useSafeAreaInsets();
-  const open = (url: string) => Linking.openURL(url).catch(() => {});
+  const open = openExternal;
 
   let left: { icon: ReactNode; label: string; onPress: () => void } | null = null;
   if (instagram) {

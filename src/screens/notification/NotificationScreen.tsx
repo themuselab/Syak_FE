@@ -1,8 +1,9 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Linking, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { openExternal } from '@/shared/lib/openExternal';
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import {
   getReadAppNewsIds,
@@ -52,7 +53,7 @@ export function NotificationScreen() {
       setReadNewsIds((prev) => new Set(prev).add(item.id));
       markAppNewsRead(item.id); // fire-and-forget — 실패해도 다음 진입 시 미읽음 표시일 뿐
     }
-    if (item.link) Linking.openURL(item.link).catch(() => {});
+    if (item.link) openExternal(item.link);
   };
 
   // 병합 시간순(최신 우선). ISO 문자열이라 문자열 비교 = 시간 비교.

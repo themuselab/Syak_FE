@@ -2,7 +2,7 @@ import '../global.css';
 
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
-import { Stack, usePathname } from 'expo-router';
+import { router, Stack, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -10,6 +10,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 
 import { track } from '@/shared/lib/analytics';
+import { onShellEvent } from '@/shell/bridgeClient';
+import { ShellInsets } from '@/shell/ShellInsets';
 import { WebViewShell } from '@/shell/WebViewShell';
 import { useWebViewShellUrl } from '@/shell/useWebViewShell';
 import { usePushSetup } from '@/shared/domain/notification/push';
@@ -22,8 +24,14 @@ export default function RootLayout() {
   // 웹뷰 셸 모드 여부. 웹 빌드와 EXPO_PUBLIC_WEBVIEW_URL 미설정 네이티브 빌드는 null →
   // 아래 네이티브 화면(Stack)을 그대로 쓴다(= 롤백 스위치). docs/webview-migration.md
   const shellUrl = useWebViewShellUrl();
-  // FCM 푸시: 로그인 전환 시 토큰 발급·서버 등록 (dev build 전용 — web/Expo Go는 내부 가드로 통과)
-  usePushSetup();
+  // 푸시: 토큰 발급·서버 등록·알림 탭 처리. 셸 모드의 네이티브 쪽에선 끈다 — 보여줄 네이티브 화면이
+  // 없고, 등록은 셸 안의 웹이, 알림 탭·수신은 WebViewShell이 맡는다.
+  usePushSetup({ enabled: !shellUrl });
+
+  // 웹뷰 셸 안의 웹: 앱이 켜진 상태에서 알림을 누르면 셸이 이동할 화면을 알려준다.
+  useEffect(() => onShellEvent('navigate', (msg) => {
+    if (msg.kind === 'event' && msg.event === 'navigate') router.push(msg.path as never);
+  }), []);
 
   // GA4 화면 추적: 라우트 변경 시 screen_view 전송 (Firebase Analytics, 가드 통과)
   const pathname = usePathname();
@@ -86,7 +94,9 @@ export default function RootLayout() {
           {shellUrl ? (
             <WebViewShell url={shellUrl} />
           ) : (
-            <Stack screenOptions={{ headerShown: false }} />
+            <ShellInsets>
+              <Stack screenOptions={{ headerShown: false }} />
+            </ShellInsets>
           )}
           <StatusBar style="auto" />
         </QueryClientProvider>

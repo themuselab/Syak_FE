@@ -1,8 +1,14 @@
 import * as Location from 'expo-location';
 import { Linking, Platform } from 'react-native';
 
+import { callShell, inShell } from '@/shell/bridgeClient';
+
+// 웹뷰 셸 안의 웹 화면은 위치를 셸(네이티브)에 부탁한다. 웹뷰가 직접 위치를 쓰면 iOS가
+// "app.themuselab.kr이 위치를 사용하려 합니다"를 따로 또 묻고, 앱 권한 설정과도 따로 논다.
+
 // 위치 권한 상태 조회(요청 팝업 없음). 마이페이지 "위치 권한" 토글 표시용(QA 비로그인 #3).
 export async function getLocationPermission(): Promise<{ granted: boolean; canAskAgain: boolean }> {
+  if (inShell()) return callShell({ type: 'getLocationPermission' }).catch(() => ({ granted: false, canAskAgain: false }));
   try {
     const { granted, canAskAgain } = await Location.getForegroundPermissionsAsync();
     return { granted, canAskAgain };
@@ -13,6 +19,7 @@ export async function getLocationPermission(): Promise<{ granted: boolean; canAs
 
 // 위치 권한 요청(OS 팝업). 이미 허용이면 즉시 true.
 export async function requestLocationPermission(): Promise<boolean> {
+  if (inShell()) return callShell({ type: 'requestLocationPermission' }).catch(() => false);
   try {
     const { status } = await Location.requestForegroundPermissionsAsync();
     return status === 'granted';
@@ -24,6 +31,10 @@ export async function requestLocationPermission(): Promise<boolean> {
 // 위치 권한을 이미 영구 거부한 경우(canAskAgain=false) OS 팝업이 다시 뜨지 않는다 — 앱 설정 화면으로 보낸다.
 // 웹에는 설정 화면이 없으므로 아무것도 하지 않는다(브라우저 권한은 브라우저 UI로만 바꿀 수 있다).
 export async function openLocationSettings(): Promise<void> {
+  if (inShell()) {
+    await callShell({ type: 'openSettings' }).catch(() => {});
+    return;
+  }
   if (Platform.OS === 'web') return;
   try {
     await Linking.openSettings();
@@ -46,6 +57,7 @@ const LAST_KNOWN_MAX_AGE = 5 * 60 * 1000;
 export async function getCurrentCoords(
   fresh = false,
 ): Promise<{ lat: number; lng: number } | null> {
+  if (inShell()) return callShell({ type: 'getCurrentCoords', fresh }, 30_000).catch(() => null);
   try {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') return null;

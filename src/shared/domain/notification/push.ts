@@ -7,6 +7,7 @@ import { Platform } from 'react-native';
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import { getDeviceId } from '@/shared/lib/deviceId';
 import { queryClient } from '@/shared/lib/queryClient';
+import { callShell, inShell, onShellEvent } from '@/shell/bridgeClient';
 
 import { getAppNewsEnabled } from './appNewsLocal';
 import { registerDevice, updateNotificationSettings } from './notification.api';
@@ -45,8 +46,17 @@ async function ensurePermission(): Promise<boolean> {
   return req.granted;
 }
 
+// 웹뷰 셸 안의 웹: 토큰은 셸(네이티브)이 발급하고, 서버 등록은 로그인 쿠키를 가진 웹이 한다.
+// deviceId도 셸 것을 쓴다 — 웹 저장소는 지워질 수 있지만 셸의 설치 ID는 앱 삭제 전까지 같다.
+let shellDeviceId: string | null = null;
+
 // 권한 요청 + Expo 푸시 토큰. 거부·미설정(iOS 엔타이틀먼트 전)·실패 시 null(조용히 통과).
 async function getPushToken(): Promise<string | null> {
+  if (inShell()) {
+    const r = await callShell({ type: 'getPushToken' }, 30_000).catch(() => null);
+    if (r) shellDeviceId = r.deviceId;
+    return r?.token ?? null;
+  }
   if (Platform.OS === 'web') return null;
   try {
     if (!(await ensurePermission())) return null;
@@ -67,6 +77,19 @@ async function getPushToken(): Promise<string | null> {
   }
 }
 
+// 웹뷰 셸(네이티브)이 웹에 넘겨줄 토큰·설치 ID. 웹이 이걸로 서버 등록을 한다.
+export async function getPushTokenForShell(): Promise<{ token: string; deviceId: string } | null> {
+  const token = await getPushToken();
+  if (!token) return null;
+  return { token, deviceId: await getDeviceId() };
+}
+
+// 백엔드 알림 data → 이동할 웹 경로(셸이 알림 탭 처리에 쓴다). 샵 정보가 없으면 null.
+export function pathFromNotificationData(data: unknown): string | null {
+  const shopId = (data as { shopId?: unknown } | undefined)?.shopId;
+  return typeof shopId === 'string' && shopId ? `/shop/${shopId}` : null;
+}
+
 // 로그인 후: 토큰 발급 → 유저 설정에 저장(PATCH /notifications/settings).
 export async function registerPushToken(): Promise<void> {
   const token = await getPushToken();
@@ -75,8 +98,11 @@ export async function registerPushToken(): Promise<void> {
 
 // deviceId + 로컬 appNewsEnabled로 디바이스 업서트(POST /notifications/devices).
 async function registerDeviceWithToken(token: string): Promise<void> {
-  const [deviceId, appNewsEnabled] = await Promise.all([getDeviceId(), getAppNewsEnabled()]);
-  await registerDevice({ deviceId, fcmToken: token, platform: Platform.OS, appNewsEnabled });
+  const [localId, appNewsEnabled] = await Promise.all([getDeviceId(), getAppNewsEnabled()]);
+  const deviceId = shellDeviceId ?? localId;
+  // 셸 안이면 실제 기기 OS(ios/android)로 등록한다(웹 화면의 Platform.OS는 'web').
+  const platform = inShell() ? (globalThis as { __SYAK_SHELL__?: { platform: string } }).__SYAK_SHELL__!.platform : Platform.OS;
+  await registerDevice({ deviceId, fcmToken: token, platform, appNewsEnabled });
 }
 
 // 앱 실행 시(로그인 무관): 디바이스 등록 → 비로그인도 앱 소식 푸시 수신.
@@ -90,13 +116,23 @@ export async function unregisterPushToken(): Promise<void> {}
 
 // 루트 레이아웃에서 호출.
 // ① 앱 시작 시 디바이스 등록 + 수신/탭 리스너 1회. ② 로그인 전환 시 유저 토큰 등록.
-export function usePushSetup(): void {
+// enabled=false: 웹뷰 셸 모드의 네이티브 쪽. 등록·리스너는 셸 안의 웹과 셸 컴포넌트가 맡는다
+// (네이티브 화면이 없으니 여기서 router.push를 해도 갈 곳이 없다).
+export function usePushSetup({ enabled = true }: { enabled?: boolean } = {}): void {
   const user = useAuthStore((s) => s.user);
   const prevIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // 웹(= 웹뷰 안 화면)에는 네이티브 알림 모듈이 없다. 푸시는 네이티브 셸이 받아 브리지로 넘긴다.
-    // 웹에서 getLastNotificationResponseAsync 등을 부르면 "not available on web" 예외가 난다.
+    if (!enabled) return;
+    // 웹뷰 셸 안의 웹: 토큰은 셸에서 받아 등록하고, 도착 이벤트만 구독한다(알림 탭 이동은 _layout).
+    if (inShell()) {
+      registerDeviceForAppNews();
+      return onShellEvent('pushReceived', () => {
+        queryClient.invalidateQueries({ queryKey: ['notifications', 'list'] });
+        queryClient.invalidateQueries({ queryKey: ['notifications', 'app-news'] });
+      });
+    }
+    // 일반 브라우저: 푸시 없음. (getLastNotificationResponseAsync 등은 웹에서 예외)
     if (Platform.OS === 'web') return;
     registerDeviceForAppNews();
     // 포그라운드 수신 → 알림 목록 캐시 갱신
@@ -116,11 +152,12 @@ export function usePushSetup(): void {
       recv.remove();
       resp.remove();
     };
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
+    if (!enabled) return;
     const id = user?.id ?? null;
     if (id && prevIdRef.current !== id) registerPushToken();
     prevIdRef.current = id;
-  }, [user]);
+  }, [user, enabled]);
 }

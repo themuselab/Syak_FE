@@ -1,8 +1,9 @@
 import { Image } from 'expo-image';
 import { Clock, Navigation, Phone } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { Linking, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
+import { openExternal } from '@/shared/lib/openExternal';
 import { colors } from '@/shared/theme/colors';
 import { InstagramIcon } from '@/shared/ui/InstagramIcon';
 
@@ -62,7 +63,7 @@ export function HomeInfoSection({ shop }: Props) {
         </Row>
 
         {shop.phone && (
-          <Pressable onPress={() => Linking.openURL(`tel:${shop.phone}`).catch(() => {})}>
+          <Pressable onPress={() => openExternal(`tel:${shop.phone}`)}>
             <Row icon={<Phone size={ICON_SIZE} color={ICON_COLOR} />}>
               <Text className="text-body-m font-pretendard" style={{ color: colors.text.strong }}>
                 {shop.phone}
@@ -72,7 +73,7 @@ export function HomeInfoSection({ shop }: Props) {
         )}
 
         {shop.instagram && (
-          <Pressable onPress={() => Linking.openURL(shop.instagram!.url).catch(() => {})}>
+          <Pressable onPress={() => openExternal(shop.instagram!.url)}>
             <Row icon={<InstagramIcon size={ICON_SIZE - 2} color={ICON_COLOR} />}>
               <Text className="text-body-m font-pretendard" style={{ color: colors.primary[500] }}>
                 {shop.instagram.handle}

@@ -1,9 +1,10 @@
 import { router, useFocusEffect } from 'expo-router';
 import { Bell, Star } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { openAppSettings } from '@/shared/lib/openExternal';
 import { useSignOut } from '@/shared/domain/auth/auth.queries';
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import {
@@ -90,7 +91,7 @@ export function MyScreen() {
   // OFF: 앱에서 권한 회수는 불가 — 설정으로 안내(복귀 시 포커스 재조회로 반영).
   const handleLocationToggle = async (next: boolean) => {
     if (!next) {
-      Linking.openSettings().catch(() => {});
+      openAppSettings();
       return;
     }
     const granted = await requestLocationPermission();
@@ -102,7 +103,7 @@ export function MyScreen() {
     if (!canAskAgain) {
       Alert.alert('위치 권한이 꺼져 있어요', '설정에서 위치 권한을 허용해 주세요.', [
         { text: '취소', style: 'cancel' },
-        { text: '설정으로 이동', onPress: () => Linking.openSettings().catch(() => {}) },
+        { text: '설정으로 이동', onPress: openAppSettings },
       ]);
     }
   };

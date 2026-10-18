@@ -12,6 +12,8 @@ import {
   SocialAuthTimeoutError,
 } from '@/shared/domain/auth/socialAuth';
 
+import { useShellInfo } from '@/shell/bridgeClient';
+
 import { LoginErrorToast } from './components/LoginErrorToast';
 import { LoginPanel } from './components/LoginPanel';
 import { OnboardingBackground } from './components/OnboardingBackground';
@@ -38,6 +40,7 @@ type Props = {
 };
 
 export function LoginScreen({ intro = false, revealed = true }: Props) {
+  const shell = useShellInfo();
   const socialLogin = useSocialLogin();
   const [loadingProvider, setLoadingProvider] = useState<SocialProvider | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -137,8 +140,10 @@ export function LoginScreen({ intro = false, revealed = true }: Props) {
 
         <LoginPanel progress={progress} interactive={revealed}>
           <View className="gap-2">
-            {/* Apple 로그인은 iOS 전용(앱스토어 심사 필수) — 안드로이드에선 숨김 (QA #0) */}
-            {Platform.OS === 'ios' && (
+            {/* Apple 로그인은 iOS 전용(앱스토어 심사 필수) — 안드로이드에선 숨김 (QA #0).
+                웹뷰 셸 안에선 Platform.OS가 'web'이라 셸이 알려준 실제 OS로 판단한다 —
+                안 그러면 iOS 앱에서 Apple 로그인이 사라져 심사에 걸린다. */}
+            {(Platform.OS === 'ios' || shell?.platform === 'ios') && (
               <SocialLoginButton
                 label="Apple 로그인"
                 backgroundColor={colors.overlay.shadow}

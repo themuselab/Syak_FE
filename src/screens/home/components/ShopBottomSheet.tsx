@@ -81,7 +81,7 @@ export const ShopBottomSheet = forwardRef<ShopBottomSheetRef, Props>(function Sh
   // 목록 모드의 기본 스냅(40%). 포커스 모드는 0 = 35%.
   const defaultIndex = focused ? 0 : 1;
 
-  // 풀스크린 여부. onChange(settle 시점) 기준 — 확장 중 애니메이션 동안은 접힘 취급.
+  // 풀스크린 여부. 애니메이션 시작 시점(onAnimate)에 바꾸고, 멈춘 뒤(onChange)에 한 번 더 맞춘다.
   const [expanded, setExpanded] = useState(false);
 
   // 핀/카드 탭(선택 변경) 시 지도가 보이게 시트를 35%로 + 확장 상태 초기화.
@@ -127,8 +127,12 @@ export const ShopBottomSheet = forwardRef<ShopBottomSheetRef, Props>(function Sh
 
   // 시트를 실제로 다른 스냅으로 옮길 때만 키보드 해제(QA #60). from===to면 snapPoints 재계산에
   // 따른 재정렬이므로, 검색 입력 중 키보드가 튕기지 않게 무시한다.
+  // 풀스크린 전환은 애니메이션이 "시작"될 때 바꾼다. 끝난 뒤(onChange) 바꾸면 시트가 다 올라간
+  // 다음에 헤더가 끼어들고 핸들이 빠지며 본문이 한 번 더 툭 밀려, 올라가는 모션이 끊겨 보였다
+  // (디자이너 제보 2026-10-18). 시작 시점에 바꾸면 헤더가 시트와 함께 올라온다.
   const handleAnimate = (fromIndex: number, toIndex: number) => {
     if (fromIndex !== toIndex) Keyboard.dismiss();
+    if (focused && fromIndex !== toIndex) setExpanded(toIndex === 1);
   };
 
   // 안드 물리 뒤로가기: 풀스크린 → 접힘(35%), 접힘 포커스 → 선택 해제. 그 외 기본 동작.

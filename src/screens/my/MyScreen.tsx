@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { Bell, Star } from 'lucide-react-native';
+import { Bell, Pencil, Star } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -157,12 +157,23 @@ export function MyScreen() {
           {/* 이름 행: 좌 닉네임 + 우 '계정 관리'(회원만 — 사용자 확정). pill 스타일은 pen 미반영이라
               기존 칩 패턴 준용(r999·회색 테두리) — 디자이너 확인 항목(docs/account.md). */}
           <View className="flex-row items-center justify-between">
-            <Text
-              className="font-pretendard-semibold text-black"
-              style={{ fontSize: 18, letterSpacing: -0.36 }}
+            {/* 회원은 닉네임 옆 연필을 눌러 바로 수정(디자이너 요청 2026-10-18). 이름 전체를 누름 영역으로. */}
+            <Pressable
+              onPress={isLoggedIn ? () => router.push('/nickname') : undefined}
+              disabled={!isLoggedIn}
+              hitSlop={8}
+              className="flex-row items-center gap-1.5"
+              style={{ flexShrink: 1 }}
             >
-              {subtitle}
-            </Text>
+              <Text
+                className="font-pretendard-semibold text-black"
+                style={{ fontSize: 18, letterSpacing: -0.36, flexShrink: 1 }}
+                numberOfLines={1}
+              >
+                {subtitle}
+              </Text>
+              {isLoggedIn && <Pencil size={16} color={colors.text.subtle} />}
+            </Pressable>
             {isLoggedIn && (
               <Pressable
                 onPress={() => router.push('/account')}

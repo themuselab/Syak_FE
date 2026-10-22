@@ -15,6 +15,23 @@
 
 ---
 
+## 2026-10-22 · 웹뷰 앱에서 로그인이 풀림(카카오 로그인 후 얼마 뒤 비회원)
+- 증상: 로그인하고 잠시 뒤(또는 앱 재실행) 비회원 상태로 보인다.
+- 원인: 액세스 쿠키 `syak_access`는 maxAge 15분 → 지나면 브라우저(웹뷰)가 쿠키를 지운다. 쿠키가 없으면 서버는
+  `AUTH_TOKEN_EXPIRED`가 아니라 `AUTH_UNAUTHORIZED`를 주는데, 클라는 EXPIRED일 때만 refresh했다.
+- 해결: `AUTH_UNAUTHORIZED`도 refresh(30일 쿠키) 1회 시도 후 재요청. 실패면 원래 에러 그대로(비회원 동작 동일).
+- 관련: `src/shared/api/client.ts`
+
+## 2026-10-22 · 아이폰 웹뷰에서 홈 상단 카테고리 칩이 옆으로 안 밀림
+- 원인: ScrollView에 `pointerEvents="box-none"` → 웹에선 스크롤 영역 자체가 `pointer-events:none`이 돼 터치 스크롤 불가.
+- 해결: 웹에서만 `auto`. (네이티브는 빈 공간 탭을 지도로 넘기려고 box-none 유지)
+- 관련: `src/screens/home/components/CategoryChipBar.tsx`
+
+## 2026-10-22 · 모든 샵이 "오늘 휴무"
+- 원인: `todayOpen`은 "오늘 예약 빈자리 있음"(DB today_open)인데 영업 여부로 표시했다. 영업시간 데이터는 API에 없다.
+- 해결: 영업 상태 줄을 영업시간 수집 전까지 숨김.
+- 관련: `src/screens/shop-detail/components/HomeInfoSection.tsx`
+
 ## 2026-07-28 · 카카오 로그인이 기기마다 다르게 실패 (무한 로딩 / 오류 / 정상)
 - 증상: 같은 APK인데 사람마다 달랐다 — A: 정상 로그인 / B: **버튼이 무한 로딩** / C: "로그인에 실패했어요" 토스트. 네이버는 전원 정상. 과거에도 "둘 다 안 됨", "네이버는 되는데 카카오만 안 됨"이 반복 접수됐다.
 - 원인: `app.config.ts`가 카카오 config plugin에 **`nativeAppKey`만 넘기고 `android`/`ios` 옵션을 안 넘겼다.** plugin 본체가 `if (android) { withAndroid(...) }` / `if (ios) { withIos(...) }`로 가드하고 기본값이 없어서, **네이티브 설정 주입이 통째로 스킵**됐다.

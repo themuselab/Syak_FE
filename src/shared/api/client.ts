@@ -16,7 +16,7 @@ type RequestOptions = Omit<RequestInit, 'body'> & {
 // 모든 API 요청의 단일 진입점.
 // - HTTP-only 쿠키 자동 전송 (credentials: 'include')
 // - 공통 에러 { code, message, details } 파싱 → ApiError
-// - AUTH_TOKEN_EXPIRED 수신 시 refresh 후 원요청 재시도
+// - AUTH_TOKEN_EXPIRED·AUTH_UNAUTHORIZED(쿠키 만료로 사라짐) 수신 시 refresh 후 원요청 재시도
 // - 네트워크 실패·타임아웃도 ApiError로 정규화 (호출부가 code로 분기할 수 있게)
 export async function apiFetch<T>(
   path: string,
@@ -45,15 +45,21 @@ export async function apiFetch<T>(
 
   const errorBody = await parseErrorBody(res);
 
+  // 액세스 쿠키는 15분 maxAge라 만료되면 브라우저(웹뷰)가 쿠키 자체를 지운다. 그러면 서버는
+  // "만료(AUTH_TOKEN_EXPIRED)"가 아니라 "쿠키 없음(AUTH_UNAUTHORIZED)"을 돌려줘서, 예전엔 refresh를
+  // 안 하고 로그아웃 취급했다 — 웹뷰 앱에서 "카카오 로그인이 풀린다"의 원인(2026-10-22).
+  // 쿠키 없음도 refresh(30일 쿠키)를 한 번 시도한다. 실패면 진짜 비회원이므로 원래 에러를 그대로 던진다.
+  const missingAccess = errorBody.code === ErrorCode.AUTH_UNAUTHORIZED;
   if (
     res.status === 401 &&
-    errorBody.code === ErrorCode.AUTH_TOKEN_EXPIRED &&
+    (errorBody.code === ErrorCode.AUTH_TOKEN_EXPIRED || missingAccess) &&
     retryOnAuthExpired
   ) {
     const refreshed = await refreshSession();
     if (refreshed) {
       return apiFetch<T>(path, { ...options, retryOnAuthExpired: false });
     }
+    if (missingAccess) throw new ApiError(res.status, errorBody);
     // refresh 실패 → 재로그인 필요. AUTH_REFRESH_INVALID 로 변환해 상위에서 로그인 이동 처리.
     throw new ApiError(401, {
       code: ErrorCode.AUTH_REFRESH_INVALID,

@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Clock, Navigation, Phone } from 'lucide-react-native';
+import { Navigation, Phone } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
@@ -51,16 +51,9 @@ export function HomeInfoSection({ shop }: Props) {
           </Row>
         )}
 
-        {/* 영업 상태. 영업시간 데이터가 아직 없어 "오늘 영업하는 날인지"만 보여준다.
-            시안의 "23:00에 영업 종료 ∨"(요일별 펼침)는 영업시간이 수집되면 붙인다. */}
-        <Row icon={<Clock size={ICON_SIZE} color={ICON_COLOR} />}>
-          <Text
-            className="text-body-m font-pretendard-medium"
-            style={{ color: shop.todayOpen ? colors.status.open : colors.status.error }}
-          >
-            {shop.todayOpen ? '오늘 영업' : '오늘 휴무'}
-          </Text>
-        </Row>
+        {/* 영업 상태 줄은 영업시간이 수집될 때까지 뺀다. 예전엔 todayOpen으로 "오늘 영업/휴무"를 띄웠는데,
+            todayOpen은 "오늘 예약 빈자리가 있는지"라서 빈자리 없는 샵이 전부 "오늘 휴무"로 보였다
+            (사용자 제보 2026-10-22). 시안의 "23:00에 영업 종료 ∨"는 영업시간 데이터가 생기면 붙인다. */}
 
         {shop.phone && (
           <Pressable onPress={() => openExternal(`tel:${shop.phone}`)}>

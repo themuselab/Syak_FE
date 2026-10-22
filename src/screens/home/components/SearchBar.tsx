@@ -75,7 +75,9 @@ export function SearchBar({ focused, onFocusChange }: Props) {
           <ChevronLeft size={22} color={colors.text.strong} />
         </Pressable>
       ) : (
-        <Image source={SYMBOL} style={{ width: 24, height: 24, marginRight: 8 }} contentFit="contain" />
+        // 시안 40×40 프레임(디자이너 확인 2026-10-22). 이미지 자체에 여백이 있어 그대로 40을 쓰고,
+        // 그만큼 바 왼쪽 여백을 줄인다(아래 shell 두 번째 인자).
+        <Image source={SYMBOL} style={{ width: 40, height: 40, marginRight: 2 }} contentFit="contain" />
       )}
 
       <TextInput
@@ -105,6 +107,6 @@ export function SearchBar({ focused, onFocusChange }: Props) {
         </Pressable>
       )}
     </>,
-    focused ? 8 : 12,
+    focused ? 8 : 4,
   );
 }

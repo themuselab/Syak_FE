@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { Pencil } from 'lucide-react-native';
 import { Alert, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -67,13 +68,18 @@ export function AccountScreen() {
               <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: colors.text.muted }}>
                 닉네임
               </Text>
-              {/* 미설정이면 "설정하기"를 진하게(눌러야 하는 행동), 설정돼 있으면 회색 값(시안) */}
-              <Text
-                className="font-pretendard-semibold"
-                style={{ fontSize: 15, color: nickname ? colors.text.faint : colors.text.strong }}
-              >
-                {nickname ?? '설정하기'}
-              </Text>
+              {/* 미설정이면 "설정하기"를 진하게(눌러야 하는 행동), 설정돼 있으면 회색 값(시안).
+                  값 옆 연필 = 눌러서 바꿀 수 있다는 표시(디자이너 요청 2026-10-22). */}
+              <View className="flex-row items-center" style={{ gap: 6, flexShrink: 1 }}>
+                <Text
+                  className="font-pretendard-semibold"
+                  style={{ fontSize: 15, color: nickname ? colors.text.faint : colors.text.strong, flexShrink: 1 }}
+                  numberOfLines={1}
+                >
+                  {nickname ?? '설정하기'}
+                </Text>
+                <Pencil size={16} color={colors.text.faint} />
+              </View>
             </Pressable>
 
             {/* 연결된 계정 행 — 표시 전용 */}

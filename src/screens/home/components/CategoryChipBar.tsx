@@ -1,4 +1,4 @@
-import { ScrollView } from 'react-native';
+import { Platform, ScrollView } from 'react-native';
 
 import { SERVICE_FIELDS } from '../serviceFields';
 import { useHomeFilterStore } from '../useHomeFilterStore';
@@ -15,7 +15,9 @@ export function CategoryChipBar() {
       horizontal
       showsHorizontalScrollIndicator={false}
       // 칩 밖 빈 공간의 탭은 지도로 흘려보낸다(키보드 닫기·포커스 해제 — QA #60).
-      pointerEvents="box-none"
+      // 단 웹(= 앱 웹뷰)에선 box-none이 스크롤 영역 자체를 터치 불가로 만들어 아이폰에서 칩 줄이
+      // 옆으로 안 밀렸다(사용자 제보 2026-10-22) — 웹은 스크롤 영역이 터치를 받게 둔다.
+      pointerEvents={Platform.OS === 'web' ? 'auto' : 'box-none'}
       // 그림자가 잘리지 않게 위아래 여백을 준다.
       contentContainerStyle={{ gap: 6, paddingHorizontal: 20, paddingVertical: 4 }}
     >

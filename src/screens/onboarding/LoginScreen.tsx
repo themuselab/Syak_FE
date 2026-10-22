@@ -119,7 +119,7 @@ export function LoginScreen({ intro = false, revealed = true }: Props) {
                     : 0.9,
                 }}
               >
-                {'원하는 뷰티샵,\n빈자리 예약까지 한 번에'}
+                {'빈자리·예약·할인 정보\n샥에서 한 번에 모아보기'}
               </Animated.Text>
               {/* 스플래시 태그라인 — 같은 자리에서 전환 초반에 사라진다 */}
               {intro && (
@@ -131,7 +131,7 @@ export function LoginScreen({ intro = false, revealed = true }: Props) {
                     opacity: progress.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0.9, 0, 0] }),
                   }}
                 >
-                  뷰티 예약의 새로운 방법, 샥
+                  빈자리, 샥 찾자
                 </Animated.Text>
               )}
             </View>

@@ -21,7 +21,7 @@ export function CategoryChipBar() {
       // 그림자가 잘리지 않게 위아래 여백을 준다.
       contentContainerStyle={{ gap: 6, paddingHorizontal: 20, paddingVertical: 4 }}
     >
-      <CategoryChip label="샥 파트너" brand onPress={() => setPicked({ kind: 'partner' })} />
+      <CategoryChip label="샥 파트너샵" brand onPress={() => setPicked({ kind: 'partner' })} />
       {SERVICE_FIELDS.map((f) => (
         <CategoryChip key={f} label={f} onPress={() => setPicked({ kind: 'category', label: f })} />
       ))}

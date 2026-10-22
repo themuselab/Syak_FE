@@ -11,7 +11,7 @@ import { SelectChip } from './SelectChip';
 import { TimeFilterContent } from './TimeFilterContent';
 
 // 통합 필터 패널(디자이너 시안 2026-10-15 "필터" 프레임). 바텀시트가 80%로 올라가며 이 화면을 보여준다.
-// 정렬·가격·예약시간을 한 화면에서 고르고, 고르는 즉시 목록·핀에 반영된다(적용 버튼 없음 — 닫기만).
+// 정렬·가격·예약시간을 한 화면에서 고르고, 고르는 즉시 목록·핀에 반영된다(하단 "적용하기"는 패널을 닫기만 한다).
 
 export const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'default', label: '관련도순' },
@@ -85,8 +85,9 @@ export function FilterPanel({ onClose }: { onClose: () => void }) {
           className="h-12 items-center justify-center rounded-sm border"
           style={{ borderColor: colors.line.base, backgroundColor: colors.white }}
         >
+          {/* 시안 문구 "적용하기". 고르는 즉시 반영되므로 누르면 패널만 닫힌다. */}
           <Text className="text-label-l font-pretendard-semibold" style={{ color: colors.text.strong }}>
-            닫기
+            적용하기
           </Text>
         </Pressable>
       </View>

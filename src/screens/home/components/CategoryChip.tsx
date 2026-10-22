@@ -7,7 +7,7 @@ const SYMBOL = require('../../../../assets/images/syak-symbol-pink.png');
 
 type Props = {
   label: string;
-  /** "샥 파트너" 칩 — 브랜드 칩이라 항상 연분홍 톤 + 심볼 아이콘 */
+  /** "샥 파트너샵" 칩 — 브랜드 칩이라 항상 연분홍 톤 + 심볼 아이콘 */
   brand?: boolean;
   onPress?: () => void;
 };

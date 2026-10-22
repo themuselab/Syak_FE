@@ -28,7 +28,7 @@ export function SearchBar({ focused, onFocusChange }: Props) {
   const setPicked = useHomeFilterStore((s) => s.setPicked);
   const inputRef = useRef<TextInput>(null);
 
-  const pickedLabel = picked?.kind === 'partner' ? '샥 파트너' : picked?.label;
+  const pickedLabel = picked?.kind === 'partner' ? '샥 파트너샵' : picked?.label;
 
   // 뒤로가기: 입력은 남기고 포커스만 푼다(네이버 지도 동작 — 검색 결과를 계속 보게).
   const exitFocus = () => {

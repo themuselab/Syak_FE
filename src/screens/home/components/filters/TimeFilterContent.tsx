@@ -29,7 +29,8 @@ export function TimeFilterContent() {
           <SelectChip
             key={d.key}
             label={d.label}
-            selected={date === d.key}
+            // 날짜를 안 골랐어도 시간을 고르면 "오늘"로 검색한다(filtersToParams) → 오늘을 선택 상태로 보여준다(시안).
+            selected={date === d.key || (date === null && d.key === 'today' && times.length > 0)}
             color={PINK}
             onPress={() => setDate(date === d.key ? null : d.key)}
           />

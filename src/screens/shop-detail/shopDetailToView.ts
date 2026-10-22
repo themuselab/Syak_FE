@@ -2,6 +2,7 @@ import type { ShopSlot } from '@/shared/domain/reservation/reservation.types';
 import type { ReservationRoute, ShopDetail } from '@/shared/domain/shops/shops.types';
 import { toDateKey } from '@/shared/lib/date';
 
+import { type HoursView, toHoursView } from './businessHours';
 import { locationLabelOf } from '../home/shopToView';
 
 // 상세 화면 뷰모델. 백엔드 ShopDetail + 슬롯(3일치)을 각 섹션 컴포넌트가 쓰는 형태로 변환한다.
@@ -25,7 +26,7 @@ export type MenuItem = { name: string; price: string };
 export type ReviewItem = {
   text: string;
   tags: string[];
-  date?: string; // 작성일 — 백엔드 미제공(갭)이라 현재 항상 없음. 제공 시 표시.
+  date?: string; // 방문일("10.8.목") — 새로 수집된 리뷰에만 있다. 있으면 표시.
 };
 
 export type ShopDetailView = {
@@ -33,7 +34,8 @@ export type ShopDetailView = {
   name: string;
   category: string; // "네일샵"
   locationLabel: string; // "320m 전농동" / 위치 미동의 시 "전농동"
-  rating: number | null; // 평점 — DB에 없어 현재 항상 null(★ 숨김)
+  rating: number | null; // 방문자 평점 — 수집 전이면 null(★ 숨김)
+  hours: HoursView | null; // 영업시간 — 수집 전이면 null(줄 숨김)
   reviewCount: number;
   photos: string[];
   eventDesc: string | null;
@@ -144,7 +146,8 @@ export function toShopDetailView(
     name: shop.name,
     category: shop.categories[0] ? `${shop.categories[0]}샵` : '',
     locationLabel: locationLabelOf(shop, myLocation),
-    rating: null,
+    rating: shop.rating ?? null,
+    hours: toHoursView(shop.businessHours, now),
     reviewCount: shop.reviewCount,
     photos: shop.photos,
     eventDesc: shop.eventDesc,
@@ -156,8 +159,7 @@ export function toShopDetailView(
     // 가격 없는 메뉴는 이름만(리더선 유지).
     menus: shop.menus.map((m) => ({ name: m.name, price: priceText(m.price) })),
     timeline: buildTimeline(slots, now),
-    // 작성일은 백엔드 미제공(갭) → date 없이 매핑(미표시).
-    reviews: shop.reviews.map((r) => ({ text: r.body, tags: r.keywords })),
+    reviews: shop.reviews.map((r) => ({ text: r.body, tags: r.keywords, date: r.visited ?? undefined })),
     // 오른쪽 버튼은 온라인 예약 수단만. 인스타·전화는 왼쪽 버튼이 맡는다.
     bookingRoute:
       routes.find((r) => r.type === 'naver') ??

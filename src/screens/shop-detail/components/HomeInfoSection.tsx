@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
-import { Navigation, Phone } from 'lucide-react-native';
-import type { ReactNode } from 'react';
+import { ChevronDown, ChevronUp, Clock, Navigation, Phone } from 'lucide-react-native';
+import { type ReactNode, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { openExternal } from '@/shared/lib/openExternal';
@@ -16,7 +16,7 @@ const ICON_COLOR = colors.text.subtle;
 type Props = {
   shop: Pick<
     ShopDetailView,
-    'eventDesc' | 'address' | 'todayOpen' | 'phone' | 'instagram' | 'introduction'
+    'eventDesc' | 'address' | 'hours' | 'phone' | 'instagram' | 'introduction'
   >;
 };
 
@@ -51,9 +51,9 @@ export function HomeInfoSection({ shop }: Props) {
           </Row>
         )}
 
-        {/* 영업 상태 줄은 영업시간이 수집될 때까지 뺀다. 예전엔 todayOpen으로 "오늘 영업/휴무"를 띄웠는데,
-            todayOpen은 "오늘 예약 빈자리가 있는지"라서 빈자리 없는 샵이 전부 "오늘 휴무"로 보였다
-            (사용자 제보 2026-10-22). 시안의 "23:00에 영업 종료 ∨"는 영업시간 데이터가 생기면 붙인다. */}
+        {/* 영업시간이 수집된 샵만 보인다(없으면 줄 자체를 숨김). 예전엔 todayOpen으로 "오늘 영업/휴무"를
+            띄웠는데 todayOpen은 "오늘 예약 빈자리가 있는지"라 빈자리 없는 샵이 전부 휴무로 보였다(2026-10-22). */}
+        {shop.hours && <HoursRow hours={shop.hours} />}
 
         {shop.phone && (
           <Pressable onPress={() => openExternal(`tel:${shop.phone}`)}>
@@ -100,6 +100,54 @@ function Row({ icon, children }: { icon: ReactNode; children: ReactNode }) {
     <View className="flex-row items-center gap-2">
       <View style={{ width: ICON_SIZE, alignItems: 'center' }}>{icon}</View>
       <View className="flex-1">{children}</View>
+    </View>
+  );
+}
+
+// 시안: "● 영업 중 · 23:00에 영업 종료 ∨" → 펼치면 월~일 시간, 쉬는 날은 빨간 "휴무".
+function HoursRow({ hours }: { hours: NonNullable<ShopDetailView['hours']> }) {
+  const [open, setOpen] = useState(false);
+  const toneColor =
+    hours.tone === 'open' ? colors.status.open : hours.tone === 'closed' ? colors.status.error : colors.text.subtle;
+  const Chevron = open ? ChevronUp : ChevronDown;
+  return (
+    <View className="gap-2">
+      <Pressable onPress={() => setOpen((v) => !v)} hitSlop={6}>
+        <Row icon={<Clock size={ICON_SIZE} color={ICON_COLOR} />}>
+          <View className="flex-row items-center gap-1">
+            <Text className="text-body-m font-pretendard-medium" style={{ color: toneColor }}>
+              {hours.status}
+            </Text>
+            {hours.note && (
+              <Text className="text-body-m font-pretendard" style={{ color: colors.text.strong }}>
+                {' · '}
+                {hours.note}
+              </Text>
+            )}
+            <Chevron size={16} color={colors.text.subtle} />
+          </View>
+        </Row>
+      </Pressable>
+      {open && (
+        <View className="gap-1.5" style={{ paddingLeft: ICON_SIZE + 8 }}>
+          {hours.days.map((d) => (
+            <View key={d.day} className="flex-row gap-3">
+              <Text
+                className={d.today ? 'text-body-m font-pretendard-semibold' : 'text-body-m font-pretendard'}
+                style={{ color: colors.text.strong, width: 16 }}
+              >
+                {d.day}
+              </Text>
+              <Text
+                className={d.today ? 'text-body-m font-pretendard-semibold' : 'text-body-m font-pretendard'}
+                style={{ color: d.closed ? colors.status.error : colors.text.strong }}
+              >
+                {d.text}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 }

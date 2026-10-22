@@ -30,12 +30,22 @@ export type ShopMenu = {
   recommend: boolean;
 };
 
-// 상세 응답의 리뷰 한 건 (detail.reviews 그대로 — 작성일은 백엔드 미제공).
+// 상세 응답의 리뷰 한 건. visited = 방문일 표시 문자열("10.8.목") — 옛 수집분은 없음.
 export type ShopReview = {
   body: string;
   images: string[];
   keywords: string[];
   ownerReply: string | null;
+  visited?: string | null;
+};
+
+// 요일별 영업시간(스크래퍼 price_sync가 네이버에서 수집, 2026-10-22~). start/end 없으면 휴무.
+export type BusinessHourDay = {
+  day: string; // "월"…"일" 또는 "매일"
+  start: string | null;
+  end: string | null;
+  breaks: { start: string; end: string }[];
+  description: string | null;
 };
 
 // 예약 수단 (2026-07-18 BE 개편 — syakBE docs/09 §3-4). naver만 실제 온라인 예약, 나머지는 문의/전화.
@@ -57,6 +67,9 @@ export type ShopDetail = ShopListItem & {
   phone: string | null;
   menus: ShopMenu[];
   reviews: ShopReview[];
+  // 수집 전이면 null(구버전 백엔드는 필드 자체가 없음) — 화면은 없으면 해당 줄을 숨긴다.
+  rating?: number | null;
+  businessHours?: BusinessHourDay[] | null;
 };
 
 export type ShopListResponse = {

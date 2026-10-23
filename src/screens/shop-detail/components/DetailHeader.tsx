@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { ArrowLeft, Star, X } from 'lucide-react-native';
+import { ChevronLeft, Star, X } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -22,7 +22,7 @@ export function DetailHeader({ favorite, onToggleFavorite, onBack, onClose }: Pr
     <View className="bg-white" style={{ paddingTop: insets.top }}>
       <View className="h-11 flex-row items-center justify-between pl-[17px] pr-5">
         <Pressable onPress={onBack ?? (() => router.back())} hitSlop={8}>
-          <ArrowLeft size={24} color={colors.text.strong} />
+          <ChevronLeft size={26} color={colors.gray[800]} />
         </Pressable>
         <View className="flex-row items-center gap-4">
           <Pressable onPress={onToggleFavorite} hitSlop={8}>
@@ -33,7 +33,7 @@ export function DetailHeader({ favorite, onToggleFavorite, onBack, onClose }: Pr
             />
           </Pressable>
           <Pressable onPress={onClose ?? (() => router.replace('/home'))} hitSlop={8} accessibilityLabel="닫기">
-            <X size={24} color={colors.text.strong} />
+            <X size={24} color={colors.gray[800]} />
           </Pressable>
         </View>
       </View>

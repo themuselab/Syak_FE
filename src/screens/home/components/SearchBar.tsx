@@ -51,7 +51,7 @@ export function SearchBar({ focused, onFocusChange }: Props) {
     return shell(
       <>
         <Pressable onPress={() => setPicked(null)} hitSlop={8} style={{ marginRight: 6 }}>
-          <ChevronLeft size={22} color={colors.text.strong} />
+          <ChevronLeft size={22} color={colors.gray[800]} />
         </Pressable>
         <Text
           className="flex-1 text-body-l font-pretendard-medium"
@@ -72,7 +72,7 @@ export function SearchBar({ focused, onFocusChange }: Props) {
     <>
       {focused ? (
         <Pressable onPress={exitFocus} hitSlop={8} style={{ marginRight: 6 }}>
-          <ChevronLeft size={22} color={colors.text.strong} />
+          <ChevronLeft size={22} color={colors.gray[800]} />
         </Pressable>
       ) : (
         // 시안 40×40 프레임(디자이너 확인 2026-10-22). 이미지 자체에 여백이 있어 그대로 40을 쓰고,

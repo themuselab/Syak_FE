@@ -202,7 +202,7 @@ export function MyScreen() {
               style={{ paddingVertical: 12 }}
             >
               <View>
-                <Bell size={16} color={colors.gray[400]} fill={colors.gray[400]} />
+                <Bell size={16} color={colors.text.faint} fill={colors.text.faint} />
                 {hasUnread && (
                   <View
                     style={{
@@ -226,7 +226,7 @@ export function MyScreen() {
 
             {/* 상위 "알림" = OS 푸시 권한. 아래 항목들은 한 단계 들여쓴다(시안). */}
             <SettingToggleRow
-              iconNode={<Bell size={16} color={colors.gray[400]} fill={colors.gray[400]} />}
+              iconNode={<Bell size={16} color={colors.text.faint} fill={colors.text.faint} />}
               label="알림"
               value={pushPermission}
               onValueChange={handlePushToggle}
@@ -257,7 +257,7 @@ export function MyScreen() {
             )}
             <SettingToggleRow
               indent
-              iconNode={<Star size={16} color={colors.gray[400]} fill={colors.gray[400]} />}
+              iconNode={<Star size={16} color={colors.text.faint} fill={colors.text.faint} />}
               label="즐겨찾기 알림"
               value={settings?.favoriteEnabled ?? false}
               onValueChange={handleFavoriteToggle}

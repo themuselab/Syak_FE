@@ -36,7 +36,8 @@ type Props = {
   // 35% 포커스 시트 디자인의 타이틀 행 별 — 홈 시트에서만 전달(라우트 화면은 헤더 별 사용).
   favorite?: boolean;
   onToggleFavorite?: () => void;
-  // 홈 시트가 접혀 있을 때만 넘어온다 — 이름·사진 영역을 탭하면 전체 화면으로(디자이너 요청 2026-10-23).
+  // 홈 시트가 접혀 있을 때만 넘어온다 — 시트 어디를 탭해도 전체 화면으로(디자이너 요청 2026-10-23).
+  // 안쪽 버튼(별·전화·인스타 등)은 자기 동작이 먼저다.
   onTopPress?: () => void;
 };
 
@@ -53,39 +54,41 @@ export function ShopDetailBody({ shop, renderScroll, favorite, onToggleFavorite,
   const band = <View style={{ height: 8, backgroundColor: colors.surface.muted }} />;
 
   // 순서(디자이너 시안 2026-10-15): 제목·사진 → 탭 → 홈(이벤트·정보·소개) → 가격 → 빈자리 → 리뷰.
+  // 최상위 덩어리는 모두 Pressable — 접힌 홈 시트(onTopPress 있음)에서 어디를 눌러도 펼쳐진다.
+  // 펼친 뒤엔 disabled라 평소와 같다. 같은 요소를 유지해서 펼칠 때 사진 등이 다시 그려지지 않는다.
   const children: ReactNode[] = [
     // index 0: 제목 + 사진
-    <Pressable key="top" className="gap-5 pt-4 pb-5" onPress={onTopPress} disabled={!onTopPress}>
+    <Pressable key="top" onPress={onTopPress} disabled={!onTopPress} className="gap-5 pt-4 pb-5">
       <ShopTitleBlock shop={shop} favorite={favorite} onToggleFavorite={onToggleFavorite} />
       <ImageCarousel photos={shop.photos} />
     </Pressable>,
     // index 1: sticky 탭바
-    <View key="tabs" onLayout={spy.onTabBarLayout}>
+    <Pressable key="tabs" onPress={onTopPress} disabled={!onTopPress} onLayout={spy.onTabBarLayout}>
       <SectionTabs active={spy.activeTab} onPressTab={spy.onPressTab} />
-    </View>,
+    </Pressable>,
     // index 2: 홈 영역 — 탭 바로 아래라 "홈" 탭(맨 위)에 속한다
-    <View key="home" className="pb-6">
+    <Pressable key="home" onPress={onTopPress} disabled={!onTopPress} className="pb-6">
       <HomeInfoSection shop={shop} />
-    </View>,
+    </Pressable>,
     // index 3~5: 스크롤스파이 섹션 (각 onLayout으로 스크롤 오프셋 수집)
-    <View key="menu" onLayout={spy.onSectionLayout('menu')}>
+    <Pressable key="menu" onPress={onTopPress} disabled={!onTopPress} onLayout={spy.onSectionLayout('menu')}>
       {band}
       <View className="px-5 pb-6 pt-6">
         <MenuSection menus={shop.menus} />
       </View>
-    </View>,
-    <View key="availability" onLayout={spy.onSectionLayout('availability')}>
+    </Pressable>,
+    <Pressable key="availability" onPress={onTopPress} disabled={!onTopPress} onLayout={spy.onSectionLayout('availability')}>
       {band}
       <View className="px-5 pb-6 pt-6">
         <AvailabilitySection timeline={shop.timeline} />
       </View>
-    </View>,
-    <View key="review" onLayout={spy.onSectionLayout('review')}>
+    </Pressable>,
+    <Pressable key="review" onPress={onTopPress} disabled={!onTopPress} onLayout={spy.onSectionLayout('review')}>
       {band}
       <View className="px-5 pt-6">
         <ReviewSection reviewCount={shop.reviewCount} reviews={shop.reviews} />
       </View>
-    </View>,
+    </Pressable>,
   ];
 
 

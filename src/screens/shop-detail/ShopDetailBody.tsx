@@ -1,6 +1,6 @@
 import { useEffect, type ReactElement, type ReactNode } from 'react';
 import type { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { colors } from '@/shared/theme/colors';
 
@@ -36,10 +36,12 @@ type Props = {
   // 35% 포커스 시트 디자인의 타이틀 행 별 — 홈 시트에서만 전달(라우트 화면은 헤더 별 사용).
   favorite?: boolean;
   onToggleFavorite?: () => void;
+  // 홈 시트가 접혀 있을 때만 넘어온다 — 이름·사진 영역을 탭하면 전체 화면으로(디자이너 요청 2026-10-23).
+  onTopPress?: () => void;
 };
 
 // 상세 본문 — 라우트 화면과 홈 포커스 시트가 공유.
-export function ShopDetailBody({ shop, renderScroll, favorite, onToggleFavorite }: Props) {
+export function ShopDetailBody({ shop, renderScroll, favorite, onToggleFavorite, onTopPress }: Props) {
   const spy = useSectionSpy();
 
   // 홈 시트에서 다른 핀 탭으로 샵이 바뀌면 이전 스크롤 위치·활성 탭이 남지 않게 초기화.
@@ -53,10 +55,10 @@ export function ShopDetailBody({ shop, renderScroll, favorite, onToggleFavorite 
   // 순서(디자이너 시안 2026-10-15): 제목·사진 → 탭 → 홈(이벤트·정보·소개) → 가격 → 빈자리 → 리뷰.
   const children: ReactNode[] = [
     // index 0: 제목 + 사진
-    <View key="top" className="gap-5 pt-4 pb-5">
+    <Pressable key="top" className="gap-5 pt-4 pb-5" onPress={onTopPress} disabled={!onTopPress}>
       <ShopTitleBlock shop={shop} favorite={favorite} onToggleFavorite={onToggleFavorite} />
       <ImageCarousel photos={shop.photos} />
-    </View>,
+    </Pressable>,
     // index 1: sticky 탭바
     <View key="tabs" onLayout={spy.onTabBarLayout}>
       <SectionTabs active={spy.activeTab} onPressTab={spy.onPressTab} />

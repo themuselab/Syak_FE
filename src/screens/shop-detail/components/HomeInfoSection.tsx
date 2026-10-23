@@ -44,7 +44,7 @@ export function HomeInfoSection({ shop }: Props) {
 
       <View className="gap-2.5">
         {shop.address && (
-          <Row icon={<Navigation size={ICON_SIZE} color={ICON_COLOR} />}>
+          <Row icon={<Navigation size={ICON_SIZE} color={ICON_COLOR} fill={ICON_COLOR} />}>
             <Text className="text-body-m font-pretendard" style={{ color: colors.text.strong }}>
               {shop.address}
             </Text>
@@ -57,7 +57,7 @@ export function HomeInfoSection({ shop }: Props) {
 
         {shop.phone && (
           <Pressable onPress={() => openExternal(`tel:${shop.phone}`)}>
-            <Row icon={<Phone size={ICON_SIZE} color={ICON_COLOR} />}>
+            <Row icon={<Phone size={ICON_SIZE} color={ICON_COLOR} fill={ICON_COLOR} />}>
               <Text className="text-body-m font-pretendard" style={{ color: colors.text.strong }}>
                 {shop.phone}
               </Text>
@@ -67,7 +67,7 @@ export function HomeInfoSection({ shop }: Props) {
 
         {shop.instagram && (
           <Pressable onPress={() => openExternal(shop.instagram!.url)}>
-            <Row icon={<InstagramIcon size={ICON_SIZE - 2} color={ICON_COLOR} />}>
+            <Row icon={<InstagramIcon size={ICON_SIZE - 2} color={ICON_COLOR} filled />}>
               <Text className="text-body-m font-pretendard" style={{ color: colors.primary[500] }}>
                 {shop.instagram.handle}
               </Text>
@@ -113,7 +113,8 @@ function HoursRow({ hours }: { hours: NonNullable<ShopDetailView['hours']> }) {
   return (
     <View className="gap-2">
       <Pressable onPress={() => setOpen((v) => !v)} hitSlop={6}>
-        <Row icon={<Clock size={ICON_SIZE} color={ICON_COLOR} />}>
+        {/* 채워진 시계: 원을 회색으로 채우고 바늘은 흰색 */}
+        <Row icon={<Clock size={ICON_SIZE} color={colors.white} fill={ICON_COLOR} />}>
           <View className="flex-row items-center gap-1">
             <Text className="text-body-m font-pretendard-medium" style={{ color: toneColor }}>
               {hours.status}

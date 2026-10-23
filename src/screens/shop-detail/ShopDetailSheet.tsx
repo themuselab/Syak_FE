@@ -21,6 +21,7 @@ type Props = {
   onToggleFavorite: () => void;
   expanded: boolean; // 시트 풀스크린 여부 — true일 때만 헤더·예약바 표시(접힘 35%는 본문 상단만)
   onCollapse: () => void; // 헤더 뒤로가기 → 시트 접기
+  onExpand: () => void; // 접힌 상태에서 이름·사진 탭 → 전체 화면
   onClose: () => void; // 헤더 ✕ → 상세 닫고 목록으로(선택 해제)
 };
 
@@ -33,6 +34,7 @@ export function ShopDetailSheet({
   onToggleFavorite,
   expanded,
   onCollapse,
+  onExpand,
   onClose,
 }: Props) {
   const myLocation = useMyLocationStore((s) => s.coords);
@@ -102,6 +104,7 @@ export function ShopDetailSheet({
         shop={shop}
         favorite={favorite}
         onToggleFavorite={expanded ? undefined : onToggleFavorite}
+        onTopPress={expanded ? undefined : onExpand}
         renderScroll={(scrollProps, ref) => <BottomSheetScrollView {...scrollProps} ref={ref} />}
       />
 

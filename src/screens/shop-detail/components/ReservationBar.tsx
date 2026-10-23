@@ -28,13 +28,13 @@ export function ReservationBar({ instagram, phone, route, onReserveClick }: Prop
   let left: { icon: ReactNode; label: string; onPress: () => void } | null = null;
   if (instagram) {
     left = {
-      icon: <InstagramIcon size={16} color={colors.text.strong} />,
+      icon: <InstagramIcon size={16} color={colors.text.strong} filled />,
       label: '둘러보기',
       onPress: () => open(instagram.url),
     };
   } else if (phone) {
     left = {
-      icon: <Phone size={16} color={colors.text.strong} />,
+      icon: <Phone size={16} color={colors.text.strong} fill={colors.text.strong} />,
       label: '전화예약',
       onPress: () => open(`tel:${phone.replace(/[^\d+]/g, '')}`),
     };

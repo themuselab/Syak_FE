@@ -22,7 +22,7 @@ export function DetailHeader({ favorite, onToggleFavorite, onBack, onClose }: Pr
     <View className="bg-white" style={{ paddingTop: insets.top }}>
       <View className="h-11 flex-row items-center justify-between pl-[17px] pr-5">
         <Pressable onPress={onBack ?? (() => router.back())} hitSlop={8}>
-          <ArrowLeft size={24} color={colors.text.disabled} />
+          <ArrowLeft size={24} color={colors.text.strong} />
         </Pressable>
         <View className="flex-row items-center gap-4">
           <Pressable onPress={onToggleFavorite} hitSlop={8}>

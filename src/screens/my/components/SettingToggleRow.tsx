@@ -24,7 +24,8 @@ export function SettingToggleRow({ icon, iconNode, indent, label, value, onValue
     >
       <View className="flex-row items-center gap-2">
         {icon != null && (
-          <Image source={icon} style={{ width: 20, height: 20 }} contentFit="contain" />
+          // PNG 아이콘은 원본이 더 연한 회색이라 벡터 아이콘(종·별, gray 400)과 같은 색으로 칠한다(디자이너 요청 2026-10-23).
+          <Image source={icon} style={{ width: 20, height: 20 }} contentFit="contain" tintColor={colors.gray[400]} />
         )}
         {iconNode != null && <View style={{ width: 20, alignItems: 'center' }}>{iconNode}</View>}
         <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: colors.text.muted }}>

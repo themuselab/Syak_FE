@@ -28,7 +28,10 @@ export function CategoryChip({ label, brand, onPress }: Props) {
         ...shadow.sm,
       }}
     >
-      {brand && <Image source={SYMBOL} style={{ width: 16, height: 16 }} contentFit="contain" />}
+      {/* 로고 확대(디자이너 요청 2026-10-23). 이미지에 여백이 있어 24로 키우고 그만큼 좌우를 당긴다. */}
+      {brand && (
+        <Image source={SYMBOL} style={{ width: 24, height: 24, marginLeft: -5, marginRight: -2 }} contentFit="contain" />
+      )}
       <Text
         className="text-body-m font-pretendard-medium"
         style={{ color: brand ? colors.primary[500] : colors.text.strong }}

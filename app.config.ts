@@ -88,6 +88,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...config.ios,
       usesAppleSignIn: true, // Apple 로그인(iOS 전용) 엔타이틀먼트
     },
+    android: {
+      ...config.android,
+      // 안드로이드 푸시(Expo Push → FCM)에 필요한 Firebase 설정. EAS 빌드에선 파일형 환경변수
+      // GOOGLE_SERVICES_JSON이 파일 경로를 주고, 로컬은 gitignore된 google-services.json을 쓴다.
+      // 없으면 안드로이드에서 푸시 토큰 발급이 실패한다(웹뷰 셸 안드로이드 출시 2026-10-26).
+      googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? './google-services.json',
+    },
     plugins: [
       ...(config.plugins ?? []),
       ...buildPropsPlugin,

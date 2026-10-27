@@ -29,6 +29,11 @@ export function markNotificationRead(id: string) {
   return apiFetch<void>(`/notifications/${id}/read`, { method: 'PATCH' });
 }
 
+// PATCH /notifications/shops/:shopId/read — 그 샵의 안 읽은 알림 전부 읽음 (인증 필요, 멱등 204).
+export function markShopNotificationsRead(shopId: string) {
+  return apiFetch<void>(`/notifications/shops/${shopId}/read`, { method: 'PATCH' });
+}
+
 // GET /notifications/settings — 알림 설정 (없으면 서버가 기본값 자동 생성).
 export function getNotificationSettings() {
   return apiFetch<NotificationSettings>('/notifications/settings');

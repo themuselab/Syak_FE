@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-nati
 
 import { track } from '@/shared/lib/analytics';
 import { useFavoriteShopIds, useToggleFavorite } from '@/shared/domain/favorite/favorite.queries';
+import { useMarkShopNotificationsRead } from '@/shared/domain/notification/notification.queries';
 import { postReservationClick } from '@/shared/domain/reservation/reservation.api';
 import { useShopSlots } from '@/shared/domain/reservation/reservation.queries';
 import { useShop } from '@/shared/domain/shops/shops.queries';
@@ -44,6 +45,8 @@ export function ShopDetailScreen({ shopId }: Props) {
   const favoriteIds = useFavoriteShopIds(isLoggedIn);
   const favorite = shopId ? favoriteIds.has(shopId) : false;
   const toggleFavoriteOnServer = useToggleFavorite();
+  // 푸시·알림 목록에서 이 샵으로 들어오면 이 샵 알림은 읽은 것으로
+  useMarkShopNotificationsRead(shopId, isLoggedIn);
 
   const onToggleFavorite = () => {
     if (!shopId) return;

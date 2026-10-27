@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 
 import {
   getAppNews,
   getNotifications,
   getNotificationSettings,
   markNotificationRead,
+  markShopNotificationsRead,
   updateNotificationSettings,
 } from './notification.api';
 import type { NotificationListResponse } from './notification.types';
@@ -54,6 +56,28 @@ export function useMarkNotificationRead() {
     },
   });
   return (id: string) => mutation.mutate(id);
+}
+
+// 샵 상세(/shop/:id) 진입 시 그 샵 알림을 읽음 처리. 푸시를 눌러 바로 샵으로 오면 알림 목록을
+// 거치지 않아 안 읽음이 계속 쌓였다(2026-10-27 — 24h 발송 259건 전부 안 읽음). 실패해도 다음 진입에 다시 시도.
+export function useMarkShopNotificationsRead(shopId: string | undefined, enabled: boolean) {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!shopId || !enabled) return;
+    markShopNotificationsRead(shopId)
+      .then(() =>
+        queryClient.setQueryData<NotificationListResponse>(['notifications', 'list'], (old) =>
+          old
+            ? {
+                notifications: old.notifications.map((n) =>
+                  n.shopId === shopId && n.readAt === null ? { ...n, readAt: new Date().toISOString() } : n,
+                ),
+              }
+            : old,
+        ),
+      )
+      .catch(() => {});
+  }, [shopId, enabled, queryClient]);
 }
 
 // 알림 설정. 인증 필요 — enabled로 제어.

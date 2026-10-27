@@ -31,3 +31,4 @@
 - 백엔드 API 계약: `../syakBE/docs/`
 - 프로젝트 규칙·스택·폴더 구조: [`../CLAUDE.md`](../CLAUDE.md)
 - [mac-local-build.md](mac-local-build.md) — 맥에서 iOS 로컬 빌드(`--local`)·제출 런북, 인증 파일 이관 절차
+- [관심 동네](interest-region.md) — 동네 직접 설정(홈 시작 위치·빈자리 알림), GPS 서버 전송 제거

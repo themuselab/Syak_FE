@@ -48,6 +48,10 @@ export type NotificationSettings = {
   nearLat: number | null;
   nearLng: number | null;
   radiusKm: number; // 1~10 (서버 검증)
+  // 관심 동네(사용자가 직접 고른 행정동 묶음). 고르면 nearLat/nearLng가 그 동네 중심이 된다.
+  // 구버전 백엔드 응답엔 없어서 optional.
+  regionCode?: string | null;
+  regionName?: string | null;
   favoriteEnabled: boolean;
   shopNewsEnabled: boolean;
   fcmToken: string | null;
@@ -58,6 +62,14 @@ export type NotificationSettings = {
 export type NotificationSettingsPatch = Partial<
   Pick<
     NotificationSettings,
-    'nearEnabled' | 'nearLat' | 'nearLng' | 'radiusKm' | 'favoriteEnabled' | 'shopNewsEnabled' | 'fcmToken'
+    | 'nearEnabled'
+    | 'nearLat'
+    | 'nearLng'
+    | 'radiusKm'
+    | 'favoriteEnabled'
+    | 'shopNewsEnabled'
+    | 'fcmToken'
+    | 'regionCode'
+    | 'regionName'
   >
 >;

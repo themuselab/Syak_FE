@@ -1,4 +1,5 @@
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { RefreshCcw } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -6,6 +7,7 @@ import { AppState, Keyboard, Platform, Pressable, StyleSheet, Text, View } from 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useFavoriteShopIds, useToggleFavorite } from '@/shared/domain/favorite/favorite.queries';
+import { useInterestRegion } from '@/shared/domain/notification/interestRegion';
 import { useSlotSearch } from '@/shared/domain/reservation/reservation.queries';
 import { useShops } from '@/shared/domain/shops/shops.queries';
 import type { MapBounds } from '@/shared/domain/shops/shops.types';
@@ -17,12 +19,16 @@ import {
 } from '@/shared/lib/location';
 import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { colors, shadow } from '@/shared/theme/colors';
+import type { Dong } from '@/shared/lib/dongs';
 import { LocationPermissionModal } from '@/shared/ui/LocationPermissionModal';
+import { RegionSearchSheet } from '@/shared/ui/RegionSearchSheet';
 import { useLoginGate } from '@/shared/ui/loginGate';
 
 import { CategoryChipBar } from './components/CategoryChipBar';
 import { CurrentLocationButton } from './components/CurrentLocationButton';
 import { HomeMap, type HomeMapRef } from './components/HomeMap';
+import { RegionPromptSheet } from './components/RegionPromptSheet';
+import { RegionToast } from './components/RegionToast';
 import { SearchBar } from './components/SearchBar';
 import { ShopBottomSheet, type ShopBottomSheetRef } from './components/ShopBottomSheet';
 import { filtersToParams, toSlotSearchParams } from './filtersToParams';
@@ -42,9 +48,10 @@ function boundsAround(c: { lat: number; lng: number }): MapBounds {
 }
 const INITIAL_BOUNDS: MapBounds = boundsAround(GANGNAM);
 
-// 위치 권한 안내 팝업은 앱 실행 중 한 번만 자동으로 띄운다. 홈에 돌아올 때마다 뜨면 귀찮다.
-// (현재위치 버튼을 누르면 권한이 없을 때 다시 뜬다 — 사용자가 직접 원한 경우라서)
-let permissionPromptShown = false;
+// 관심 동네 안내 시트: 앱 실행 중 한 번, "나중에 할게요"를 누르면 7일간 다시 안 띄운다.
+let regionPromptShown = false;
+const REGION_PROMPT_KEY = 'syak.regionPrompt.dismissedAt';
+const REGION_PROMPT_SNOOZE_MS = 7 * 24 * 3600 * 1000;
 
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -95,29 +102,67 @@ export function HomeScreen() {
     mapRef.current?.moveTo(coords.lat, coords.lng);
   };
 
-  // 홈 최초 진입: 권한이 이미 있으면 바로 내 위치. 없으면 OS 팝업을 바로 띄우지 않고 안내 팝업부터
-  // (예전엔 진입하자마자 OS 팝업이 떠서 왜 필요한지 모른 채 거부하기 쉬웠다). 미동의 → 강남 유지.
+  // 홈 시작 위치 = 관심 동네(있으면) → 없으면 강남(비회원·미설정 동일, 2026-10-27 결정).
+  // 예전엔 위치 권한이 있으면 진입하자마자 내 GPS로 지도를 옮기고 그 좌표로 목록을 조회했다 →
+  // 기기 GPS가 서버로 가지 않게 바꿨다(위치기반서비스사업 신고 검토 2026-10-24). 권한이 있으면
+  // 내 위치 점·거리 표시용 좌표만 기기 안에서 받아 둔다. 지도는 현재위치 버튼을 눌러야 옮긴다.
   useEffect(() => {
-    getLocationPermission().then(({ granted }) => {
-      if (granted) {
-        getCurrentCoords().then((c) => c && applyMyLocation(c));
-      } else if (!permissionPromptShown) {
-        permissionPromptShown = true;
-        setPermissionModal(true);
-      }
-    });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- 마운트 1회만
-
-  // 설정 앱에서 권한을 켜고 돌아오면 바로 내 위치를 반영한다(앱 재시작 없이).
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state !== 'active' || useMyLocationStore.getState().coords) return;
+    const loadMyDot = () =>
       getLocationPermission().then(({ granted }) => {
-        if (granted) getCurrentCoords().then((c) => c && applyMyLocation(c));
+        if (granted) getCurrentCoords().then((c) => c && setMyLocation(c));
       });
+    loadMyDot();
+    // 설정 앱에서 권한을 켜고 돌아오면 내 위치 점을 바로 반영한다(앱 재시작 없이).
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && !useMyLocationStore.getState().coords) loadMyDot();
     });
     return () => sub.remove();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- 리스너 1회 등록
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- 마운트 1회만
+
+  // ── 관심 동네 ──
+  const interest = useInterestRegion();
+  const [regionPrompt, setRegionPrompt] = useState(false);
+  const [regionSheet, setRegionSheet] = useState(false);
+  const [regionToast, setRegionToast] = useState<string | null>(null);
+
+  // 관심 동네로 지도·목록 기준을 옮긴다(설정 응답이 늦게 와도, 마이에서 바꿔도 따라간다).
+  const moveToRegion = (d: { lat: number; lng: number }) => {
+    autoCommitUntilRef.current = Date.now() + 3000;
+    setMapCenter({ lat: d.lat, lng: d.lng });
+    setMapBounds(boundsAround(d));
+    mapRef.current?.moveTo(d.lat, d.lng);
+  };
+  useEffect(() => {
+    if (interest.region) moveToRegion(interest.region);
+  }, [interest.region?.code]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 로그인했는데 관심 동네가 없으면 안내 시트(시안 첫 화면). 7일 내 "나중에"면 생략.
+  useEffect(() => {
+    if (!interest.ready || interest.region || regionPromptShown) return;
+    regionPromptShown = true;
+    AsyncStorage.getItem(REGION_PROMPT_KEY)
+      .then((v) => {
+        if (!v || Date.now() - Number(v) > REGION_PROMPT_SNOOZE_MS) setRegionPrompt(true);
+      })
+      .catch(() => setRegionPrompt(true));
+  }, [interest.ready, interest.region]);
+
+  const dismissRegionPrompt = () => {
+    setRegionPrompt(false);
+    AsyncStorage.setItem(REGION_PROMPT_KEY, String(Date.now())).catch(() => {});
+  };
+
+  const selectRegion = (d: Dong) => {
+    setRegionSheet(false);
+    moveToRegion(d);
+    interest
+      .setRegion(d)
+      .then(() => {
+        setRegionToast(d.name);
+        setTimeout(() => setRegionToast(null), 3000);
+      })
+      .catch(() => {});
+  };
 
   // "위치 권한 설정하기": 아직 물어볼 수 있으면 OS 팝업, 이미 영구 거부했으면 설정 앱으로.
   const handleAllowLocation = async () => {
@@ -417,6 +462,23 @@ export function HomeScreen() {
           onDeselect={() => setSelectedShopId(null)}
           topOffset={headerHeight}
           containerHeight={containerHeight}
+        />
+
+        {regionToast && <RegionToast name={regionToast} bottom={insets.bottom + 16} />}
+
+        <RegionPromptSheet
+          visible={regionPrompt}
+          onLater={dismissRegionPrompt}
+          onSetRegion={() => {
+            setRegionPrompt(false);
+            setRegionSheet(true);
+          }}
+        />
+        <RegionSearchSheet
+          visible={regionSheet}
+          current={interest.region}
+          onSelect={selectRegion}
+          onClose={() => setRegionSheet(false)}
         />
 
         <LocationPermissionModal

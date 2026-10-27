@@ -1,16 +1,17 @@
 import { router, useFocusEffect } from 'expo-router';
-import { Bell, Star } from 'lucide-react-native';
+import { Bell, ChevronRight, Star } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Image } from 'expo-image';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { openAppSettings } from '@/shared/lib/openExternal';
 import { useSignOut } from '@/shared/domain/auth/auth.queries';
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import {
   getAppNewsEnabled,
   setAppNewsEnabled,
 } from '@/shared/domain/notification/appNewsLocal';
+import { useInterestRegion } from '@/shared/domain/notification/interestRegion';
 import {
   useNotifications,
   useNotificationSettings,
@@ -19,16 +20,11 @@ import {
 import { registerDeviceForAppNews } from '@/shared/domain/notification/push';
 import { getPushPermission, togglePushPermission } from '@/shared/lib/pushPermission';
 import { useMe } from '@/shared/domain/user/user.queries';
-import {
-  getCurrentCoords,
-  getLocationPermission,
-  requestLocationPermission,
-} from '@/shared/lib/location';
 import { colors } from '@/shared/theme/colors';
 import { BackHeader } from '@/shared/ui/BackHeader';
 import { useLoginGate } from '@/shared/ui/loginGate';
+import { RegionSearchSheet } from '@/shared/ui/RegionSearchSheet';
 
-import { RadiusSlider } from './components/RadiusSlider';
 import { SettingToggleRow } from './components/SettingToggleRow';
 
 // 디자인: designs/마이페이지/*, design.pen (M6Lry 회원·OFF / y1ARc 회원·ON+슬라이더 / nnRIy 비회원)
@@ -36,7 +32,6 @@ import { SettingToggleRow } from './components/SettingToggleRow';
 // (값은 서버 파생 — PATCH 응답이 캐시를 교체하므로 로컬 미러링·롤백 불필요).
 const FAVORITE_COLOR = colors.accent.favorite; // 즐겨찾기 골드(기존 DetailHeader와 동일)
 const iconLocation = require('../../../assets/icons/my-location-permission.png');
-const iconNear = require('../../../assets/icons/my-near-alarm.png');
 const iconAppNews = require('../../../assets/icons/my-app-news.png');
 
 export function MyScreen() {
@@ -49,15 +44,6 @@ export function MyScreen() {
   // 프로필은 서버 파생(GET /users/me) — 로그인 시점 스냅샷(auth store)이 아닌 최신 값 표시.
   // 조회 중엔 store 값 폴백(깜빡임 방지). 프로필 사진·연동 현황은 디자인 부재로 미표시(docs/my.md §9).
   const { data: me } = useMe(isLoggedIn);
-
-  // 위치 권한 토글 = 실제 OS 권한 상태(QA 비로그인 #3 — 표시 불일치 해소). 계정 무관이라 비회원도 동작.
-  // 화면 포커스마다 재조회 — 설정 앱에서 바꾸고 돌아온 경우 반영.
-  const [locationPermission, setLocationPermission] = useState(false);
-  useFocusEffect(
-    useCallback(() => {
-      getLocationPermission().then(({ granted }) => setLocationPermission(granted));
-    }, []),
-  );
 
   // "알림" 토글 = OS 푸시 알림 권한(위치 권한 토글과 같은 패턴). 설정 앱에서 바꾸고 돌아오면 포커스 재조회.
   const [pushPermission, setPushPermission] = useState(false);
@@ -87,53 +73,16 @@ export function MyScreen() {
     setAppNewsEnabled(next).then(() => registerDeviceForAppNews());
   };
 
-  // ON: OS 권한 요청 → 재요청 불가('다시 묻지 않음' 상태)면 설정 이동 안내.
-  // OFF: 앱에서 권한 회수는 불가 — 설정으로 안내(복귀 시 포커스 재조회로 반영).
-  const handleLocationToggle = async (next: boolean) => {
-    if (!next) {
-      openAppSettings();
-      return;
-    }
-    const granted = await requestLocationPermission();
-    if (granted) {
-      setLocationPermission(true);
-      return;
-    }
-    const { canAskAgain } = await getLocationPermission();
-    if (!canAskAgain) {
-      Alert.alert('위치 권한이 꺼져 있어요', '설정에서 위치 권한을 허용해 주세요.', [
-        { text: '취소', style: 'cancel' },
-        { text: '설정으로 이동', onPress: openAppSettings },
-      ]);
-    }
-  };
-
   // 알림 설정: 서버 값 파생. 로딩 중엔 조작 차단.
   // 비회원은 disabled로 막지 않는다 — 탭이 들어와야 로그인 유도 모달을 띄울 수 있다(QA #59).
   const { data: settings } = useNotificationSettings(isLoggedIn);
   const update = useUpdateNotificationSettings();
   const settingsLoading = isLoggedIn && settings == null;
 
-  const nearEnabled = settings?.nearEnabled ?? false;
-  // 반경: 드래그 중 표시용 draft만 로컬, 드롭 시 1회 PATCH 후 서버 값으로 복귀.
-  const [radiusDraft, setRadiusDraft] = useState<number | null>(null);
-  const radiusKm = radiusDraft ?? settings?.radiusKm ?? 3;
-
-  // 내 주변 알림 ON: 위치 권한 → 현재 좌표를 기준점(nearLat/nearLng)으로 함께 저장.
-  // 거부 시 mutate 안 함 → 값이 서버 파생이라 토글이 OFF에 그대로 머묾(되돌리기 불필요).
-  const handleNearToggle = (next: boolean) =>
-    requireLogin(async () => {
-    if (!next) {
-      update.mutate({ nearEnabled: false });
-      return;
-    }
-    const coords = await getCurrentCoords();
-    if (!coords) {
-      Alert.alert('위치 권한이 필요해요', '내 주변 알림을 받으려면 설정에서 위치 권한을 허용해 주세요.');
-      return;
-    }
-    update.mutate({ nearEnabled: true, nearLat: coords.lat, nearLng: coords.lng });
-    });
+  // 관심 동네(시안 2026-10-27): "내 주변 알림(GPS)·위치 권한·반경" 자리를 대신한다.
+  // 동네를 고르면 그 동네 빈자리·할인 알림이 켜진다(useInterestRegion.setRegion).
+  const interest = useInterestRegion();
+  const [regionSheet, setRegionSheet] = useState(false);
 
   // 즐겨찾기 알림도 계정 단위 설정 — 비회원은 동일하게 로그인 유도.
   const handleFavoriteToggle = (next: boolean) =>
@@ -224,6 +173,31 @@ export function MyScreen() {
 
             <View style={{ height: 1, backgroundColor: colors.line.divider }} />
 
+            {/* 관심동네(시안): 미설정이면 분홍 "설정하기", 설정돼 있으면 동네 이름. 비회원은 로그인 유도. */}
+            <Pressable
+              onPress={() => requireLogin(() => setRegionSheet(true))}
+              className="flex-row items-center justify-between"
+              style={{ paddingVertical: 12 }}
+            >
+              <View className="flex-row items-center gap-2">
+                <Image source={iconLocation} style={{ width: 20, height: 20 }} contentFit="contain" tintColor={colors.text.faint} />
+                <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: colors.text.muted }}>
+                  관심동네
+                </Text>
+              </View>
+              <View className="flex-row items-center gap-1">
+                <Text
+                  className="font-pretendard-medium"
+                  style={{ fontSize: 14, color: interest.region ? colors.text.strong : colors.primary[500] }}
+                >
+                  {interest.region?.name ?? '설정하기'}
+                </Text>
+                <ChevronRight size={18} color={colors.gray[800]} />
+              </View>
+            </Pressable>
+
+            <View style={{ height: 1, backgroundColor: colors.line.divider }} />
+
             {/* 상위 "알림" = OS 푸시 권한. 아래 항목들은 한 단계 들여쓴다(시안). */}
             <SettingToggleRow
               iconNode={<Bell size={16} color={colors.text.faint} fill={colors.text.faint} />}
@@ -231,30 +205,6 @@ export function MyScreen() {
               value={pushPermission}
               onValueChange={handlePushToggle}
             />
-            <SettingToggleRow
-              indent
-              icon={iconLocation}
-              label="위치 권한"
-              value={locationPermission}
-              onValueChange={handleLocationToggle}
-            />
-            <SettingToggleRow
-              indent
-              icon={iconNear}
-              label="내 주변 알림"
-              value={nearEnabled}
-              onValueChange={handleNearToggle}
-              disabled={settingsLoading}
-            />
-            {nearEnabled && (
-              <RadiusSlider
-                value={radiusKm}
-                onChange={setRadiusDraft}
-                onRelease={(v) =>
-                  update.mutate({ radiusKm: v }, { onSettled: () => setRadiusDraft(null) })
-                }
-              />
-            )}
             <SettingToggleRow
               indent
               iconNode={<Star size={16} color={colors.text.faint} fill={colors.text.faint} />}
@@ -298,6 +248,15 @@ export function MyScreen() {
         )}
       </View>
 
+      <RegionSearchSheet
+        visible={regionSheet}
+        current={interest.region}
+        onSelect={(d) => {
+          setRegionSheet(false);
+          interest.setRegion(d).catch(() => {});
+        }}
+        onClose={() => setRegionSheet(false)}
+      />
       {loginModal}
     </View>
   );

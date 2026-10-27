@@ -108,7 +108,7 @@ export function AvailabilitySection({ timeline }: Props) {
           </ScrollView>
 
           <View className="flex-row items-center gap-3">
-            <Legend color={FILL.past} label="지난 시간" />
+            <Legend color={FILL.past} label="지난 시간" hatched />
             <Legend color={FILL.open} label="빈자리" />
             <Legend color={FILL.closed} label="예약 마감" />
           </View>
@@ -129,18 +129,27 @@ export function AvailabilitySection({ timeline }: Props) {
 
 // "지난 시간" 빗금. 이미지·SVG 없이 기울인 얇은 선을 칸 안에 깔고 칸의 overflow로 자른다
 // (네이티브·웹뷰 공통으로 같은 모양).
-function Hatch() {
+// 범례 칸(8px)에는 촘촘한 간격으로 같은 무늬를 작게 깐다(시안: 범례도 빗금).
+function Hatch({
+  offsets = [-12, -4, 4, 12, 20],
+  height = CELL_H,
+  lineWidth = 1.5,
+}: {
+  offsets?: number[];
+  height?: number;
+  lineWidth?: number;
+}) {
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      {[-12, -4, 4, 12, 20].map((x) => (
+      {offsets.map((x) => (
         <View
           key={x}
           style={{
             position: 'absolute',
             left: x,
             top: -8,
-            width: 1.5,
-            height: CELL_H + 16,
+            width: lineWidth,
+            height: height + 16,
             backgroundColor: colors.gray[300],
             transform: [{ rotate: '35deg' }],
           }}
@@ -150,10 +159,12 @@ function Hatch() {
   );
 }
 
-function Legend({ color, label }: { color: string; label: string }) {
+function Legend({ color, label, hatched }: { color: string; label: string; hatched?: boolean }) {
   return (
     <View className="flex-row items-center gap-1">
-      <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: color }} />
+      <View style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: color, overflow: 'hidden' }}>
+        {hatched && <Hatch offsets={[0, 4, 8]} height={8} lineWidth={1} />}
+      </View>
       <Text className="text-caption-m font-pretendard" style={{ color: colors.text.subtle }}>
         {label}
       </Text>

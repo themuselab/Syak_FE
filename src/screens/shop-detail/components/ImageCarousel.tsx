@@ -1,7 +1,7 @@
-import { Image } from 'expo-image';
 import { ScrollView, View } from 'react-native';
 import { sizedImage } from '@/shared/lib/image';
 import { colors } from '@/shared/theme/colors';
+import { ShopPhoto } from '@/shared/ui/ShopPhoto';
 
 type Props = {
   photos: string[];
@@ -18,7 +18,7 @@ export function ImageCarousel({ photos }: Props) {
     >
       {photos.length > 0
         ? photos.map((uri, i) => (
-            <Image
+            <ShopPhoto
               key={`${uri}-${i}`}
               source={{ uri: sizedImage(uri, 'carousel') }}
               cachePolicy="memory-disk"

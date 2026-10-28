@@ -12,7 +12,7 @@ import {
   SocialAuthTimeoutError,
   getSocialToken,
 } from '@/shared/domain/auth/socialAuth';
-import { getPushTokenForShell, pathFromNotificationData } from '@/shared/domain/notification/push';
+
 import {
   getCurrentCoords,
   getLocationPermission,
@@ -22,6 +22,7 @@ import { getPushPermission, togglePushPermission } from '@/shared/lib/pushPermis
 import { colors } from '@/shared/theme/colors';
 
 import type { ShellEnvelope, ShellInfo, ShellMessage, ShellRequest } from './bridge.types';
+import { getPushTokenForShell, pathFromNotificationData } from './nativePush';
 
 // 네이티브 셸 — 화면은 전부 웹(Vercel)이 그리고, 앱은 웹이 못 하는 것만 맡는다:
 // 소셜 로그인 SDK, OS 권한(위치·푸시), 푸시 토큰·알림 탭, 바깥 앱 열기. docs/webview-migration.md

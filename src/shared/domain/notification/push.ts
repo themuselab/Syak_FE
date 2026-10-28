@@ -1,4 +1,3 @@
-import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { useEffect, useRef } from 'react';
@@ -8,6 +7,7 @@ import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import { getDeviceId } from '@/shared/lib/deviceId';
 import { queryClient } from '@/shared/lib/queryClient';
 import { callShell, inShell, onShellEvent } from '@/shell/bridgeClient';
+import { getNativeExpoPushToken } from '@/shell/nativePush';
 
 import { getAppNewsEnabled } from './appNewsLocal';
 import { registerDevice, updateNotificationSettings } from './notification.api';
@@ -20,30 +20,10 @@ import { registerDevice, updateNotificationSettings } from './notification.api';
 // (Apple: App ID Push capability + APNs .p8 EAS 업로드 + 프로파일 재생성 — 준비 전엔 iOS 토큰 실패,
 //  catch로 조용히 통과. Android는 google-services + EAS FCM 자격증명으로 동작.)
 
-// 포그라운드 수신 시에도 배너/사운드 표시.
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
-
-const projectId = (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)?.eas
-  ?.projectId;
-
 // 백엔드 알림 data payload: { shopId, slotDate, slotTime } (DispatchSlotNotificationsUseCase).
 function openShopFromData(data: unknown): void {
   const shopId = (data as { shopId?: unknown } | undefined)?.shopId;
   if (typeof shopId === 'string' && shopId) router.push(`/shop/${shopId}`);
-}
-
-async function ensurePermission(): Promise<boolean> {
-  const current = await Notifications.getPermissionsAsync();
-  if (current.granted) return true;
-  const req = await Notifications.requestPermissionsAsync();
-  return req.granted;
 }
 
 // 웹뷰 셸 안의 웹: 토큰은 셸(네이티브)이 발급하고, 서버 등록은 로그인 쿠키를 가진 웹이 한다.
@@ -57,37 +37,7 @@ async function getPushToken(): Promise<string | null> {
     if (r) shellDeviceId = r.deviceId;
     return r?.token ?? null;
   }
-  if (Platform.OS === 'web') return null;
-  try {
-    if (!(await ensurePermission())) return null;
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: '기본 알림',
-        importance: Notifications.AndroidImportance.DEFAULT,
-      });
-    }
-    const { data } = await Notifications.getExpoPushTokenAsync(
-      projectId ? { projectId } : undefined,
-    );
-    if (__DEV__) console.log('[push] Expo token:', data);
-    return data;
-  } catch (e) {
-    console.warn('[push] 토큰 발급 실패(가드 통과)', (e as Error)?.message ?? e);
-    return null;
-  }
-}
-
-// 웹뷰 셸(네이티브)이 웹에 넘겨줄 토큰·설치 ID. 웹이 이걸로 서버 등록을 한다.
-export async function getPushTokenForShell(): Promise<{ token: string; deviceId: string } | null> {
-  const token = await getPushToken();
-  if (!token) return null;
-  return { token, deviceId: await getDeviceId() };
-}
-
-// 백엔드 알림 data → 이동할 웹 경로(셸이 알림 탭 처리에 쓴다). 샵 정보가 없으면 null.
-export function pathFromNotificationData(data: unknown): string | null {
-  const shopId = (data as { shopId?: unknown } | undefined)?.shopId;
-  return typeof shopId === 'string' && shopId ? `/shop/${shopId}` : null;
+  return getNativeExpoPushToken();
 }
 
 // 로그인 후: 토큰 발급 → 유저 설정에 저장(PATCH /notifications/settings).

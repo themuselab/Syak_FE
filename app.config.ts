@@ -37,14 +37,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       >)
     : [];
 
-  // 네이버 지도 plugin. NCP Maps Client ID가 있을 때만 포함(로그인 키와 별개).
-  const naverMapClientId = process.env.EXPO_PUBLIC_NAVER_MAP_CLIENT_ID;
-  const naverMapPlugin = naverMapClientId
-    ? ([['@mj-studio/react-native-naver-map', { client_id: naverMapClientId }]] as NonNullable<
-        ExpoConfig['plugins']
-      >)
-    : [];
-
   // ── Firebase 제외 (v1) ──────────────────────────────────────────────
   // @react-native-firebase(app/analytics/messaging)가 Expo54/RN0.81 iOS에서 어떤 조합으로도
   // 빌드 실패(New Arch TurboModule 코드젠 불일치 / SPM+static / non-modular header). v1에서는
@@ -54,7 +46,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   //  - JS는 dynamic import 가드(push.ts·analytics.ts)라 네이티브 모듈 없어도 무해
   //  - RNFirebase 전용이던 useFrameworks:static / googleServicesFile / SPM 패치도 모두 제거
 
-  // 카카오·네이버지도 SDK는 각 전용 Maven 저장소에만 있다. Expo가 저장소를 중앙 관리(settings.gradle)
+  // 카카오 SDK는 전용 Maven 저장소에만 있다. (네이버 지도 SDK는 앱이 웹뷰 셸이 되면서 뺐다 — react-native.config.js) Expo가 저장소를 중앙 관리(settings.gradle)
   // 하므로, expo-build-properties로 그 저장소들을 추가해야 의존성이 해석된다.
   const buildPropsPlugin = [
     [
@@ -63,7 +55,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         android: {
           extraMavenRepos: [
             'https://devrepo.kakao.com/nexus/content/groups/public/',
-            'https://repository.map.naver.com/archive/maven',
           ],
         },
       },
@@ -100,7 +91,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...buildPropsPlugin,
       ...kakaoPlugin,
       ...naverPlugin,
-      ...naverMapPlugin,
       ...locationPlugin, // 위치 권한 사용 목적 문구(App Store 5.1.1(ii))
       'expo-notifications', // 푸시(expo-notifications + Expo Push). iOS aps-environment는 프로파일
       //                       재생성(Push capability) 후 app.json ios.entitlements에 추가한다.

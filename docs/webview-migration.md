@@ -9,7 +9,11 @@
 > ### 실제 구현 현황 (2026-10-18) — 아래 계획과 다르게 갔다
 > - **웹 저장소(`syak`)는 건드리지 않았다.** 이 저장소(`Syak_FE`)의 웹 빌드(`expo export --platform web`)를
 >   Vercel(`app.themuselab.kr`)에 올리고, 같은 저장소의 네이티브 앱이 그 주소를 웹뷰로 연다. 한 코드베이스.
-> - 스위치: EAS 빌드 환경변수 `EXPO_PUBLIC_WEBVIEW_URL`. 값이 있으면 셸(웹뷰), 비우면 기존 네이티브 화면(= 되돌리기).
+> - 진입점(2026-10-28 앱 용량 최적화): 네이티브는 `index.native.tsx` → `src/shell/ShellApp.tsx`(웹뷰 셸만),
+>   웹은 `index.ts` → expo-router. `EXPO_PUBLIC_WEBVIEW_URL`은 셸이 띄울 주소(없으면 https://app.themuselab.kr).
+>   예전 네이티브 화면·폰트·네이버 지도 SDK·expo-dev-client는 네이티브에서 뺐다(`react-native.config.js`,
+>   package.json `expo.autolinking.exclude`). 안드로이드 APK 기준 네이버 지도 .so만 기기당 약 25MB, JS 번들+에셋 16MB→3.3MB.
+>   되돌리기: package.json main을 `expo-router/entry`로, 제외 목록·지도 plugin 복구, 이 커밋 revert.
 > - 브리지(4-3 대체): 메시지 계약 `src/shell/bridge.types.ts` 한 파일. 웹 쪽 `src/shell/bridgeClient.ts`
 >   (`callShell`·`onShellEvent`·`useShellInfo`), 셸 쪽 `src/shell/WebViewShell.tsx`.
 >   요청: socialLogin / 위치 권한·좌표 / 푸시 권한·토큰 / openSettings / openExternal. 이벤트: navigate(알림 탭) / pushReceived.

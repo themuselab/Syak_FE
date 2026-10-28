@@ -3,6 +3,17 @@
 이 폴더는 `syakFE`(소비자 앱)에서 **구현한 기능의 기술 명세**를 모은다.
 화면/기능을 구현하거나 크게 바꿀 때마다 해당 문서를 **함께 작성·갱신**한다. (CLAUDE.md 규칙)
 
+## 아키텍처
+
+![Syak 소비자 앱 아키텍처](diagrams/architecture.png)
+
+인터랙티브 버전(노드별 소스 링크·확대·테마): [diagrams/architecture.html](diagrams/architecture.html) — 로컬에서 브라우저로 연다.
+
+- **한 코드베이스, 두 빌드**: 웹은 `index.ts` → expo-router 화면을 정적 export해 Vercel(`app.themuselab.kr`)에 배포하고, 앱은 `index.native.tsx` → `ShellApp` → `WebViewShell`이 그 웹을 웹뷰로 띄운다.
+- **브리지**: 웹이 `bridgeClient`로 `postMessage` 요청(소셜 로그인·위치·푸시 권한/토큰·외부 앱 열기)을 보내면 셸이 네이티브로 처리해 같은 id로 응답하고, 알림 탭은 `navigate` 이벤트로 넘긴다(`src/shell/bridge.types.ts`).
+- **데이터·세션**: 웹이 `apiFetch` + React Query로 백엔드(`api.themuselab.kr/api/v1`)를 호출하고, 세션은 HttpOnly 쿠키(401이면 refresh 후 재시도). 소셜 로그인은 셸이 SDK 토큰만 받고 서버 로그인은 웹이 직접 한다.
+- **푸시**: 셸이 Expo 푸시 토큰을 발급 → 웹이 백엔드에 등록 → 백엔드가 Expo Push(APNs·FCM)로 발송.
+
 ## 문서 종류 (평평한 구조 — 커지면 폴더로 분리)
 - **기능별 구현 명세** (`<기능>.md`): 그 기능을 무엇을/어디에/어떻게 만들었는지 + 남은 작업. 기능마다 1파일.
 - **[troubleshooting.md](./troubleshooting.md)**: 겪은 오류·문제와 해결(증상→원인→해결). 한 파일에 **최신 항목을 맨 위로** 누적.

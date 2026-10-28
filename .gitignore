@@ -54,3 +54,6 @@ credentials.json
 
 # Archify 스킬(18MB) — 저장소엔 skills-lock.json만 두고 각자 `npx skills add tt-a1i/archify -a claude-code`로 설치
 .claude/skills/archify/
+
+# Archify 작업 폴더(후보 JSON·검증 영수증) — 최종본은 docs/diagrams/
+.archify/

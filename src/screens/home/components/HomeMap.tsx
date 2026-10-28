@@ -45,6 +45,9 @@ const GANGNAM = { latitude: 37.4979, longitude: 127.0276, zoom: 14 };
 
 export type HomeMapRef = { moveTo: (lat: number, lng: number) => void };
 
+// 웹(HomeMap.web.tsx)은 지도 SDK 스크립트를 미리 받는다. 네이티브 SDK는 앱에 내장이라 할 일 없음.
+export function preloadHomeMap(): void {}
+
 type Props = {
   pins: MapPinView[]; // 지도 영역 안 모든 샵(웹처럼 전부 표시) — 목록(반경)과 별개
   onMarkerPress: (id: string) => void;

@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 
+import { preloadHomeMap } from '@/screens/home/components/HomeMap';
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import { getMe } from '@/shared/domain/user/user.api';
 
@@ -17,6 +18,8 @@ export function SplashScreen() {
 
   useEffect(() => {
     let cancelled = false;
+    // 다음 화면(홈)의 지도 SDK를 스플래시 대기 시간 동안 병렬로 받아 둔다.
+    preloadHomeMap();
     // 최소 표시시간(브랜드 로딩) — 세션 확인이 빨라도 깜빡임 없이 잠깐 보여준다.
     const minDelay = new Promise<void>((resolve) => setTimeout(resolve, 1200));
 

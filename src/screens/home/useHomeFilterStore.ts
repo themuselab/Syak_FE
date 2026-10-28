@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 
 // 홈 필터 상태 (순수 클라 상태 → Zustand). 칩바 활성 표시 + 목록 필터링 구동.
@@ -72,4 +73,24 @@ export const useHomeFilterStore = create<HomeFilterState>((set) => ({
 /** 가격 범위가 전체(필터 없음)인지 */
 export function isFullPrice([min, max]: PriceRange): boolean {
   return min <= 0 && max >= PRICE_MAX;
+}
+
+// 검색어를 delay(ms) 동안 입력이 멈춘 뒤에만 반영해 돌려준다(서버 요청 폭주 방지).
+// search를 직접 구독하면 타이핑마다 홈 전체(지도·목록 카드)가 다시 그려진다 — 스토어를 직접 구독하고
+// 디바운스된 값만 state로 올려, 이 훅을 쓰는 컴포넌트는 입력이 멈췄을 때만 리렌더된다.
+export function useDebouncedSearch(delay = 300): string {
+  const [value, setValue] = useState(() => useHomeFilterStore.getState().search);
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const unsub = useHomeFilterStore.subscribe((s, prev) => {
+      if (s.search === prev.search) return;
+      clearTimeout(t);
+      t = setTimeout(() => setValue(s.search), delay);
+    });
+    return () => {
+      unsub();
+      clearTimeout(t);
+    };
+  }, [delay]);
+  return value;
 }

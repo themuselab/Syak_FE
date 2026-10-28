@@ -85,6 +85,12 @@ function loadNaverMaps(): Promise<void> {
   return loadPromise;
 }
 
+// 스플래시(최소 1.2초 표시) 동안 지도 SDK를 미리 받아 둔다. 홈이 마운트된 뒤에야 받기 시작하면
+// 스플래시 → 홈 → SDK 다운로드 → 지도 순으로 직렬이 된다. 실패는 HomeMap이 다시 처리하므로 무시.
+export function preloadHomeMap(): void {
+  loadNaverMaps().catch(() => {});
+}
+
 function icon(url: string, size: { width: number; height: number }): NaverAny {
   const w = window as NaverAny;
   return {

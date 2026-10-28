@@ -1,4 +1,3 @@
-import * as Notifications from 'expo-notifications';
 import { Linking, Platform } from 'react-native';
 
 import { callShell, inShell } from '@/shell/bridgeClient';
@@ -12,8 +11,9 @@ export async function getPushPermission(): Promise<{ granted: boolean; canAskAga
   if (inShell()) return callShell({ type: 'getPushPermission' }).catch(() => ({ granted: false, canAskAgain: false }));
   if (Platform.OS === 'web') return { granted: false, canAskAgain: false };
   try {
-    const { granted, canAskAgain } = await Notifications.getPermissionsAsync();
-    return { granted, canAskAgain };
+    // 네이티브 전용 모듈 — 동적 import로 웹 첫 번들에서 뺀다(웹은 위에서 이미 반환).
+    const { getNativePushPermission } = await import('@/shared/lib/nativeNotifications');
+    return await getNativePushPermission();
   } catch {
     return { granted: false, canAskAgain: false };
   }
@@ -35,8 +35,8 @@ export async function togglePushPermission(next: boolean): Promise<boolean> {
     return false;
   }
   try {
-    const r = await Notifications.requestPermissionsAsync();
-    return r.granted;
+    const { requestNativePushPermission } = await import('@/shared/lib/nativeNotifications');
+    return await requestNativePushPermission();
   } catch {
     return false;
   }

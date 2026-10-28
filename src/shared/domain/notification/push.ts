@@ -1,4 +1,3 @@
-import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
@@ -7,7 +6,6 @@ import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import { getDeviceId } from '@/shared/lib/deviceId';
 import { queryClient } from '@/shared/lib/queryClient';
 import { callShell, inShell, onShellEvent } from '@/shell/bridgeClient';
-import { getNativeExpoPushToken } from '@/shell/nativePush';
 
 import { getAppNewsEnabled } from './appNewsLocal';
 import { registerDevice, updateNotificationSettings } from './notification.api';
@@ -37,7 +35,10 @@ async function getPushToken(): Promise<string | null> {
     if (r) shellDeviceId = r.deviceId;
     return r?.token ?? null;
   }
-  return getNativeExpoPushToken();
+  // 웹에선 네이티브 알림 모듈이 필요 없다 — 동적 import로 expo-notifications를 웹 첫 번들에서 뺀다.
+  if (Platform.OS === 'web') return null;
+  const { getNativePushToken } = await import('@/shared/lib/nativeNotifications');
+  return getNativePushToken();
 }
 
 // 로그인 후: 토큰 발급 → 유저 설정에 저장(PATCH /notifications/settings).
@@ -85,22 +86,24 @@ export function usePushSetup({ enabled = true }: { enabled?: boolean } = {}): vo
     // 일반 브라우저: 푸시 없음. (getLastNotificationResponseAsync 등은 웹에서 예외)
     if (Platform.OS === 'web') return;
     registerDeviceForAppNews();
-    // 포그라운드 수신 → 알림 목록 캐시 갱신
-    const recv = Notifications.addNotificationReceivedListener(() => {
-      queryClient.invalidateQueries({ queryKey: ['notifications', 'list'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications', 'app-news'] });
-    });
-    // 알림 탭 → 샵 상세
-    const resp = Notifications.addNotificationResponseReceivedListener((r) =>
-      openShopFromData(r.notification.request.content.data),
-    );
-    // 종료 상태에서 알림 탭 콜드스타트 → 스플래시 replace와 경합 피해 잠시 뒤 이동
-    Notifications.getLastNotificationResponseAsync().then((r) => {
-      if (r) setTimeout(() => openShopFromData(r.notification.request.content.data), 500);
+    // expo-notifications는 네이티브에서만 쓰므로 동적 import(웹 첫 번들에서 제외).
+    let cancelled = false;
+    let unsubscribe: (() => void) | undefined;
+    import('@/shared/lib/nativeNotifications').then(({ subscribeNativePush }) => {
+      if (cancelled) return;
+      unsubscribe = subscribeNativePush({
+        // 포그라운드 수신 → 알림 목록 캐시 갱신
+        onReceived: () => {
+          queryClient.invalidateQueries({ queryKey: ['notifications', 'list'] });
+          queryClient.invalidateQueries({ queryKey: ['notifications', 'app-news'] });
+        },
+        // 알림 탭 → 샵 상세
+        onOpen: openShopFromData,
+      });
     });
     return () => {
-      recv.remove();
-      resp.remove();
+      cancelled = true;
+      unsubscribe?.();
     };
   }, [enabled]);
 

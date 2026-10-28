@@ -17,7 +17,6 @@ import {
   getLocationPermission,
   openLocationSettings,
 } from '@/shared/lib/location';
-import { useDebouncedValue } from '@/shared/lib/useDebouncedValue';
 import { colors, shadow } from '@/shared/theme/colors';
 import type { Dong } from '@/shared/lib/dongs';
 import { LocationPermissionModal } from '@/shared/ui/LocationPermissionModal';
@@ -34,7 +33,7 @@ import { ShopBottomSheet, type ShopBottomSheetRef } from './components/ShopBotto
 import { filtersToParams, toSlotSearchParams } from './filtersToParams';
 import { MAP_CONTROL_CLEARANCE, SHEET_DEFAULT_RATIO } from './homeLayout';
 import { toShopCardView } from './shopToView';
-import { useHomeFilterStore } from './useHomeFilterStore';
+import { useDebouncedSearch, useHomeFilterStore } from './useHomeFilterStore';
 
 // 홈(지도뷰). 네이버 지도 + GET /shops(비회원 가능).
 // 필터·검색·정렬은 전부 서버 파라미터(filtersToParams). 시간 필터만 /slots/search 교집합.
@@ -182,13 +181,13 @@ export function HomeScreen() {
   const date = useHomeFilterStore((s) => s.date);
   const times = useHomeFilterStore((s) => s.times);
   const toggles = useHomeFilterStore((s) => s.toggles);
-  const search = useHomeFilterStore((s) => s.search);
   const reset = useHomeFilterStore((s) => s.reset);
   const activeFilter = useHomeFilterStore((s) => s.activeFilter);
   const setActiveFilter = useHomeFilterStore((s) => s.setActiveFilter);
 
   // 검색어는 타이핑마다 store에 반영되므로 서버 요청은 디바운스 값으로만.
-  const debouncedSearch = useDebouncedValue(search);
+  // search를 직접 구독하지 않는다 — 타이핑마다 지도·목록 전체가 리렌더되지 않게(useDebouncedSearch).
+  const debouncedSearch = useDebouncedSearch();
 
   const params = useMemo(
     () =>

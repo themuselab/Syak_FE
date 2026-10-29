@@ -29,6 +29,7 @@ type Props = {
   onDeselect: () => void; // 물리 뒤로가기 등에서 포커스 해제
   topOffset: number; // 헤더+검색바 오버레이 높이 — 목록 모드 최대 확장이 검색바를 가리지 않게 (QA #50)
   containerHeight: number; // 루트 컨테이너 실측 높이 — gorhom의 스냅포인트 정규화 기준과 동일해야 함
+  onOpenSlotAlert: (shopId: string, dayIndex?: number) => void; // 빈자리 알림 시트(로그인 게이팅 포함)
 };
 
 // 단일 바텀시트: activeFilter → 필터 화면 / selectedShop → 인라인 상세(특정샵 포커스) / 그 외 → 칩바+목록.
@@ -53,6 +54,7 @@ export const ShopBottomSheet = forwardRef<ShopBottomSheetRef, Props>(function Sh
   onDeselect,
   topOffset,
   containerHeight,
+  onOpenSlotAlert,
 }: Props, ref) {
   const bottomInset = useBottomInset();
   const sheetRef = useRef<BottomSheet>(null);
@@ -191,6 +193,7 @@ export const ShopBottomSheet = forwardRef<ShopBottomSheetRef, Props>(function Sh
           onCollapse={() => sheetRef.current?.snapToIndex(0)}
           onExpand={() => sheetRef.current?.snapToIndex(1)}
           onClose={onDeselect}
+          onOpenSlotAlert={(dayIndex) => onOpenSlotAlert(selectedShop.id, dayIndex)}
         />
       ) : (
         <>
@@ -232,6 +235,7 @@ export const ShopBottomSheet = forwardRef<ShopBottomSheetRef, Props>(function Sh
                   shop={item}
                   onPress={() => onSelectShop(item.id)}
                   onToggleFavorite={() => onToggleFavorite(item.id)}
+                  onPressSlotAlert={() => onOpenSlotAlert(item.id)}
                 />
               )}
             />

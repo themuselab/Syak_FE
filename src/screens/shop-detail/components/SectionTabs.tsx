@@ -11,7 +11,7 @@ export type TabKey = 'home' | 'menu' | 'availability' | 'review';
 export const TABS: { key: TabKey; label: string }[] = [
   { key: 'home', label: '홈' },
   { key: 'menu', label: '가격' },
-  { key: 'availability', label: '빈자리' },
+  { key: 'availability', label: '예약' }, // 시안(빈자리 알림받기 2026-10-29): 홈·가격·예약·리뷰
   { key: 'review', label: '리뷰' },
 ];
 

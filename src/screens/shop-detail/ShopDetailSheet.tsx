@@ -23,6 +23,7 @@ type Props = {
   onCollapse: () => void; // 헤더 뒤로가기 → 시트 접기
   onExpand: () => void; // 접힌 상태에서 이름·사진 탭 → 전체 화면
   onClose: () => void; // 헤더 ✕ → 상세 닫고 목록으로(선택 해제)
+  onOpenSlotAlert: (dayIndex: number) => void; // 빈자리 알림 시트 — 시트·토스트는 홈이 띄운다
 };
 
 // 홈 포커스 시트용 인라인 상세(특정샵 포커스 디자인 euK3A). 라우트 화면(ShopDetailScreen)과
@@ -36,6 +37,7 @@ export function ShopDetailSheet({
   onCollapse,
   onExpand,
   onClose,
+  onOpenSlotAlert,
 }: Props) {
   const myLocation = useMyLocationStore((s) => s.coords);
   const shopQuery = useShop(shopId);
@@ -105,6 +107,7 @@ export function ShopDetailSheet({
         favorite={favorite}
         onToggleFavorite={expanded ? undefined : onToggleFavorite}
         onTopPress={expanded ? undefined : onExpand}
+        onOpenSlotAlert={onOpenSlotAlert}
         renderScroll={(scrollProps, ref) => <BottomSheetScrollView {...scrollProps} ref={ref} />}
       />
 

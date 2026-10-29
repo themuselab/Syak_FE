@@ -19,7 +19,7 @@ import { BackHeader } from '@/shared/ui/BackHeader';
 import { LoginRequired } from '@/shared/ui/loginGate';
 import { ShopListCard, type ShopCardInfo } from '@/shared/ui/ShopListCard';
 
-import { locationLabelOf, nextAvailableToday } from '@/screens/home/shopToView';
+import { locationLabelOf, todayOpenTimes } from '@/screens/home/shopToView';
 
 import { CategoryChips, type FavoriteCategory } from './components/CategoryChips';
 import { FavoriteEmpty } from './components/FavoriteEmpty';
@@ -31,13 +31,12 @@ function detailToCard(
   favorite: boolean,
   myLocation: { lat: number; lng: number } | null,
 ): ShopCardInfo {
-  const next = nextAvailableToday(detail);
   return {
     name: detail.name,
     dealLabel: detail.eventDesc,
     priceTier: detail.priceTier && detail.priceTier !== '미정' ? detail.priceTier : null,
     locationLabel: locationLabelOf(detail, myLocation),
-    availability: next ? `오늘 ${next} 예약 가능` : null,
+    todayTimes: todayOpenTimes(detail),
     previewReview: detail.reviews[0]?.body ?? detail.previewReview ?? null,
     favorite,
     photos: detail.photos,
@@ -92,7 +91,7 @@ export function FavoriteScreen() {
               dealLabel: null,
               priceTier: null,
               locationLabel: f.shopRegion ?? '',
-              availability: null,
+              todayTimes: [],
               previewReview: null,
               favorite: favoriteIds.has(f.shopId),
               photos: [],

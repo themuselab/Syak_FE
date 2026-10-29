@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { Bell, ChevronRight, Star } from 'lucide-react-native';
+import { Bell, ChevronRight, Inbox, Star } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { Image } from 'expo-image';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -56,7 +56,7 @@ export function MyScreen() {
     togglePushPermission(next).then(setPushPermission);
   };
 
-  // "샥 알림" 메뉴의 분홍 점 = 안 읽은 샵 알림이 있을 때(시안 아이콘의 점을 미읽음 표시로 썼다).
+  // "알림함" 메뉴의 분홍 점 = 안 읽은 샵 알림이 있을 때(시안 아이콘의 점을 미읽음 표시로 썼다).
   const { data: notifications } = useNotifications(isLoggedIn);
   const hasUnread = (notifications ?? []).some((n) => n.readAt === null);
 
@@ -143,7 +143,8 @@ export function MyScreen() {
               </Text>
             </Pressable>
 
-            {/* 샥 알림 = 알림 목록. 홈 검색바의 알림 벨이 시안(2026-10-15)에서 빠져 진입점이 여기다.
+            {/* 알림함 = 받은 알림 + 빈자리 알림 신청 현황(시안 2026-10-29 "샥 알림" → "알림함").
+                홈 검색바의 알림 벨이 시안(2026-10-15)에서 빠져 진입점이 여기다.
                 비회원은 알림 화면이 앱 소식만 보여주고 샵 알림은 로그인 유도한다(화면이 담당). */}
             <Pressable
               onPress={() => router.push('/notifications')}
@@ -151,7 +152,7 @@ export function MyScreen() {
               style={{ paddingVertical: 12 }}
             >
               <View>
-                <Bell size={16} color={colors.text.faint} fill={colors.text.faint} />
+                <Inbox size={18} color={colors.text.faint} />
                 {hasUnread && (
                   <View
                     style={{
@@ -167,7 +168,7 @@ export function MyScreen() {
                 )}
               </View>
               <Text className="font-pretendard-semibold" style={{ fontSize: 15, color: colors.text.muted }}>
-                샥 알림
+                알림함
               </Text>
             </Pressable>
 
@@ -192,7 +193,7 @@ export function MyScreen() {
                 >
                   {interest.region?.name ?? '설정하기'}
                 </Text>
-                <ChevronRight size={18} color={colors.gray[800]} />
+                <ChevronRight size={18} color={interest.region ? colors.gray[800] : colors.primary[500]} />
               </View>
             </Pressable>
 

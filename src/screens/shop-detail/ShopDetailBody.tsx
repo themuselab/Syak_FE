@@ -39,10 +39,19 @@ type Props = {
   // 홈 시트가 접혀 있을 때만 넘어온다 — 시트 어디를 탭해도 전체 화면으로(디자이너 요청 2026-10-23).
   // 안쪽 버튼(별·전화·인스타 등)은 자기 동작이 먼저다.
   onTopPress?: () => void;
+  // "예약 가능 시간" 섹션의 빈자리 알림 카드 → 알림 설정 시트(그 탭의 날짜로 열림).
+  onOpenSlotAlert: (dayIndex: number) => void;
 };
 
 // 상세 본문 — 라우트 화면과 홈 포커스 시트가 공유.
-export function ShopDetailBody({ shop, renderScroll, favorite, onToggleFavorite, onTopPress }: Props) {
+export function ShopDetailBody({
+  shop,
+  renderScroll,
+  favorite,
+  onToggleFavorite,
+  onTopPress,
+  onOpenSlotAlert,
+}: Props) {
   const spy = useSectionSpy();
 
   // 홈 시트에서 다른 핀 탭으로 샵이 바뀌면 이전 스크롤 위치·활성 탭이 남지 않게 초기화.
@@ -80,7 +89,7 @@ export function ShopDetailBody({ shop, renderScroll, favorite, onToggleFavorite,
     <Pressable key="availability" onPress={onTopPress} disabled={!onTopPress} onLayout={spy.onSectionLayout('availability')}>
       {band}
       <View className="px-5 pb-6 pt-6">
-        <AvailabilitySection timeline={shop.timeline} />
+        <AvailabilitySection days={shop.availability} onOpenSlotAlert={onOpenSlotAlert} />
       </View>
     </Pressable>,
     <Pressable key="review" onPress={onTopPress} disabled={!onTopPress} onLayout={spy.onSectionLayout('review')}>

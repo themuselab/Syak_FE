@@ -1,6 +1,6 @@
 import type { ShopSlot } from '@/shared/domain/reservation/reservation.types';
 import type { ReservationRoute, ShopDetail } from '@/shared/domain/shops/shops.types';
-import { toDateKey } from '@/shared/lib/date';
+import { openTimesOn, threeDays } from '@/shared/lib/slotTimes';
 
 import { type HoursView, toHoursView } from './businessHours';
 import { locationLabelOf } from '../home/shopToView';
@@ -8,17 +8,12 @@ import { locationLabelOf } from '../home/shopToView';
 // 상세 화면 뷰모델. 백엔드 ShopDetail + 슬롯(3일치)을 각 섹션 컴포넌트가 쓰는 형태로 변환한다.
 // 디자인: 디자이너 시안 2026-10-15 "샵 상세" / "샵 상세-빈자리 마감".
 
-// 빈자리 시간 막대의 30분 칸 상태.
-//  past   = 이미 지난 시간(빗금)   open = 빈자리(핑크)   closed = 예약 마감(회색)
-export type HalfState = 'past' | 'open' | 'closed';
-export type HourCell = { hour: number; halves: [HalfState, HalfState] };
-
-export type DayTimeline = {
-  key: string;
-  label: string; // "오늘 (화)"
-  date: string; // "10.01"
-  cells: HourCell[];
-  hasOpen: boolean; // false면 "예약이 모두 마감되었어요"
+// "예약 가능 시간" 섹션의 하루(시안 2026-10-29): 탭 "오늘 화" + 빈자리 시각 목록.
+export type AvailabilityDay = {
+  key: string; // 'YYYY-MM-DD'
+  prefix: string; // "오늘"
+  weekday: string; // "화"
+  times: string[]; // 빈자리 시각(정렬). 오늘은 지난 시각 제외. 비면 "예약이 모두 마감되었어요"
 };
 
 export type MenuItem = { name: string; price: string };
@@ -45,60 +40,20 @@ export type ShopDetailView = {
   instagram: { handle: string; url: string } | null;
   introduction: string | null;
   menus: MenuItem[];
-  timeline: DayTimeline[];
+  availability: AvailabilityDay[];
   reviews: ReviewItem[];
   // 하단 바. 오른쪽 = 네이버 예약(없으면 카카오·톡톡 등 다른 온라인 예약), 왼쪽 = 인스타 → 전화.
   bookingRoute: ReservationRoute | null;
 };
 
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
-const DAY_PREFIX = ['오늘', '내일', '모레'];
-// 시간 막대 기본 범위. 영업시간 데이터가 없어 고정 범위를 쓰고, 슬롯이 그 밖에 있으면 넓힌다.
-const DEFAULT_FROM = 9;
-const DEFAULT_TO = 21;
-
-const pad2 = (n: number) => String(n).padStart(2, '0');
-
-// 슬롯(flat) → 3일치 시간 막대. 30분 단위 칸마다 지남/빈자리/마감을 정한다.
-function buildTimeline(slots: ShopSlot[], now: Date): DayTimeline[] {
-  // 3일 전체에서 같은 시간 범위를 써야 날짜를 바꿔도 막대 길이가 흔들리지 않는다.
-  const hours = slots.map((s) => Number(s.startTime.slice(0, 2))).filter((h) => !Number.isNaN(h));
-  const from = Math.min(DEFAULT_FROM, ...hours);
-  const to = Math.max(DEFAULT_TO, ...hours);
-  const nowMin = now.getHours() * 60 + now.getMinutes();
-
-  return DAY_PREFIX.map((prefix, i) => {
-    const d = new Date(now);
-    d.setDate(now.getDate() + i);
-    const dateKey = toDateKey(d);
-    // 이 날짜의 빈자리를 30분 칸 번호(분/30)로 모은다. 10:20 같은 시각은 10:00 칸에 들어간다.
-    const openHalves = new Set(
-      slots
-        .filter((s) => s.date === dateKey)
-        .map((s) => {
-          const [h, m] = s.startTime.split(':').map(Number);
-          return h * 2 + (m >= 30 ? 1 : 0);
-        }),
-    );
-
-    const cells: HourCell[] = [];
-    for (let h = from; h <= to; h++) {
-      const state = (half: 0 | 1): HalfState => {
-        // 오늘만 "지난 시간"이 있다. 칸이 끝난 시각이 지금 이전이면 지난 칸.
-        if (i === 0 && h * 60 + half * 30 + 30 <= nowMin) return 'past';
-        return openHalves.has(h * 2 + half) ? 'open' : 'closed';
-      };
-      cells.push({ hour: h, halves: [state(0), state(1)] });
-    }
-
-    return {
-      key: dateKey,
-      label: `${prefix} (${WEEKDAYS[d.getDay()]})`,
-      date: `${pad2(d.getMonth() + 1)}.${pad2(d.getDate())}`,
-      cells,
-      hasOpen: cells.some((c) => c.halves.includes('open')),
-    };
-  });
+// 슬롯(flat) → 오늘·내일·모레 빈자리 시각.
+function buildAvailability(slots: ShopSlot[], now: Date): AvailabilityDay[] {
+  return threeDays(now).map((d) => ({
+    key: d.key,
+    prefix: d.prefix,
+    weekday: d.weekday,
+    times: openTimesOn(slots, d.key, now),
+  }));
 }
 
 // 메뉴 가격 표기. 이상한 값은 숫자 대신 빈칸으로 둔다(메뉴명은 그대로 보인다):
@@ -158,7 +113,7 @@ export function toShopDetailView(
     introduction: shop.introduction?.trim() || null,
     // 가격 없는 메뉴는 이름만(리더선 유지).
     menus: shop.menus.map((m) => ({ name: m.name, price: priceText(m.price) })),
-    timeline: buildTimeline(slots, now),
+    availability: buildAvailability(slots, now),
     reviews: shop.reviews.map((r) => ({ text: r.body, tags: r.keywords, date: r.visited ?? undefined })),
     // 오른쪽 버튼은 온라인 예약 수단만. 인스타·전화는 왼쪽 버튼이 맡는다.
     bookingRoute:

@@ -1,5 +1,6 @@
 import type { ShopListItem, ShopPinRow } from '@/shared/domain/shops/shops.types';
 import { distanceMeters, formatDistance } from '@/shared/lib/geo';
+import { normalizeHM, nowHM } from '@/shared/lib/slotTimes';
 
 // 지도 마커 종류(=핀 PNG). assets/icons/pin-{kind}.png와 직결.
 //  default(분홍 상점) = 일반 샵 / discount(노랑 %) = 이벤트 / reservable(파랑 알람시계) = 예약 가능
@@ -23,7 +24,7 @@ export type ShopCardView = {
   dealLabel: string | null; // 이벤트 설명("첫방문 특가") — 메타 줄 맨 앞 핑크
   priceTier: string | null; // "2만원대" ("미정"은 숨김)
   locationLabel: string; // "320m 전농동" / 위치 미동의면 "전농동"
-  availability: string | null; // "오늘 15:00 예약 가능" — 오늘 남은 슬롯이 없으면 null
+  todayTimes: string[]; // 오늘 남은 빈자리 시각(정렬) — 비면 카드에 "당일 예약이 마감되었어요"
   previewReview: string | null;
   markerKind: MarkerKind;
   favorite: boolean;
@@ -48,23 +49,22 @@ export function areaLabel(item: { roadAddress: string | null; district: string |
   return parts[parts.length - 1] ?? '';
 }
 
-// 오늘 남은 가장 이른 예약 가능 시각. slotSummary는 "오늘" 디자이너별 가능 시각 목록이다.
+// 오늘 남은 빈자리 시각 목록(정렬·중복 제거). slotSummary는 "오늘" 디자이너별 가능 시각 목록이다.
 // 지금 시각 이전 슬롯은 이미 지났으므로 뺀다. 형식은 "HH:MM"으로 맞춰 문자열 비교한다.
-export function nextAvailableToday(
+export function todayOpenTimes(
   item: { todayOpen: boolean; slotSummary: { times: string[] }[] },
   now: Date = new Date(),
-): string | null {
-  if (!item.todayOpen) return null;
-  const pad = (t: string) => (t.length === 4 ? `0${t}` : t);
-  const nowHM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  let earliest: string | null = null;
+): string[] {
+  if (!item.todayOpen) return [];
+  const cut = nowHM(now);
+  const set = new Set<string>();
   for (const d of item.slotSummary) {
     for (const t of d.times) {
-      const hm = pad(t);
-      if (hm >= nowHM && (earliest === null || hm < earliest)) earliest = hm;
+      const hm = normalizeHM(t);
+      if (hm >= cut) set.add(hm);
     }
   }
-  return earliest;
+  return [...set].sort();
 }
 
 // 위치 동의 여부에 따라 동네 표기를 다르게 한다(디자이너 코멘트):
@@ -85,14 +85,13 @@ export function toShopCardView(
   toggles?: MarkerToggles,
   myLocation?: { lat: number; lng: number } | null,
 ): ShopCardView {
-  const next = nextAvailableToday(item);
   return {
     id: item.id,
     name: item.name,
     dealLabel: item.eventDesc,
     priceTier: item.priceTier && item.priceTier !== '미정' ? item.priceTier : null,
     locationLabel: locationLabelOf(item, myLocation),
-    availability: next ? `오늘 ${next} 예약 가능` : null,
+    todayTimes: todayOpenTimes(item),
     previewReview: item.previewReview,
     markerKind: markerKindOf(toggles),
     favorite: favoriteIds.has(item.id),

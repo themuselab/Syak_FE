@@ -1,9 +1,9 @@
 import type { BusinessHourDay } from '@/shared/domain/shops/shops.types';
+import { entryForDay as entryFor, toMin, WEEKDAYS as WEEK } from '@/shared/lib/slotTimes';
 
 // 영업시간(네이버 newBusinessHours를 스크래퍼가 정규화한 값) → 상세 "영업 중 · 21:00에 영업 종료 ∨" 줄.
 // 시안(2026-10-15 "샵 상세"): 상태(초록 영업 중) + 오늘 안내, 펼치면 월~일 시간, 쉬는 날은 빨간 "휴무".
 
-const WEEK = ['일', '월', '화', '수', '목', '금', '토'];
 const ORDER = ['월', '화', '수', '목', '금', '토', '일'];
 
 export type HoursTone = 'open' | 'closed' | 'muted';
@@ -13,15 +13,6 @@ export type HoursView = {
   note: string | null; // "21:00에 영업 종료"
   days: { day: string; text: string; closed: boolean; today: boolean }[];
 };
-
-const toMin = (hhmm: string) => {
-  const [h, m] = hhmm.split(':').map(Number);
-  return h * 60 + (m || 0);
-};
-
-function entryFor(hours: BusinessHourDay[], day: string): BusinessHourDay | undefined {
-  return hours.find((h) => h.day === day) ?? hours.find((h) => h.day === '매일');
-}
 
 export function toHoursView(hours: BusinessHourDay[] | null | undefined, now: Date): HoursView | null {
   if (!hours?.length) return null;

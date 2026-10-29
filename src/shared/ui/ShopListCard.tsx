@@ -1,4 +1,4 @@
-import { Clock, Star } from 'lucide-react-native';
+import { Bell, Clock, Star } from 'lucide-react-native';
 import { Fragment } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
@@ -13,7 +13,7 @@ export type ShopCardInfo = {
   dealLabel: string | null; // "첫방문 특가"
   priceTier: string | null; // "2만원대"
   locationLabel: string; // "320m 전농동"
-  availability: string | null; // "오늘 15:00 예약 가능"
+  todayTimes: string[]; // 오늘 남은 빈자리 시각("15:00"…) — 비면 "당일 예약이 마감되었어요"
   previewReview: string | null;
   favorite: boolean;
   photos: string[];
@@ -33,15 +33,26 @@ type Props = {
    * compact = 즐겨찾기 목록: 왼쪽 썸네일 1장 + 이름·리뷰 수 + 메타 한 줄 (시안 2026-10-15 "즐겨찾기")
    */
   variant?: 'feed' | 'compact';
+  /** feed 카드의 "빈자리 알림" 버튼 — 넘기면 버튼이 보인다(홈 목록). */
+  onPressSlotAlert?: () => void;
 };
+
+// 오늘 빈자리 시각은 3개까지 보이고 나머지는 "외 +N"(시안 2026-10-29).
+const MAX_TIMES = 3;
 
 // 매장 카드 (디자이너 시안 2026-10-15). 홈 목록·즐겨찾기 목록 공용.
 //   이름                                  ★
 //   첫방문 특가 · 2만원대 · 320m 전농동
-//   ⏰ 오늘 15:00 예약 가능
+//   ⏰ 오늘 15:00 15:30 16:00 외 +3          [🔔 빈자리 알림]   (시안 2026-10-29)
 //   [사진][사진][사진]→
 //   [리뷰 한 줄]
-export function ShopListCard({ shop, onPress, onToggleFavorite, variant = 'feed' }: Props) {
+export function ShopListCard({
+  shop,
+  onPress,
+  onToggleFavorite,
+  variant = 'feed',
+  onPressSlotAlert,
+}: Props) {
   // 메타 줄: 값이 있는 것만 · 로 잇는다. 이벤트 문구만 핑크.
   const meta: { text: string; pink?: boolean }[] = [];
   if (shop.dealLabel) meta.push({ text: shop.dealLabel, pink: true });
@@ -138,19 +149,12 @@ export function ShopListCard({ shop, onPress, onToggleFavorite, variant = 'feed'
           </Text>
 
           {metaRow}
-
-          {shop.availability && (
-            <View className="flex-row items-center gap-1">
-              <Clock size={14} color={colors.primary[500]} />
-              <Text className="text-body-m font-pretendard-medium" style={{ color: colors.primary[500] }}>
-                {shop.availability}
-              </Text>
-            </View>
-          )}
         </View>
 
         {star}
       </View>
+
+      <TodaySlotsRow times={shop.todayTimes} onPressSlotAlert={onPressSlotAlert} />
 
       {/* 작업 사진(포트폴리오). 눌러도 카드와 같이 상세로 간다. 사진이 없는 샵은 줄을 비운다. */}
       {shop.photos.length > 0 && (
@@ -188,5 +192,43 @@ export function ShopListCard({ shop, onPress, onToggleFavorite, variant = 'feed'
         </View>
       )}
     </Pressable>
+  );
+}
+
+// 오늘 빈자리 줄 + 오른쪽 "빈자리 알림" 버튼.
+function TodaySlotsRow({ times, onPressSlotAlert }: { times: string[]; onPressSlotAlert?: () => void }) {
+  const shown = times.slice(0, MAX_TIMES);
+  const rest = times.length - shown.length;
+  return (
+    <View className="mt-1.5 flex-row items-center justify-between gap-2 px-5">
+      <View className="flex-1 flex-row items-center gap-1">
+        <Clock size={14} color={times.length > 0 ? colors.primary[500] : colors.text.faint} />
+        {times.length > 0 ? (
+          <Text className="text-body-m font-pretendard-medium" numberOfLines={1} style={{ flexShrink: 1 }}>
+            <Text style={{ color: colors.text.base }}>오늘 </Text>
+            <Text style={{ color: colors.primary[500] }}>{shown.join(' ')}</Text>
+            {rest > 0 && <Text style={{ color: colors.text.subtle }}> 외 +{rest}</Text>}
+          </Text>
+        ) : (
+          <Text className="text-body-m font-pretendard-medium" numberOfLines={1} style={{ color: colors.text.faint }}>
+            당일 예약이 마감되었어요
+          </Text>
+        )}
+      </View>
+      {onPressSlotAlert && (
+        <Pressable
+          onPress={onPressSlotAlert}
+          hitSlop={6}
+          accessibilityLabel="빈자리 알림"
+          className="flex-row items-center gap-1 rounded-full px-2.5 py-1.5"
+          style={{ backgroundColor: colors.brand.tint }}
+        >
+          <Bell size={12} color={colors.primary[500]} fill={colors.primary[500]} />
+          <Text className="text-label-s font-pretendard-semibold" style={{ color: colors.primary[500] }}>
+            빈자리 알림
+          </Text>
+        </Pressable>
+      )}
+    </View>
   );
 }

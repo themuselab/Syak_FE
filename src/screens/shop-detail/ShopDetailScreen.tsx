@@ -1,6 +1,7 @@
 import { RotateCcw } from 'lucide-react-native';
 import { useEffect, useMemo } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { track } from '@/shared/lib/analytics';
 import { useFavoriteShopIds, useToggleFavorite } from '@/shared/domain/favorite/favorite.queries';
@@ -11,6 +12,7 @@ import { useShop } from '@/shared/domain/shops/shops.queries';
 import { useMyLocationStore } from '@/shared/lib/myLocation.store';
 import { colors } from '@/shared/theme/colors';
 import { useLoginGate } from '@/shared/ui/loginGate';
+import { useSlotAlertSheet } from '@/shared/ui/slot-alert/useSlotAlertSheet';
 
 import { DetailHeader } from './components/DetailHeader';
 import { ReservationBar } from './components/ReservationBar';
@@ -26,6 +28,9 @@ type Props = {
 // 즐겨찾기는 /favorites 서버 연동(홈과 단일 캐시) — 비회원은 LoginPromptModal 게이팅.
 export function ShopDetailScreen({ shopId }: Props) {
   const myLocation = useMyLocationStore((s) => s.coords);
+  const insets = useSafeAreaInsets();
+  // 빈자리 알림 시트 + 완료 토스트. 토스트는 하단 예약 바(약 72px) 위에 띄운다.
+  const slotAlert = useSlotAlertSheet({ toastBottom: insets.bottom + 84 });
   const shopQuery = useShop(shopId ?? '', !!shopId);
   const slotsQuery = useShopSlots(shopId ?? '', !!shopId);
 
@@ -92,6 +97,7 @@ export function ShopDetailScreen({ shopId }: Props) {
         renderScroll={(scrollProps, ref) => (
           <ScrollView {...scrollProps} ref={ref} scrollEventThrottle={16} />
         )}
+        onOpenSlotAlert={(dayIndex) => shopId && slotAlert.open(shopId, dayIndex)}
       />
 
       <ReservationBar
@@ -104,6 +110,7 @@ export function ShopDetailScreen({ shopId }: Props) {
           track.reserveClick(shop.id, shop.bookingRoute?.label); // GA4 (웹과 동일 이벤트)
         }}
       />
+      {slotAlert.element}
     </View>
   );
 }

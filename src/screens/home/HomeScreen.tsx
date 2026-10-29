@@ -22,6 +22,7 @@ import type { Dong } from '@/shared/lib/dongs';
 import { LocationPermissionModal } from '@/shared/ui/LocationPermissionModal';
 import { RegionSearchSheet } from '@/shared/ui/RegionSearchSheet';
 import { useLoginGate } from '@/shared/ui/loginGate';
+import { useSlotAlertSheet } from '@/shared/ui/slot-alert/useSlotAlertSheet';
 
 import { CategoryChipBar } from './components/CategoryChipBar';
 import { CurrentLocationButton } from './components/CurrentLocationButton';
@@ -60,6 +61,8 @@ export function HomeScreen() {
   const { isLoggedIn, requireLogin, loginModal } = useLoginGate();
   const favoriteIds = useFavoriteShopIds(isLoggedIn); // 비회원 → 빈 Set(별 항상 꺼짐)
   const toggleFavoriteOnServer = useToggleFavorite();
+  // 빈자리 알림(목록 카드 버튼·인라인 상세 카드) — 비회원은 훅 안에서 로그인 유도.
+  const slotAlert = useSlotAlertSheet({ toastBottom: insets.bottom + 16 });
   const [selectedShopId, setSelectedShopId] = useState<string | null>(null);
   // 조회 기준 — 목록·핀이 이 중심(거리순)·영역(bounds) 안의 샵을 보여준다.
   // 지도를 움직여도 바뀌지 않는다. "현 지도에서 검색"을 눌러야 지금 보이는 영역으로 바뀐다(요청).
@@ -461,6 +464,7 @@ export function HomeScreen() {
           onDeselect={() => setSelectedShopId(null)}
           topOffset={headerHeight}
           containerHeight={containerHeight}
+          onOpenSlotAlert={slotAlert.open}
         />
 
         {regionToast && <RegionToast name={regionToast} bottom={insets.bottom + 16} />}
@@ -486,6 +490,7 @@ export function HomeScreen() {
           onClose={() => setPermissionModal(false)}
         />
         {loginModal}
+        {slotAlert.element}
       </View>
     </BottomSheetModalProvider>
   );

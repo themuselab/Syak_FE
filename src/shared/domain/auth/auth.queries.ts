@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { unregisterPushToken } from '@/shared/domain/notification/push';
 
+import { setGuestBrowse } from '@/shared/lib/guestBrowse';
 import { signOut, socialLogin } from './auth.api';
 import { useAuthStore } from './auth.store';
 import type { SocialProvider } from './auth.types';
@@ -28,6 +29,7 @@ export function useSignOut() {
     // 계정 스코프 캐시(즐겨찾기·알림)도 제거 — 다른 계정으로 재로그인 시 이전 계정 데이터 노출/오조작 방지.
     onSettled: () => {
       setUser(null);
+      setGuestBrowse(false); // 로그아웃한 사람은 다음 실행 때 로그인 화면부터
       queryClient.removeQueries({ queryKey: ['favorites'] });
       queryClient.removeQueries({ queryKey: ['notifications'] });
       queryClient.removeQueries({ queryKey: ['user'] });

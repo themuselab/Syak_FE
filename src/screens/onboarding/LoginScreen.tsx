@@ -12,6 +12,7 @@ import {
   SocialAuthTimeoutError,
 } from '@/shared/domain/auth/socialAuth';
 
+import { setGuestBrowse } from '@/shared/lib/guestBrowse';
 import { useShellInfo } from '@/shell/bridgeClient';
 
 import { LoginErrorToast } from './components/LoginErrorToast';
@@ -61,7 +62,11 @@ export function LoginScreen({ intro = false, revealed = true }: Props) {
     }
   };
 
-  const goBrowse = () => router.replace('/home'); // 비회원 둘러보기 (user=null 유지)
+  // 비회원 둘러보기 (user=null 유지). 기억해 두고 다음 실행부터 바로 홈(guestBrowse).
+  const goBrowse = () => {
+    setGuestBrowse(true);
+    router.replace('/home');
+  };
   const busy = loadingProvider !== null;
 
   // ── 스플래시 → 로그인 전환 ──

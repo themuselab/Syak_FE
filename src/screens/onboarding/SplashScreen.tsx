@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 
+import { isGuestBrowse } from '@/shared/lib/guestBrowse';
 import { preloadHomeMap } from '@/screens/home/components/HomeMap';
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import { getMe } from '@/shared/domain/user/user.api';
@@ -25,6 +26,7 @@ export function SplashScreen() {
 
     (async () => {
       let loggedIn = false;
+      const guest = isGuestBrowse(); // 세션 확인과 동시에 읽는다
       try {
         const me = await getMe();
         if (!cancelled) {
@@ -36,7 +38,7 @@ export function SplashScreen() {
       }
       await minDelay;
       if (cancelled) return;
-      if (loggedIn) router.replace('/home');
+      if (loggedIn || (await guest)) router.replace('/home'); // 둘러보기를 한 번 누른 비회원도 바로 홈
       else setRevealed(true);
     })();
 

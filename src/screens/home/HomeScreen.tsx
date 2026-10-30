@@ -11,6 +11,7 @@ import { useInterestRegion } from '@/shared/domain/notification/interestRegion';
 import { useSlotSearch } from '@/shared/domain/reservation/reservation.queries';
 import { useShops } from '@/shared/domain/shops/shops.queries';
 import type { MapBounds } from '@/shared/domain/shops/shops.types';
+import { useHardwareBack } from '@/shared/lib/backStack';
 import { useMyLocationStore } from '@/shared/lib/myLocation.store';
 import {
   getCurrentCoords,
@@ -86,6 +87,11 @@ export function HomeScreen() {
   // 검색창 포커스 — 네이버 지도처럼 포커스되면 알림·프로필 아이콘과 카테고리 칩을 숨겨
   // 검색창이 가로로 넓어진다(디자이너 시안).
   const [searchFocused, setSearchFocused] = useState(false);
+  // 안드 물리 뒤로가기(웹뷰 셸): 키보드는 OS가 먼저 내리고, 그다음 뒤로가기는 검색 모드를 빠져나온다.
+  useHardwareBack(searchFocused, () => {
+    Keyboard.dismiss();
+    setSearchFocused(false);
+  });
   // 루트 컨테이너 실측 높이 — gorhom이 스냅포인트를 정규화할 때 쓰는 기준과 동일해야 한다.
   // useWindowDimensions는 안드 상태바 처리에 따라 이 값과 어긋나 시트 최대 확장이 검색바를
   // 덮거나 틈이 생긴다(사용자 피드백) — 시트·내 위치 버튼 모두 이 실측값을 쓴다.

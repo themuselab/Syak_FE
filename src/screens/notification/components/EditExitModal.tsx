@@ -1,6 +1,7 @@
 import { X } from 'lucide-react-native';
 import { Modal, Pressable, Text, View } from 'react-native';
 
+import { useHardwareBack } from '@/shared/lib/backStack';
 import { colors, shadow } from '@/shared/theme/colors';
 
 type Props = {
@@ -16,6 +17,8 @@ type Props = {
 //   [계속 편집하기]
 //   나가기
 export function EditExitModal({ visible, onContinue, onExit }: Props) {
+  // 안드 물리 뒤로가기(웹뷰 셸) = 닫기. 웹에선 Modal onRequestClose가 안 불려 따로 건다(backStack).
+  useHardwareBack(visible, onContinue);
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onContinue}>
       <Pressable

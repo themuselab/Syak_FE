@@ -1,5 +1,6 @@
 import { X } from 'lucide-react-native';
 import { Modal, Pressable, Text, View } from 'react-native';
+import { useHardwareBack } from '@/shared/lib/backStack';
 import { colors, shadow } from '@/shared/theme/colors';
 
 type Props = {
@@ -11,6 +12,8 @@ type Props = {
 
 // 계정 탈퇴 확인 모달 (design.pen o8fLU1 — 딤 #00000099, 카드 r20, 계속 이용하기 우선 버튼).
 export function WithdrawConfirmModal({ visible, onClose, onConfirm, confirming }: Props) {
+  // 안드 물리 뒤로가기(웹뷰 셸) = 닫기. 웹에선 Modal onRequestClose가 안 불려 따로 건다(backStack).
+  useHardwareBack(visible, onClose);
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable

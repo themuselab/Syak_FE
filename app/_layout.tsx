@@ -10,6 +10,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 
 import { track } from '@/shared/lib/analytics';
+import { installHardwareBack } from '@/shared/lib/backStack';
 import { onShellEvent } from '@/shell/bridgeClient';
 import { ShellInsets } from '@/shell/ShellInsets';
 import { usePushSetup } from '@/shared/domain/notification/push';
@@ -26,6 +27,9 @@ export default function RootLayout() {
   useEffect(() => onShellEvent('navigate', (msg) => {
     if (msg.kind === 'event' && msg.event === 'navigate') router.push(msg.path as never);
   }), []);
+
+  // 웹뷰 셸 안의 웹: 안드로이드 물리 뒤로가기를 셸이 넘겨준다(열린 모달·시트부터 닫기 — backStack).
+  useEffect(() => installHardwareBack(), []);
 
   // GA4 화면 추적: 라우트 변경 시 screen_view 전송 (Firebase Analytics, 가드 통과)
   const pathname = usePathname();

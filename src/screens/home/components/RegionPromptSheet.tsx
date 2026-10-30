@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { Modal, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useHardwareBack } from '@/shared/lib/backStack';
 import { colors, shadow } from '@/shared/theme/colors';
 
 const SYMBOL = require('../../../../assets/images/syak-symbol-pink.png');
@@ -15,6 +16,8 @@ type Props = {
 // 관심 동네 안내 시트(디자이너 시안 2026-10-27 첫 화면). 로그인했지만 관심 동네가 없을 때 홈에서 1회.
 // 위쪽 분홍 원 장식 + 알림 미리보기 카드로 "설정하면 이런 알림이 와요"를 보여준다.
 export function RegionPromptSheet({ visible, onSetRegion, onLater }: Props) {
+  // 안드 물리 뒤로가기(웹뷰 셸) = 닫기. 웹에선 Modal onRequestClose가 안 불려 따로 건다(backStack).
+  useHardwareBack(visible, onLater);
   const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onLater}>

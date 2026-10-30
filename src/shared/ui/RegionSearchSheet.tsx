@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { FlatList, Modal, Pressable, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useHardwareBack } from '@/shared/lib/backStack';
 import { type Dong, searchDongs } from '@/shared/lib/dongs';
 import { colors } from '@/shared/theme/colors';
 import { InfoBadge } from '@/shared/ui/InfoBadge';
@@ -29,6 +30,8 @@ export function RegionSearchSheet({ visible, current, onSelect, onClose }: Props
     setQuery('');
     onClose();
   };
+  // 안드 물리 뒤로가기(웹뷰 셸) = 닫기. 웹에선 Modal onRequestClose가 안 불려 따로 건다(backStack).
+  useHardwareBack(visible, close);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={close}>

@@ -15,6 +15,18 @@
 
 ---
 
+## 2026-10-30 · 안드로이드 앱에서 모달·시트가 떠 있는데 뒤로가기를 누르면 앱이 꺼짐
+- 증상: 로그인 유도 모달, 홈 샵 상세 시트(목록·핀으로 연 것), 빈자리 알림 시트, 관심 동네 시트, 필터 패널, 알림함 편집 나가기 모달 등을 연 채 안드 물리 뒤로가기 → 닫히지 않고 앱 종료(Android 14 에뮬레이터 재현).
+- 원인: 셸(`WebViewShell`)의 `BackHandler`가 웹뷰 히스토리(`canGoBack`)만 봤다. 웹 안의 모달·시트는 히스토리 항목이 아니라 첫 화면이면 곧장 종료됐다.
+  웹 코드에 있던 처리(RN `Modal`의 `onRequestClose`, `ShopBottomSheet`의 `BackHandler`)는 웹 번들에선 불리지 않는다(웹엔 물리 뒤로가기 이벤트가 없음).
+- 해결: 셸이 뒤로가기를 웹에 넘긴다(이벤트 `hardwareBack` → 웹 응답 `backHandled { exit }`). 웹은 `src/shared/lib/backStack.ts`의 LIFO 스택으로
+  열린 오버레이부터 닫고, 없으면 `router.back()`, 첫 화면이면 종료 요청. 각 모달·시트가 열려 있는 동안 `useHardwareBack`으로 등록한다.
+  웹이 안 떴거나 800ms 안에 응답이 없으면 셸이 예전 동작으로 대신한다(실패 화면·옛 웹에서도 버튼이 먹통이 되지 않게).
+- 관련: `src/shell/WebViewShell.tsx`, `src/shell/bridge.types.ts`, `src/shared/lib/backStack.ts`, `app/_layout.tsx`, 각 모달·시트(`LoginPromptModal`, `LocationPermissionModal`,
+  `RegionSearchSheet`, `RegionPromptSheet`, `SlotAlertSheet`, `EditExitModal`, `WithdrawConfirmModal`, `ShopBottomSheet`, `HomeScreen` 검색 모드, `NotificationScreen` 편집)
+- 교훈: 웹뷰 셸 전환 후엔 네이티브 전용 API(`BackHandler`, `Modal.onRequestClose`)로 짠 처리가 조용히 죽는다. 새 오버레이는 `useHardwareBack`을 같이 건다.
+  셸 변경(뒤로가기 위임)은 앱 재빌드가 필요하고, 웹만 배포해서는 반영되지 않는다.
+
 ## 2026-10-22 · 웹뷰 앱에서 로그인이 풀림(카카오 로그인 후 얼마 뒤 비회원)
 - 증상: 로그인하고 잠시 뒤(또는 앱 재실행) 비회원 상태로 보인다.
 - 원인: 액세스 쿠키 `syak_access`는 maxAge 15분 → 지나면 브라우저(웹뷰)가 쿠키를 지운다. 쿠키가 없으면 서버는

@@ -31,6 +31,9 @@ import { getPushTokenForShell, pathFromNotificationData } from './nativePush';
 
 type Props = { url: string };
 
+// 뒤로가기를 웹에 넘긴 뒤 응답을 기다리는 시간. 넘으면 웹이 못 받은 것으로 보고 셸이 직접 처리한다.
+const BACK_REPLY_TIMEOUT_MS = 800;
+
 // 소셜 로그인 에러 → 웹에 넘길 종류. 웹이 원래 에러 클래스로 되돌려 같은 안내 문구를 띄운다.
 function socialErrorKind(e: unknown) {
   if (e instanceof SocialAuthCancelledError) return 'cancelled' as const;
@@ -62,6 +65,8 @@ async function handle(request: ShellRequest): Promise<unknown> {
     case 'openExternal':
       await Linking.openURL(request.url).catch(() => {});
       return null;
+    case 'backHandled':
+      return null; // 종료 여부는 컴포넌트(onMessage)가 처리한다 — 대기 중인 뒤로가기와 짝을 맞춰야 해서
   }
 }
 
@@ -110,14 +115,48 @@ export function WebViewShell({ url }: Props) {
     };
   }, [send]);
 
-  // 안드로이드 뒤로가기: 웹 안에서 뒤로 갈 수 있으면 웹 뒤로, 첫 화면이면 앱 종료(기본 동작).
+  // 안드로이드 뒤로가기: 웹에 넘겨 웹이 정한다(열린 모달·시트 닫기 → 화면 뒤로 → 첫 화면이면 종료).
+  // 모달·시트는 웹뷰 히스토리가 아니라서, 히스토리만 보면 모달이 떠 있는데 앱이 꺼졌다.
+  // 웹이 안 떴거나(로딩·옛 웹) 응답이 없으면 잠시 뒤 예전 동작(웹뷰 뒤로/종료)으로 — 버튼이 먹통이 되지 않게.
+  const readyRef = useRef(false);
+  readyRef.current = firstLoaded && !failed;
+  const pendingBack = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   useEffect(() => {
+    const fallback = () => {
+      if (canGoBackRef.current && webRef.current) webRef.current.goBack();
+      else BackHandler.exitApp();
+    };
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (!canGoBackRef.current) return false;
-      webRef.current?.goBack();
+      if (!readyRef.current) {
+        // 실패 화면엔 웹뷰가 없어(webRef null) goBack이 먹지 않는다 → 종료(기본 동작)
+        if (!canGoBackRef.current || !webRef.current) return false;
+        webRef.current.goBack();
+        return true;
+      }
+      const id = `back-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const timer = setTimeout(() => {
+        pendingBack.current.delete(id);
+        fallback();
+      }, BACK_REPLY_TIMEOUT_MS);
+      pendingBack.current.set(id, timer);
+      send({ kind: 'event', event: 'hardwareBack', id });
       return true;
     });
-    return () => sub.remove();
+    const pending = pendingBack.current;
+    return () => {
+      sub.remove();
+      pending.forEach(clearTimeout);
+      pending.clear();
+    };
+  }, [send]);
+
+  // 웹의 뒤로가기 처리 결과. 이미 시간 초과로 대체 동작을 했으면(맵에 없음) 무시 — 두 번 처리 방지.
+  const onBackHandled = useCallback((id: string, exit: boolean) => {
+    const timer = pendingBack.current.get(id);
+    if (timer === undefined) return;
+    clearTimeout(timer);
+    pendingBack.current.delete(id);
+    if (exit) BackHandler.exitApp();
   }, []);
 
   const onMessage = useCallback(
@@ -129,6 +168,9 @@ export function WebViewShell({ url }: Props) {
         return;
       }
       if (!envelope?.id || !envelope.request) return;
+      if (envelope.request.type === 'backHandled') {
+        onBackHandled(envelope.request.id, envelope.request.exit);
+      }
       try {
         const data = await handle(envelope.request);
         send({ kind: 'response', id: envelope.id, ok: true, data: data ?? null });
@@ -142,7 +184,7 @@ export function WebViewShell({ url }: Props) {
         });
       }
     },
-    [send],
+    [send, onBackHandled],
   );
 
   // 우리 사이트가 아닌 주소로 이동하려 하면(네이버 예약·인스타·전화 등) 웹뷰 안에서 열지 않고

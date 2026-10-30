@@ -1,7 +1,8 @@
 import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, BackHandler, Keyboard, Platform, View } from 'react-native';
+import { ActivityIndicator, Keyboard, Platform, View } from 'react-native';
 
+import { useHardwareBack } from '@/shared/lib/backStack';
 import { useBottomInset } from '@/shared/lib/safeArea';
 import { ShopDetailSheet } from '@/screens/shop-detail/ShopDetailSheet';
 import { colors } from '@/shared/theme/colors';
@@ -137,19 +138,13 @@ export const ShopBottomSheet = forwardRef<ShopBottomSheetRef, Props>(function Sh
     if (focused && fromIndex !== toIndex) setExpanded(toIndex === 1);
   };
 
-  // 안드 물리 뒤로가기: 풀스크린 → 접힘(35%), 접힘 포커스 → 선택 해제. 그 외 기본 동작.
-  useEffect(() => {
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (!focused) return false;
-      if (expanded) {
-        sheetRef.current?.snapToIndex(0);
-        return true;
-      }
-      onDeselect();
-      return true;
-    });
-    return () => sub.remove();
-  }, [focused, expanded, onDeselect]);
+  // 안드 물리 뒤로가기(웹뷰 셸 — backStack): 풀스크린 → 접힘(35%), 접힘 포커스 → 선택 해제(목록).
+  // 필터 패널은 나중에 열린 쪽이 먼저 닫히도록 따로 건다(LIFO).
+  useHardwareBack(focused, () => {
+    if (expanded) sheetRef.current?.snapToIndex(0);
+    else onDeselect();
+  });
+  useHardwareBack(activeFilter != null, () => setActiveFilter(null));
 
   return (
     <BottomSheet

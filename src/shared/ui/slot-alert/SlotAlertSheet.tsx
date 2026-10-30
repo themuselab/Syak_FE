@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useHardwareBack } from '@/shared/lib/backStack';
 import { useCreateSlotAlerts, useSlotAlerts } from '@/shared/domain/notification/slotAlert.queries';
 import { useShopSlots } from '@/shared/domain/reservation/reservation.queries';
 import { useShop } from '@/shared/domain/shops/shops.queries';
@@ -35,6 +36,8 @@ type ChipState = 'free' | 'open' | 'requested';
 // 시간 칩 규칙(사장님 결정): 지금 비어 있는 시간(이미 예약 가능)은 고를 수 없다 — 비지 않은 시간만 신청.
 // 오늘의 지난 시간은 아예 안 보인다. 이미 신청해 둔 시간도 고를 수 없다(중복 신청 방지).
 export function SlotAlertSheet({ visible, shopId, initialDayIndex = 0, onClose, onCreated }: Props) {
+  // 안드 물리 뒤로가기(웹뷰 셸) = 닫기. 웹에선 Modal onRequestClose가 안 불려 따로 건다(backStack).
+  useHardwareBack(visible, onClose);
   const insets = useSafeAreaInsets();
   const id = shopId ?? '';
   const shopQuery = useShop(id, visible && !!shopId);

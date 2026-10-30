@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useHardwareBack } from '@/shared/lib/backStack';
 import { openExternal } from '@/shared/lib/openExternal';
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import {
@@ -124,6 +125,10 @@ export function NotificationScreen() {
   };
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/home'));
+
+  // 안드 물리 뒤로가기(웹뷰 셸): 지운 게 있으면 헤더 < 와 같이 확인 모달. 뒤로 갈 화면이 없는(첫 화면)
+  // 경우엔 beforeRemove가 안 불려 그냥 앱이 꺼지므로 여기서 직접 막는다. 모달 자체는 EditExitModal이 닫는다.
+  useHardwareBack(editing && removed.size > 0, () => guardEdit(goBack));
 
   // 앱 소식 로컬 읽음 — 화면 포커스마다 재조회(다른 화면에서 읽었을 가능성은 없지만 초기 로드 겸용).
   const [readNewsIds, setReadNewsIds] = useState<Set<string>>(new Set());

@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { X } from 'lucide-react-native';
 import { Modal, Pressable, Text, View } from 'react-native';
 
+import { useHardwareBack } from '@/shared/lib/backStack';
 import { colors, shadow } from '@/shared/theme/colors';
 
 const PIN = require('../../../assets/images/location-permission.png'); // 201x245
@@ -20,6 +21,8 @@ type Props = {
 // 거절해도 앱은 기본 위치(강남역)로 그대로 쓸 수 있어야 하므로 "나중에 할게요"를 항상 둔다
 // (닫을 수 없는 권한 유도는 심사 가이드라인 5.1.1 위반 소지).
 export function LocationPermissionModal({ visible, onAllow, onClose }: Props) {
+  // 안드 물리 뒤로가기(웹뷰 셸) = 닫기. 웹에선 Modal onRequestClose가 안 불려 따로 건다(backStack).
+  useHardwareBack(visible, onClose);
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable

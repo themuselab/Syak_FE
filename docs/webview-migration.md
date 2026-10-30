@@ -16,7 +16,12 @@
 >   되돌리기: package.json main을 `expo-router/entry`로, 제외 목록·지도 plugin 복구, 이 커밋 revert.
 > - 브리지(4-3 대체): 메시지 계약 `src/shell/bridge.types.ts` 한 파일. 웹 쪽 `src/shell/bridgeClient.ts`
 >   (`callShell`·`onShellEvent`·`useShellInfo`), 셸 쪽 `src/shell/WebViewShell.tsx`.
->   요청: socialLogin / 위치 권한·좌표 / 푸시 권한·토큰 / openSettings / openExternal. 이벤트: navigate(알림 탭) / pushReceived.
+>   요청: socialLogin / 위치 권한·좌표 / 푸시 권한·토큰 / openSettings / openExternal / backHandled. 이벤트: navigate(알림 탭) / pushReceived / hardwareBack.
+> - 안드 물리 뒤로가기(2026-10-30): 셸은 `hardwareBackPress`를 항상 가로채(`true`) 웹에 이벤트 `{ event: 'hardwareBack', id }`를 보낸다.
+>   웹(`src/shared/lib/backStack.ts`)이 ① 열린 오버레이 중 가장 나중 것을 닫고(LIFO, `useHardwareBack(enabled, onBack)` — 화면 포커스일 때만 등록)
+>   ② 없으면 `router.back()` ③ 뒤로 갈 곳도 없으면 종료로 정해, 같은 id로 요청 `{ type: 'backHandled', id, exit }`를 보낸다. `exit: true`면 셸이 `BackHandler.exitApp()`.
+>   웹이 아직 안 떴거나(첫 로드·실패 화면) 800ms 안에 `backHandled`가 없으면(옛 웹 배포 등) 셸이 예전 동작(웹뷰 히스토리 뒤로, 없으면 종료)으로 대신한다 — 버튼이 먹통이 되지 않게.
+>   늦게 온 `backHandled`(이미 대신 처리됨)는 무시한다. 새 오버레이(모달·시트·패널)를 만들면 `useHardwareBack`을 꼭 건다 — 웹에선 RN `Modal`의 `onRequestClose`가 불리지 않는다.
 > - 인증: 셸은 SDK 토큰만 받아 웹에 넘기고, **웹이 직접 백엔드 로그인** → 쿠키가 웹뷰에 저장(같은 사이트라 HttpOnly 유지). 4-1의 1회용 code 불필요.
 > - 안전 영역: 셸이 `window.__SYAK_SHELL__.insets`로 넘기고 `ShellInsets`가 `useSafeAreaInsets()` 값으로 주입 → 화면 코드 수정 없음.
 > - 셸 의존 UI(Apple 버튼·insets)는 **마운트 후** 적용(`useShellInfo`) — 정적 export HTML과 첫 렌더가 달라 생기던 하이드레이션 오류 #418 방지.
@@ -129,7 +134,7 @@ Apple 로그인은 웹뷰 안 OAuth로 내리면 UX가 후퇴하고 심사에도
 | 웹→셸 | `registerPush` / `unregisterPush` | 푸시 토큰 등록 |
 | 웹→셸 | `share`, `openExternal`, `haptic` | 공유·외부 링크·햅틱 |
 | 셸→웹 | `pushOpened(route)` | 푸시 탭 → 해당 화면으로 딥링크 |
-| 셸→웹 | `appStateChange`, `backPressed` | 포그라운드 복귀·안드 뒤로가기 |
+| 셸→웹 | `appStateChange`, `backPressed` | 포그라운드 복귀·안드 뒤로가기 (구현: `hardwareBack` 이벤트 + `backHandled` 응답 — 위 "현재 상태" 참고) |
 
 ### 4-4. 지도
 웹 네이버 지도 JS로 간다(이미 `MapViewNaver.tsx` 있음).

@@ -92,7 +92,9 @@ export function SearchBar({ focused, onFocusChange }: Props) {
         returnKeyType="search"
         onSubmitEditing={exitFocus}
         className="flex-1 text-body-l font-pretendard"
-        style={{ color: colors.gray[900], paddingVertical: 0 }}
+        // minWidth 0: 웹의 <input>은 기본 최소 폭이 있어 flex-1만으론 안 줄어들고 프로필 아이콘을 바 밖으로 밀어냈다
+        // (안드로이드 412dp 화면에서 확인 2026-10-30).
+        style={{ color: colors.gray[900], paddingVertical: 0, minWidth: 0 }}
       />
 
       {focused ? (

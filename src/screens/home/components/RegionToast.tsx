@@ -14,7 +14,7 @@ export function RegionToast({ name, bottom }: { name: string; bottom: number }) 
         <CircleCheck size={16} color={colors.primary[500]} style={{ marginTop: 1 }} />
         <View className="flex-1 gap-0.5">
           <Text className="font-pretendard-semibold" style={{ fontSize: 14, color: colors.text.strong }}>
-            {name} 빈자리 알림을 받을게요
+            관심 동네를 {name}(으)로 설정했어요
           </Text>
           <Text className="font-pretendard" style={{ fontSize: 12, color: colors.text.subtle }}>
             {'마이 > 관심동네에서 바꿀 수 있어요'}

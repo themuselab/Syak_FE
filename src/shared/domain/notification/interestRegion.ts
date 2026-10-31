@@ -5,7 +5,7 @@ import { useNotificationSettings, useUpdateNotificationSettings } from './notifi
 
 // 관심 동네 = 사용자가 직접 고른 동네(디자이너 시안 2026-10-27 "관심 동네 설정").
 // - 비회원·미설정: 홈은 강남 기준(지금과 같음)
-// - 설정하면: 홈 시작 위치 + 그 동네 빈자리·할인 알림 기준점(nearLat/nearLng)
+// - 설정하면: 홈 시작 위치만. 동네 기준 빈자리 알림은 없앴다(2026-10-31) — 알림은 즐겨찾기·빈자리 알림 신청만.
 // 기기 GPS가 아니라 사용자가 고른 지역이라 서버에 저장해도 개인위치정보가 아니다
 // (위치기반서비스사업 신고 검토 2026-10-24 — GPS 좌표는 서버로 보내지 않는다).
 export function useInterestRegion() {
@@ -19,10 +19,7 @@ export function useInterestRegion() {
     update.mutateAsync({
       regionCode: d.code,
       regionName: d.name,
-      nearEnabled: true,
-      nearLat: d.lat,
-      nearLng: d.lng,
-      radiusKm: Math.min(10, Math.max(1, Math.ceil(d.radiusKm))),
+      nearEnabled: false,
     });
 
   return {

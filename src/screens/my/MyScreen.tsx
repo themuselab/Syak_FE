@@ -80,7 +80,7 @@ export function MyScreen() {
   const settingsLoading = isLoggedIn && settings == null;
 
   // 관심 동네(시안 2026-10-27): "내 주변 알림(GPS)·위치 권한·반경" 자리를 대신한다.
-  // 동네를 고르면 그 동네 빈자리·할인 알림이 켜진다(useInterestRegion.setRegion).
+  // 동네를 고르면 홈 시작 위치가 그 동네가 된다(useInterestRegion.setRegion). 동네 기준 알림은 없음(2026-10-31).
   const interest = useInterestRegion();
   const [regionSheet, setRegionSheet] = useState(false);
 

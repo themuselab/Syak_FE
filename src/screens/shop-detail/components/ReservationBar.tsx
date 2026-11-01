@@ -4,7 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { openExternal } from '@/shared/lib/openExternal';
-import type { ReservationRoute } from '@/shared/domain/shops/shops.types';
+import type { BookingRouteType, ReservationRoute } from '@/shared/domain/shops/shops.types';
 import { colors } from '@/shared/theme/colors';
 import { InstagramIcon } from '@/shared/ui/InstagramIcon';
 
@@ -12,7 +12,9 @@ type Props = {
   instagram: { handle: string; url: string } | null;
   phone: string | null;
   route: ReservationRoute | null; // 온라인 예약 수단(네이버 우선, 없으면 카카오·톡톡)
-  onReserveClick?: () => void; // 예약 버튼 클릭 애널리틱스 (fire-and-forget)
+  // 예약 버튼 클릭 애널리틱스 (fire-and-forget). method = 온라인 예약 수단(route.type) 또는 'phone'(전화예약).
+  // 인스타 "둘러보기"는 예약이 아니라 구경이라 부르지 않는다.
+  onReserveClick?: (method: BookingRouteType) => void;
 };
 
 // 하단 고정 예약 바 (디자이너 시안 2026-10-15).
@@ -36,7 +38,10 @@ export function ReservationBar({ instagram, phone, route, onReserveClick }: Prop
     left = {
       icon: <Phone size={16} color={colors.text.strong} fill={colors.text.strong} />,
       label: '전화예약',
-      onPress: () => open(`tel:${phone.replace(/[^\d+]/g, '')}`),
+      onPress: () => {
+        onReserveClick?.('phone');
+        open(`tel:${phone.replace(/[^\d+]/g, '')}`);
+      },
     };
   }
 
@@ -70,7 +75,7 @@ export function ReservationBar({ instagram, phone, route, onReserveClick }: Prop
         {route ? (
           <Pressable
             onPress={() => {
-              onReserveClick?.();
+              onReserveClick?.(route.type);
               open(route.value);
             }}
             className="flex-row items-center justify-center gap-2 rounded-sm"

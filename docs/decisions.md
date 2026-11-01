@@ -13,6 +13,14 @@
 
 ---
 
+## 2026-11-01 · 결정: GA4는 웹 gtag 하나로 — www와 같은 속성, `platform` 파라미터로 구분, user_id는 내부 UUID만
+- 맥락/문제: 앱 분석이 no-op이었다(`@react-native-firebase/analytics`가 Expo54/RN0.81 iOS에서 빌드 실패해 v1에서 제거). 그사이 앱은 웹(`app.themuselab.kr`)을 띄우는 웹뷰 셸로 바뀌어 화면 코드는 전부 웹에서 돈다.
+- 결정: ① 웹 빌드가 gtag로 보낸다(`app/+html.tsx` head 로더, `send_page_view: false` + `app_screen_view` 직접 전송). 셸 안이면 `__SYAK_SHELL__.platform`으로 `platform=ios|android`, 아니면 `web`. ② 소비자 웹(www)과 **같은 GA4 속성 `G-Q0WLLSMTXM`** 을 쓰고, 겹치는 이벤트(`shop_view`·`reserve_click`·`filter_apply`)는 이름과 웹 파라미터(`shop_category`·`shop_district`·`route`·`source`)를 맞춘다. ③ GA `user_id`는 **내부 유저 UUID만**(이메일·전화·닉네임 금지), 로그아웃 시 해제. 설치 단위 `anonymous_id`(deviceId)는 이벤트 파라미터 + user_property. ④ 모든 이벤트에 `event_id`(UUID) — gtag가 GA4 중복 제거 필드(`evnid`)로 보낸다.
+- 이유: 웹뷰 구조라 네이티브 SDK 없이 웹 한 곳에서 iOS·Android·웹을 모두 잡을 수 있고 새 의존성·앱 재빌드가 필요 없다. 같은 속성이라 www SEO 퍼널(`seo_landing`→`shop_view`→`reserve_click`)과 앱 퍼널을 한 보고서에서 `platform`으로 나눠 비교할 수 있다. user_id에 개인정보를 넣으면 GA 정책 위반이고 지울 수도 없다.
+- 대안(버림): 네이티브 Firebase Analytics 재도입(빌드 실패 + 셸이 화면을 안 그려 화면 이벤트를 못 봄), 앱 전용 GA4 속성(웹과 비교하려면 BigQuery 조인 필요), 셸이 브리지로 이벤트를 받아 네이티브로 전송(셸 재빌드·브리지 메시지 추가 대비 이득 없음).
+- 트레이드오프: 향상된 측정(스트림 설정, www와 공유)의 자동 `page_view`·`scroll`이 앱에서도 나간다 — 호스트명으로 거른다. 종료 상태에서 알림으로 켜진 경우는 셸이 주소를 바로 열어 웹이 구분 못 함(후속: 셸이 `?from=push`).
+- 관련: [analytics.md](./analytics.md), `app/+html.tsx`, `src/shared/lib/analytics.ts`, `src/screens/home/useHomeAnalytics.ts`
+
 ## 2026-07-28 · 결정: 실패를 "조용히 통과"시키지 않는다 — 조건부 가드에 진단 로그·타임아웃을 붙인다
 - 맥락/문제: 카카오 로그인이 사람마다 정상/무한로딩/오류로 갈렸다. 근본 원인은 `app.config.ts`가 카카오 plugin에 `android`/`ios` 옵션을 안 넘겨 네이티브 주입이 스킵된 것이었는데(→ [auth.md](./auth.md)), **원인 특정에 오래 걸린 이유는 따로 있었다.** 2026-06-30 `eas init` 실패를 고치려 도입한 "키 없으면 plugin을 빼는" 조건부 패턴, `_layout.tsx`의 빈 `.catch(() => {})` 2곳, `resolveLoginError`의 뭉뚱그린 fallback, `fetch`의 타임아웃 부재가 겹쳐 **서로 다른 5가지 실패가 전부 같은 문구 한 줄**로 나타났다. 빌드는 항상 성공했다.
 - 결정: 조건부 가드는 유지하되(web/Expo Go/CI에서 필요) **실패가 흔적을 남기게** 한다. ① SDK init 실패 → `console.warn` ② `apiFetch` 15초 타임아웃 + 네트워크 실패를 `NETWORK_ERROR`/`TIMEOUT` `ApiError`로 정규화(백엔드 코드가 아닌 클라 생성 코드임을 `errors.ts`에 명시) ③ 소셜 SDK 60초 상한 ④ 에러 문구를 원인별로 분리하고 미분류는 식별자를 노출.

@@ -25,6 +25,11 @@ export function registerDevice(input: RegisterDeviceInput) {
 
 // PATCH /notifications/:id/read — 읽음 처리 (인증 필요). 항상 204 —
 // 서버가 read_at IS NULL 조건으로만 갱신하는 멱등 API라 404/409 분기 없음.
+// PATCH /notifications/:id/opened — 푸시를 눌러 들어왔음(열람 시각 + 읽음). 멱등 204.
+export function markNotificationOpened(id: string) {
+  return apiFetch<void>(`/notifications/${id}/opened`, { method: 'PATCH' });
+}
+
 export function markNotificationRead(id: string) {
   return apiFetch<void>(`/notifications/${id}/read`, { method: 'PATCH' });
 }

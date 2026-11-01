@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { track } from '@/shared/lib/analytics';
+
 import { createSlotAlerts, deleteSlotAlerts, getSlotAlerts } from './slotAlert.api';
 
 export const SLOT_ALERTS_KEY = ['notifications', 'slot-alerts'] as const;
@@ -20,7 +22,11 @@ export function useCreateSlotAlerts() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createSlotAlerts,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: SLOT_ALERTS_KEY }),
+    onSuccess: (_data, input) => {
+      // GA4 slot_alert_created — POST 성공 1회당 1번.
+      track.slotAlertCreated({ shopId: input.shopId, date: input.date, timeCount: input.times.length });
+      return queryClient.invalidateQueries({ queryKey: SLOT_ALERTS_KEY });
+    },
   });
 }
 

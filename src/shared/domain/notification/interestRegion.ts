@@ -1,4 +1,5 @@
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
+import { track } from '@/shared/lib/analytics';
 import { type Dong, dongByCode } from '@/shared/lib/dongs';
 
 import { useNotificationSettings, useUpdateNotificationSettings } from './notification.queries';
@@ -15,12 +16,20 @@ export function useInterestRegion() {
 
   const region: Dong | null = isLoggedIn ? dongByCode(settings?.regionCode) : null;
 
-  const setRegion = (d: Dong) =>
-    update.mutateAsync({
-      regionCode: d.code,
-      regionName: d.name,
-      nearEnabled: false,
-    });
+  const setRegion = (d: Dong) => {
+    const action = region ? 'change' : 'set';
+    return update
+      .mutateAsync({
+        regionCode: d.code,
+        regionName: d.name,
+        nearEnabled: false,
+      })
+      .then((res) => {
+        // GA4 neighborhood_set — 저장 성공 1회당 1번(홈 안내 시트·마이 어디서 골라도 여기 한 곳).
+        track.neighborhoodSet({ name: d.name, code: d.code, action });
+        return res;
+      });
+  };
 
   return {
     isLoggedIn,

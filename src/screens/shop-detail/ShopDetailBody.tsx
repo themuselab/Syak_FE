@@ -1,7 +1,8 @@
-import { useEffect, type ReactElement, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactElement, type ReactNode } from 'react';
 import type { LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { Pressable, View } from 'react-native';
 
+import { track } from '@/shared/lib/analytics';
 import { colors } from '@/shared/theme/colors';
 
 import { AvailabilitySection } from './components/AvailabilitySection';
@@ -41,6 +42,8 @@ type Props = {
   onTopPress?: () => void;
   // "예약 가능 시간" 섹션의 빈자리 알림 카드 → 알림 설정 시트(그 탭의 날짜로 열림).
   onOpenSlotAlert: (dayIndex: number) => void;
+  // 빈자리(슬롯) 응답이 도착했는지 — 도착 전 slot_count 0이 찍히지 않게 GA4 slot_list_view를 미룬다.
+  slotsReady?: boolean;
 };
 
 // 상세 본문 — 라우트 화면과 홈 포커스 시트가 공유.
@@ -51,8 +54,35 @@ export function ShopDetailBody({
   onToggleFavorite,
   onTopPress,
   onOpenSlotAlert,
+  slotsReady = true,
 }: Props) {
   const spy = useSectionSpy();
+
+  // GA4 slot_list_view: "예약 가능 시간" 섹션이 화면에 들어오면(스크롤스파이 활성 탭 = availability)
+  // 샵당 1회(trigger=shown), 날짜 탭을 바꾸면 누를 때마다(trigger=tab).
+  const slotDayRef = useRef(0);
+  const slotShownFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (spy.activeTab !== 'availability' || !slotsReady || slotShownFor.current === shop.id) return;
+    slotShownFor.current = shop.id;
+    const i = slotDayRef.current;
+    track.slotListView({
+      shopId: shop.id,
+      dayIndex: i,
+      slotCount: shop.availability[i]?.times.length ?? 0,
+      reason: 'shown',
+    });
+  }, [spy.activeTab, slotsReady, shop.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const onSelectSlotDay = (i: number) => {
+    if (i === slotDayRef.current) return; // 같은 탭 재탭은 무시
+    slotDayRef.current = i;
+    track.slotListView({
+      shopId: shop.id,
+      dayIndex: i,
+      slotCount: shop.availability[i]?.times.length ?? 0,
+      reason: 'tab',
+    });
+  };
 
   // 홈 시트에서 다른 핀 탭으로 샵이 바뀌면 이전 스크롤 위치·활성 탭이 남지 않게 초기화.
   useEffect(() => {
@@ -89,7 +119,11 @@ export function ShopDetailBody({
     <Pressable key="availability" onPress={onTopPress} disabled={!onTopPress} onLayout={spy.onSectionLayout('availability')}>
       {band}
       <View className="px-5 pb-6 pt-6">
-        <AvailabilitySection days={shop.availability} onOpenSlotAlert={onOpenSlotAlert} />
+        <AvailabilitySection
+          days={shop.availability}
+          onOpenSlotAlert={onOpenSlotAlert}
+          onSelectDay={onSelectSlotDay}
+        />
       </View>
     </Pressable>,
     <Pressable key="review" onPress={onTopPress} disabled={!onTopPress} onLayout={spy.onSectionLayout('review')}>

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { markShopSource } from '@/shared/lib/analytics';
 import { useHardwareBack } from '@/shared/lib/backStack';
 import { openExternal } from '@/shared/lib/openExternal';
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
@@ -182,6 +183,7 @@ export function NotificationScreen() {
               item={entry.shop}
               onPress={() => {
                 if (entry.shop.readAt === null) markRead(entry.shop.id); // 읽음 처리는 이동을 막지 않음
+                markShopSource(entry.shop.shopId, 'notification'); // GA4 shop_view source
                 router.push(`/shop/${entry.shop.shopId}`);
               }}
             />

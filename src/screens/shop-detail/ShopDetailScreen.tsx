@@ -40,10 +40,18 @@ export function ShopDetailScreen({ shopId }: Props) {
     [shopQuery.data, slotsQuery.data, myLocation],
   );
 
-  // GA4 shop_view: 샵 상세 진입 시 1회 (웹 detail_view→shop_view와 동일 이벤트, 통합 퍼널)
+  // GA4 shop_view: 샵 상세 라우트 진입 시 샵 id당 1회(데이터 도착 후 — category·구(region)를 실어야 해서).
+  // 진입 경로(source)는 이동 직전 호출부가 markShopSource로 적어 둔다(없으면 'direct'). 웹과 같은 이벤트.
+  const detail = shopQuery.data;
   useEffect(() => {
-    if (shop?.id) track.shopView(shop.id, shop.name);
-  }, [shop?.id, shop?.name]);
+    if (!detail) return;
+    track.shopView({
+      shopId: detail.id,
+      category: detail.categories[0] ?? null,
+      region: detail.district,
+      fallbackSource: 'direct',
+    });
+  }, [detail?.id]); // eslint-disable-line react-hooks/exhaustive-deps -- 샵이 바뀔 때만
 
   // 즐겨찾기: 홈과 같은 ['favorites','list'] 캐시에서 파생 — 화면 간 자동 동기화.
   const { isLoggedIn, requireLogin, loginModal } = useLoginGate();
@@ -94,6 +102,7 @@ export function ShopDetailScreen({ shopId }: Props) {
 
       <ShopDetailBody
         shop={shop}
+        slotsReady={!slotsQuery.isPending}
         renderScroll={(scrollProps, ref) => (
           <ScrollView {...scrollProps} ref={ref} scrollEventThrottle={16} />
         )}
@@ -104,10 +113,11 @@ export function ShopDetailScreen({ shopId }: Props) {
         instagram={shop.instagram}
         phone={shop.phone}
         route={shop.bookingRoute}
-        onReserveClick={() => {
-          // 클릭 애널리틱스 — 실패해도 무시(fire-and-forget)
-          postReservationClick(shop.id).catch(() => {});
-          track.reserveClick(shop.id, shop.bookingRoute?.label); // GA4 (웹과 동일 이벤트)
+        onReserveClick={(method) => {
+          // 클릭 애널리틱스 — 실패해도 무시(fire-and-forget). 서버 집계는 기존대로 온라인 예약 버튼만.
+          if (method !== 'phone') postReservationClick(shop.id).catch(() => {});
+          // GA4 reserve_click (웹과 동일 이벤트) — 누를 때마다 1회. 버튼이 특정 시각을 고른 상태가 아니라 slot_date/time 없음.
+          track.reserveClick({ shopId: shop.id, method });
         }}
       />
       {slotAlert.element}

@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { unregisterPushToken } from '@/shared/domain/notification/push';
 
+import { setAnalyticsUserId, track } from '@/shared/lib/analytics';
 import { setGuestBrowse } from '@/shared/lib/guestBrowse';
 import { signOut, socialLogin } from './auth.api';
 import { useAuthStore } from './auth.store';
@@ -12,7 +13,13 @@ export function useSocialLogin() {
   return useMutation({
     mutationFn: (vars: { provider: SocialProvider; accessToken: string; name?: string }) =>
       socialLogin(vars.provider, vars.accessToken, vars.name),
-    onSuccess: (data) => setUser(data.user),
+    onSuccess: (data, vars) => {
+      // GA4: user_id(내부 UUID)를 먼저 심어 sign_up/login 이벤트가 그 유저로 잡히게 한다.
+      // 로그인 성공(mutation 성공) 1회당 1번 — isNewUser(BE 201/200)로 sign_up·login을 가른다.
+      setAnalyticsUserId(data.user.id);
+      track.auth(vars.provider, data.isNewUser === true);
+      setUser(data.user);
+    },
   });
 }
 

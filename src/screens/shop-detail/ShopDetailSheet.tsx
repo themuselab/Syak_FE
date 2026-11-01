@@ -49,10 +49,18 @@ export function ShopDetailSheet({
     [shopQuery.data, slotsQuery.data, myLocation],
   );
 
-  // GA4 shop_view: 시트에 샵이 뜨면 1회 (홈 지도 → 샵 상세 조회, 웹과 동일 이벤트)
+  // GA4 shop_view: 홈 포커스 시트에 샵이 뜰 때 샵 id당 1회(데이터 도착 후 — category·구(region)를 실어야 해서).
+  // 진입 경로(source)는 이동 직전 호출부가 markShopSource로 적어 둔다(없으면 'list'). 웹과 같은 이벤트.
+  const detail = shopQuery.data;
   useEffect(() => {
-    if (shop?.id) track.shopView(shop.id, shop.name);
-  }, [shop?.id, shop?.name]);
+    if (!detail) return;
+    track.shopView({
+      shopId: detail.id,
+      category: detail.categories[0] ?? null,
+      region: detail.district,
+      fallbackSource: 'list',
+    });
+  }, [detail?.id]); // eslint-disable-line react-hooks/exhaustive-deps -- 샵이 바뀔 때만
 
   // 로딩/에러: 접힘(35%) 상태에서도 보이도록 상단 배치(중앙 정렬이면 시트 아래 잘림).
   if (!shop) {
@@ -104,6 +112,7 @@ export function ShopDetailSheet({
           헤더가 없는 접힘(35%)에서만 타이틀 별을 노출한다(QA #58 — 중복 노출 수정). */}
       <ShopDetailBody
         shop={shop}
+        slotsReady={!slotsQuery.isPending}
         favorite={favorite}
         onToggleFavorite={expanded ? undefined : onToggleFavorite}
         onTopPress={expanded ? undefined : onExpand}
@@ -116,10 +125,11 @@ export function ShopDetailSheet({
           instagram={shop.instagram}
           phone={shop.phone}
           route={shop.bookingRoute}
-          onReserveClick={() => {
-            // 클릭 애널리틱스 — 실패해도 무시(fire-and-forget)
-            postReservationClick(shop.id).catch(() => {});
-            track.reserveClick(shop.id, shop.bookingRoute?.label); // GA4 (웹과 동일 이벤트)
+          onReserveClick={(method) => {
+            // 클릭 애널리틱스 — 실패해도 무시(fire-and-forget). 서버 집계는 기존대로 온라인 예약 버튼만.
+            if (method !== 'phone') postReservationClick(shop.id).catch(() => {});
+            // GA4 reserve_click (웹과 동일 이벤트) — 누를 때마다 1회. 버튼이 특정 시각을 고른 상태가 아니라 slot_date/time 없음.
+            track.reserveClick({ shopId: shop.id, method });
           }}
         />
       )}

@@ -3,7 +3,9 @@ import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
+import { track } from '@/shared/lib/analytics';
 import { getDeviceId } from '@/shared/lib/deviceId';
+import { getPushPermission } from '@/shared/lib/pushPermission';
 import { queryClient } from '@/shared/lib/queryClient';
 import { callShell, inShell, onShellEvent } from '@/shell/bridgeClient';
 
@@ -31,8 +33,12 @@ let shellDeviceId: string | null = null;
 // 권한 요청 + Expo 푸시 토큰. 거부·미설정(iOS 엔타이틀먼트 전)·실패 시 null(조용히 통과).
 async function getPushToken(): Promise<string | null> {
   if (inShell()) {
+    // 셸의 getPushToken은 권한이 없으면 OS 팝업으로 요청한다. 요청 전엔 꺼져 있었는데 토큰이 나왔다
+    // = 방금 허용 → GA4 push_permission_granted(세션당 1회, analytics trackOnce).
+    const before = await getPushPermission().catch(() => null);
     const r = await callShell({ type: 'getPushToken' }, 30_000).catch(() => null);
     if (r) shellDeviceId = r.deviceId;
+    if (r?.token && before && !before.granted) track.pushPermissionGranted('startup');
     return r?.token ?? null;
   }
   // 웹에선 네이티브 알림 모듈이 필요 없다 — 동적 import로 expo-notifications를 웹 첫 번들에서 뺀다.

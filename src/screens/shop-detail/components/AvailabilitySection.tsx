@@ -11,6 +11,7 @@ const TOOLTIP_MS = 3000;
 type Props = {
   days: AvailabilityDay[];
   onOpenSlotAlert: (dayIndex: number) => void;
+  onSelectDay?: (dayIndex: number) => void; // 날짜 탭 선택 알림(GA4 slot_list_view) — 화면 동작과 무관
 };
 
 // 예약 가능 시간 섹션 (디자이너 시안 2026-10-29 — 기존 빗금 시간 막대를 대체).
@@ -18,7 +19,7 @@ type Props = {
 //   [오늘 (화)][내일 (수)][모레 (목)]   선택 = 진한 채움, 나머지 = 흰 바탕 테두리
 //   15:00 · 15:30 · 16:00 · …        (없으면 가운데 회색 "예약이 모두 마감되었어요")
 //   [🔔 빈자리 알림 설정하기  원하는 시간에 자리가 나면 알려드려요  >]  → 알림 설정 시트(이 탭 날짜)
-export function AvailabilitySection({ days, onOpenSlotAlert }: Props) {
+export function AvailabilitySection({ days, onOpenSlotAlert, onSelectDay }: Props) {
   const [selected, setSelected] = useState(0);
   const [tooltip, setTooltip] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -66,7 +67,10 @@ export function AvailabilitySection({ days, onOpenSlotAlert }: Props) {
           return (
             <Pressable
               key={d.key}
-              onPress={() => setSelected(i)}
+              onPress={() => {
+                setSelected(i);
+                onSelectDay?.(i);
+              }}
               className="flex-1 items-center justify-center rounded-sm py-2.5"
               style={{
                 borderWidth: 1,

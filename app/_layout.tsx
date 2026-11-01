@@ -9,29 +9,48 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 
-import { track } from '@/shared/lib/analytics';
+import { initAnalytics, track } from '@/shared/lib/analytics';
 import { installHardwareBack } from '@/shared/lib/backStack';
 import { onShellEvent } from '@/shell/bridgeClient';
 import { ShellInsets } from '@/shell/ShellInsets';
 import { usePushSetup } from '@/shared/domain/notification/push';
+import { markNotificationOpened } from '@/shared/domain/notification/notification.api';
 import { queryClient } from '@/shared/lib/queryClient';
 
 // 하단 탭바 없음 → 루트 스택. '/' 진입은 app/index.tsx가 splash로 보낸다.
 SplashScreen.preventAutoHideAsync();
+
+function handlePushOpen(path: string) {
+  track.pushOpened(path);
+  const nid = new URLSearchParams(path.split('?')[1] ?? '').get('nid');
+  if (nid) markNotificationOpened(nid).catch(() => {}); // 비로그인·만료면 조용히 실패
+}
 
 export default function RootLayout() {
   // 웹 화면 전용 루트(네이티브 앱은 index.native.tsx → 웹뷰 셸). 푸시 등록은 셸 안의 웹이 셸에 토큰을 받아 한다.
   usePushSetup({ enabled: true });
 
   // 웹뷰 셸 안의 웹: 앱이 켜진 상태에서 알림을 누르면 셸이 이동할 화면을 알려준다.
-  useEffect(() => onShellEvent('navigate', (msg) => {
-    if (msg.kind === 'event' && msg.event === 'navigate') router.push(msg.path as never);
-  }), []);
+  // 푸시로 열림: 앱이 켜진 상태의 탭은 셸 navigate 이벤트, 꺼져 있다 켜지면 셸이 ?from=push 주소로 바로 연다.
+  // 둘 다 GA push_opened + 서버 열람 기록(nid). 예전 셸(쿼리 없음)은 navigate만 잡힌다.
+  useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('from') === 'push') {
+      handlePushOpen(window.location.pathname + window.location.search);
+    }
+    return onShellEvent('navigate', (msg) => {
+      if (msg.kind !== 'event' || msg.event !== 'navigate') return;
+      handlePushOpen(msg.path);
+      router.push(msg.path as never);
+    });
+  }, []);
+
+  // GA4: anonymous_id·user_id 동기화, 셸 첫 실행(app_first_open). 웹 빌드에서만 동작(docs/analytics.md).
+  useEffect(() => initAnalytics(), []);
 
   // 웹뷰 셸 안의 웹: 안드로이드 물리 뒤로가기를 셸이 넘겨준다(열린 모달·시트부터 닫기 — backStack).
   useEffect(() => installHardwareBack(), []);
 
-  // GA4 화면 추적: 라우트 변경 시 screen_view 전송 (Firebase Analytics, 가드 통과)
+  // GA4 화면 추적: 라우트(pathname)가 바뀔 때 주요 화면만 app_screen_view 1회.
   const pathname = usePathname();
   useEffect(() => {
     if (pathname) track.screen(pathname);

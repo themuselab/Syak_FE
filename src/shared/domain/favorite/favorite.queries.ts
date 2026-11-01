@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
 
 import { ApiError, ErrorCode } from '@/shared/api/errors';
+import { track } from '@/shared/lib/analytics';
 
 import { addFavorite, getFavorites, removeFavorite } from './favorite.api';
 import type { Favorite, FavoriteListResponse } from './favorite.types';
@@ -71,6 +72,9 @@ export function useToggleFavorite() {
     },
 
     onSuccess: (data, { shopId, next }) => {
+      // GA4 favorite_add / favorite_remove — 서버 반영 성공 1회당 1번(연타는 pendingRef가 막는다).
+      // 409/404(이미 그 상태)는 onError로 가므로 집계하지 않는다.
+      track.favorite(shopId, next);
       // add 성공: 임시 항목을 서버 응답(진짜 id·shopName·createdAt)으로 교체 — invalidate 불필요.
       if (next && data) {
         queryClient.setQueryData<FavoriteListResponse>(FAVORITES_KEY, (old) => ({

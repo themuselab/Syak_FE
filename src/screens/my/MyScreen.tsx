@@ -18,6 +18,7 @@ import {
   useUpdateNotificationSettings,
 } from '@/shared/domain/notification/notification.queries';
 import { registerDeviceForAppNews } from '@/shared/domain/notification/push';
+import { track } from '@/shared/lib/analytics';
 import { getPushPermission, togglePushPermission } from '@/shared/lib/pushPermission';
 import { useMe } from '@/shared/domain/user/user.queries';
 import { colors } from '@/shared/theme/colors';
@@ -53,7 +54,12 @@ export function MyScreen() {
     }, []),
   );
   const handlePushToggle = (next: boolean) => {
-    togglePushPermission(next).then(setPushPermission);
+    togglePushPermission(next).then((granted) => {
+      // GA4 push_permission_granted — 꺼진 토글을 켜서 허용이 돌아온 경우(세션당 1회).
+      // 설정 앱으로 보내진 경우엔 돌아온 뒤 포커스 재조회라 여기서 잡히지 않는다(docs/analytics.md).
+      if (next && granted) track.pushPermissionGranted('settings_toggle');
+      setPushPermission(granted);
+    });
   };
 
   // "알림함" 메뉴의 분홍 점 = 안 읽은 샵 알림이 있을 때(시안 아이콘의 점을 미읽음 표시로 썼다).

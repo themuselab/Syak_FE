@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 
 import type { SlotAlert } from '@/shared/domain/notification/slotAlert.types';
+import { markShopSource } from '@/shared/lib/analytics';
 import { colors } from '@/shared/theme/colors';
 
 import { groupSlotAlerts } from '../groupSlotAlerts';
@@ -73,7 +74,9 @@ export function SlotAlertRequests({
   }
 
   const openShop = (shopId: string) => {
-    if (!editing) router.push(`/shop/${shopId}`);
+    if (editing) return;
+    markShopSource(shopId, 'notification'); // GA4 shop_view source
+    router.push(`/shop/${shopId}`);
   };
 
   return (

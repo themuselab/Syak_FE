@@ -12,6 +12,7 @@ import {
   SocialAuthTimeoutError,
 } from '@/shared/domain/auth/socialAuth';
 
+import { track } from '@/shared/lib/analytics';
 import { setGuestBrowse } from '@/shared/lib/guestBrowse';
 import { useShellInfo } from '@/shell/bridgeClient';
 
@@ -68,6 +69,15 @@ export function LoginScreen({ intro = false, revealed = true }: Props) {
     router.replace('/home');
   };
   const busy = loadingProvider !== null;
+
+  // GA4 app_screen_view(login) — 로그인 버튼 패널이 실제로 펼쳐질 때 마운트당 1회.
+  // /splash는 세션 확인 중엔 로고만 보이다 비로그인일 때 revealed로 펼쳐지므로 그때 보낸다.
+  const loginViewSent = useRef(false);
+  useEffect(() => {
+    if (!revealed || loginViewSent.current) return;
+    loginViewSent.current = true;
+    track.loginScreen();
+  }, [revealed]);
 
   // ── 스플래시 → 로그인 전환 ──
   // 레이아웃은 처음부터 "로그인 모양"이다. 스플래시 단계에선 로고 묶음을 화면 정중앙까지 내려

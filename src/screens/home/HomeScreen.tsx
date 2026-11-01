@@ -12,6 +12,7 @@ import { useSlotSearch } from '@/shared/domain/reservation/reservation.queries';
 import { useShops } from '@/shared/domain/shops/shops.queries';
 import type { MapBounds } from '@/shared/domain/shops/shops.types';
 import { useHardwareBack } from '@/shared/lib/backStack';
+import { markShopSource } from '@/shared/lib/analytics';
 import { useMyLocationStore } from '@/shared/lib/myLocation.store';
 import {
   getCurrentCoords,
@@ -35,6 +36,7 @@ import { ShopBottomSheet, type ShopBottomSheetRef } from './components/ShopBotto
 import { filtersToParams, toSlotSearchParams } from './filtersToParams';
 import { MAP_CONTROL_CLEARANCE, SHEET_DEFAULT_RATIO } from './homeLayout';
 import { toShopCardView } from './shopToView';
+import { useHomeAnalytics } from './useHomeAnalytics';
 import { useDebouncedSearch, useHomeFilterStore } from './useHomeFilterStore';
 
 // 홈(지도뷰). 네이버 지도 + GET /shops(비회원 가능).
@@ -227,8 +229,16 @@ export function HomeScreen() {
     };
   }, [params, slotParams, hasSearch, mapCenter, mapBounds]);
 
-  const { data, isLoading, isError, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useShops(listParams);
+  const {
+    data,
+    isLoading,
+    isError,
+    isPlaceholderData,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useShops(listParams);
   const slotSearch = useSlotSearch(
     slotParams ?? { dates: [], times: [] },
     slotParams !== null,
@@ -250,6 +260,16 @@ export function HomeScreen() {
     // toggles 전달: 토글이 켜진 동안은 핀 색을 그 조건으로 통일한다(할인=노랑/당일예약=파랑).
     return items.map((it) => toShopCardView(it, favoriteIds, toggles, myLocation));
   }, [data, slotParams, slotSearch.data, favoriteIds, toggles, myLocation]);
+
+  // GA4 shop_list_view · search · search_no_result · filter_apply (조합당 1회 — useHomeAnalytics).
+  useHomeAnalytics({
+    search: debouncedSearch,
+    picked,
+    filters: { sort, priceRange, date, times, toggles },
+    firstPage: data?.pages[0]?.items ?? [],
+    resultCount: shops.length,
+    ready: !!data && !loading && !error && !isPlaceholderData,
+  });
 
   // 지도 핀 = 목록(shops)과 동일 소스 → 핀과 바텀시트 리스트가 항상 일치("이 핀이 리스트 여기").
   const pins = useMemo(
@@ -291,6 +311,7 @@ export function HomeScreen() {
   // (옮기면 카메라 idle→자동 재조회로 목록이 재정렬·이미지 재로딩되며 튄다). 포커스 핀만 강조.
   const selectShop = (id: string) => {
     Keyboard.dismiss(); // 검색 후 카드 탭 → 상세로 넘어가며 키보드도 정리(QA #60)
+    markShopSource(id, 'list'); // GA4 shop_view source
     setSelectedShopId(id);
   };
 
@@ -342,6 +363,7 @@ export function HomeScreen() {
 
   // 핀 탭: 목록(shops)에 있으면 인라인 포커스(기존 UX), 목록 밖(영역 전체 핀)이면 상세로 이동.
   const handleMarkerPress = (id: string) => {
+    markShopSource(id, 'pin'); // GA4 shop_view source(인라인 시트·상세 라우트 공통)
     if (shops.some((s) => s.id === id)) setSelectedShopId(id);
     else router.push(`/shop/${id}`);
   };

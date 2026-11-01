@@ -55,7 +55,13 @@ export async function getPushTokenForShell(): Promise<{ token: string; deviceId:
 }
 
 // 백엔드 알림 data → 이동할 웹 경로(셸이 알림 탭 처리에 쓴다). 샵 정보가 없으면 null.
+// from=push·nid(알림 번호)를 붙여 웹이 "푸시로 열림"을 알고(GA push_opened) 서버에 열람을 기록한다
+// (PATCH /notifications/:id/opened). 앱이 꺼져 있다 켜질 때(첫 주소)와 켜진 상태의 탭(navigate) 모두 같은 주소.
 export function pathFromNotificationData(data: unknown): string | null {
-  const shopId = (data as { shopId?: unknown } | undefined)?.shopId;
-  return typeof shopId === 'string' && shopId ? `/shop/${shopId}` : null;
+  const d = (data ?? {}) as { shopId?: unknown; notificationId?: unknown };
+  if (typeof d.shopId !== 'string' || !d.shopId) return null;
+  // RN(Hermes)의 URLSearchParams는 set 등이 미구현이라 직접 만든다.
+  const nid =
+    typeof d.notificationId === 'string' && d.notificationId ? `&nid=${encodeURIComponent(d.notificationId)}` : '';
+  return `/shop/${encodeURIComponent(d.shopId)}?from=push${nid}`;
 }

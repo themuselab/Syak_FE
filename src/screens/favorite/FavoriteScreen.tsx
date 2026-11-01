@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 
+import { markShopSource } from '@/shared/lib/analytics';
 import { useMyLocationStore } from '@/shared/lib/myLocation.store';
 import { useBottomInset } from '@/shared/lib/safeArea';
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
@@ -147,7 +148,10 @@ export function FavoriteScreen() {
                 <ShopListCard
                   variant="compact"
                   shop={item.card}
-                  onPress={() => router.push(`/shop/${item.shopId}`)}
+                  onPress={() => {
+                    markShopSource(item.shopId, 'favorite'); // GA4 shop_view source
+                    router.push(`/shop/${item.shopId}`);
+                  }}
                   onToggleFavorite={() => toggleFavorite(item.shopId)}
                 />
               )}

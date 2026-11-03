@@ -7,6 +7,7 @@ import { useBottomInset } from '@/shared/lib/safeArea';
 import { ShopDetailSheet } from '@/screens/shop-detail/ShopDetailSheet';
 import { colors } from '@/shared/theme/colors';
 import { ShopListCard } from '@/shared/ui/ShopListCard';
+import type { SlotAlertShop } from '@/shared/ui/slot-alert/useSlotAlertSheet';
 
 import { SHEET_DEFAULT_SNAP, SHEET_MIN_HEIGHT } from '../homeLayout';
 import type { ShopCardView } from '../shopToView';
@@ -30,7 +31,7 @@ type Props = {
   onDeselect: () => void; // 물리 뒤로가기 등에서 포커스 해제
   topOffset: number; // 헤더+검색바 오버레이 높이 — 목록 모드 최대 확장이 검색바를 가리지 않게 (QA #50)
   containerHeight: number; // 루트 컨테이너 실측 높이 — gorhom의 스냅포인트 정규화 기준과 동일해야 함
-  onOpenSlotAlert: (shopId: string, dayIndex?: number) => void; // 빈자리 알림 시트(로그인 게이팅 포함)
+  onOpenSlotAlert: (shop: SlotAlertShop, dayIndex?: number) => void; // 빈자리 알림 시트(로그인·파트너 게이팅 포함)
 };
 
 // 단일 바텀시트: activeFilter → 필터 화면 / selectedShop → 인라인 상세(특정샵 포커스) / 그 외 → 칩바+목록.
@@ -188,7 +189,7 @@ export const ShopBottomSheet = forwardRef<ShopBottomSheetRef, Props>(function Sh
           onCollapse={() => sheetRef.current?.snapToIndex(0)}
           onExpand={() => sheetRef.current?.snapToIndex(1)}
           onClose={onDeselect}
-          onOpenSlotAlert={(dayIndex) => onOpenSlotAlert(selectedShop.id, dayIndex)}
+          onOpenSlotAlert={(dayIndex) => onOpenSlotAlert(selectedShop, dayIndex)}
         />
       ) : (
         <>
@@ -230,7 +231,8 @@ export const ShopBottomSheet = forwardRef<ShopBottomSheetRef, Props>(function Sh
                   shop={item}
                   onPress={() => onSelectShop(item.id)}
                   onToggleFavorite={() => onToggleFavorite(item.id)}
-                  onPressSlotAlert={() => onOpenSlotAlert(item.id)}
+                  // 빈자리 알림은 파트너 샵만 — 비파트너 카드는 버튼 없이 시간 줄만 보인다.
+                  onPressSlotAlert={item.isPartner ? () => onOpenSlotAlert(item) : undefined}
                 />
               )}
             />

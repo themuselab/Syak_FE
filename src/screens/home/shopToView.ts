@@ -4,14 +4,18 @@ import { normalizeHM, nowHM } from '@/shared/lib/slotTimes';
 
 // 지도 마커 종류(=핀 PNG). assets/icons/pin-{kind}.png와 직결.
 //  default(분홍 상점) = 일반 샵 / discount(노랑 %) = 이벤트 / reservable(파랑 알람시계) = 예약 가능
-export type MarkerKind = 'default' | 'discount' | 'reservable';
+//  partner(분홍 + 샥 S 심볼) = 샥 파트너 샵 (2026-11). 축소 도트는 default와 같은 분홍 도트.
+export type MarkerKind = 'default' | 'discount' | 'reservable' | 'partner';
 
 // 홈 상단 토글 필터 상태(상호 배타). 지도는 "모드 하나 = 핀 색 하나"로 읽힌다.
 export type MarkerToggles = { sameDay: boolean; discount: boolean };
 
 // 핀 종류 = 지금 켜진 지도 모드. 토글을 켜면 목록 자체가 그 조건으로 걸러진 결과라
 // 핀도 한 색으로 통일된다. 아무것도 안 켜면 전체 샵을 기본(분홍) 핀으로 본다.
-export function markerKindOf(toggles?: MarkerToggles): MarkerKind {
+// 단, 파트너 샵은 어떤 모드에서도 파트너 핀이 우선한다(파트너 노출 강조 — 사장님 결정 2026-11).
+// 포커스(선택) 핀은 파트너 여부와 무관하게 기존 pin-focused 그대로.
+export function markerKindOf(toggles?: MarkerToggles, isPartner = false): MarkerKind {
+  if (isPartner) return 'partner';
   if (toggles?.discount) return 'discount';
   if (toggles?.sameDay) return 'reservable';
   return 'default';
@@ -27,6 +31,7 @@ export type ShopCardView = {
   todayTimes: string[]; // 오늘 남은 빈자리 시각(정렬) — 비면 카드에 "당일 예약이 마감되었어요"
   previewReview: string | null;
   markerKind: MarkerKind;
+  isPartner: boolean; // 샥 파트너 — 카드 배지·빈자리 알림 버튼·파트너 핀
   favorite: boolean;
   lat: number | null;
   lng: number | null;
@@ -93,7 +98,8 @@ export function toShopCardView(
     locationLabel: locationLabelOf(item, myLocation),
     todayTimes: todayOpenTimes(item),
     previewReview: item.previewReview,
-    markerKind: markerKindOf(toggles),
+    markerKind: markerKindOf(toggles, item.isPartner),
+    isPartner: item.isPartner === true,
     favorite: favoriteIds.has(item.id),
     lat: item.lat,
     lng: item.lng,
@@ -102,10 +108,16 @@ export function toShopCardView(
 }
 
 // 지도 마커 뷰모델(핀 전용, 경량). /web/shops/pins 행 → 좌표 + 핀 종류.
-export type MapPinView = { id: string; lat: number; lng: number; markerKind: MarkerKind };
+export type MapPinView = { id: string; lat: number; lng: number; markerKind: MarkerKind; isPartner: boolean };
 
 // 핀 종류 규칙은 카드와 동일(markerKindOf).
 export function toPinView(row: ShopPinRow, toggles?: MarkerToggles): MapPinView | null {
   if (row.lat == null || row.lng == null) return null;
-  return { id: row.id, lat: row.lat, lng: row.lng, markerKind: markerKindOf(toggles) };
+  return {
+    id: row.id,
+    lat: row.lat,
+    lng: row.lng,
+    markerKind: markerKindOf(toggles, row.is_partner),
+    isPartner: row.is_partner === true,
+  };
 }

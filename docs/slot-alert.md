@@ -5,7 +5,8 @@
 
 ## 1. 범위
 사용자가 "이 샵, 이 날짜·시간에 자리가 나면 알려줘"를 신청하고, 알림함에서 신청 현황을 보고 지운다.
-- 진입점 ① 홈 목록 카드 "빈자리 알림" 버튼 ② 샵 상세 "예약 가능 시간" 섹션의 "빈자리 알림 설정하기" 카드
+- **샥 파트너 샵(`isPartner`) 전용 (2026-11-03 사장님 결정)** — 비파트너 샵에는 진입점이 없다(아래 §2).
+- 진입점 ① 홈 목록 카드 "빈자리 알림" 버튼 ② 샵 상세 "예약 가능 시간" 섹션의 "빈자리 알림 설정하기" 카드 — 둘 다 파트너만
 - 알림 설정 시트 → 완료 토스트([내역보기] → 알림함 신청 현황)
 - 알림함 두 탭(받은 알림 / 신청 현황 N), 신청 현황 편집(삭제)
 - 마이: "샥 알림" → "알림함"(받은 알림 + 신청 현황)
@@ -15,11 +16,15 @@
 - **지금 비어 있는(예약 가능) 시간은 고를 수 없다**(회색 비활성) — 비지 않은 시간만 알림 신청. 오늘의 지난 시간은 아예 안 보인다.
 - 비회원이 어느 "빈자리 알림" 진입점을 눌러도 기존 로그인 유도 모달.
 - 신청은 그 시간에 알림 1회 보내거나(`notified`) 시간이 지나면(`expired`) 종료 → "종료된 알림".
+- **파트너 전용(2026-11-03)**: 홈 카드 버튼·상세 카드는 `isPartner`일 때만. 비파트너는 시간 줄(또는 마감 문구)만 그대로 보인다.
+  `useSlotAlertSheet.open({ id, isPartner })`도 `isPartner`가 아니면 아무것도 안 한다(이중 가드).
+  서버도 비파트너 신청을 409 `SLOT_ALERT_PARTNER_ONLY`로 거절하고, 파트너가 해제된 샵의 옛 신청은 발송하지 않는다.
+  알림함 신청 현황(GET)은 옛 신청도 그대로 보여준다(내역).
 
 ## 3. 백엔드 계약 (base `/api/v1`, 쿠키 인증 — `apiFetch`)
 | 메서드 | 경로 | 바디 / 응답 |
 |---|---|---|
-| POST | `/notifications/slot-alerts` | `{ shopId, date:'YYYY-MM-DD', times:['HH:MM'] }` → 201 `{ created }` |
+| POST | `/notifications/slot-alerts` | `{ shopId, date:'YYYY-MM-DD', times:['HH:MM'] }` → 201 `{ created }` / 비파트너 409 `SLOT_ALERT_PARTNER_ONLY`(시트 공통 에러 줄) |
 | GET | `/notifications/slot-alerts` | `{ alerts: SlotAlert[] }` (flat — 앱이 샵 → 날짜로 묶음) |
 | DELETE | `/notifications/slot-alerts` | `{ ids: string[] }` → 204 |
 
@@ -33,11 +38,14 @@
 홈 목록 카드 (ShopListCard feed)
   ⏰ 오늘 15:00 15:30 16:00 외 +3        [🔔 빈자리 알림]   ← slotSummary(오늘), 지난 시각 제외, 3개 + "외 +N"
   ⏰ 당일 예약이 마감되었어요(회색)      [🔔 빈자리 알림]
+     (버튼은 파트너만 — 비파트너는 시간 줄만)
 샵 상세 "예약 가능 시간" (AvailabilitySection — 기존 빗금 시간 막대 대체)
   예약 가능 시간 (i)  → 탭하면 검은 말풍선 "오늘부터 3일간의 예약 가능한 시간을 확인할 수 있어요." (3초 후 닫힘)
-  [오늘 (화)][내일 (수)][모레 (목)]  선택 = 진한 채움
-  15:00 · 15:30 · 16:00 …  / 없으면 "예약이 모두 마감되었어요"
-  [🔔 빈자리 알림 설정하기 / 원하는 시간에 자리가 나면 알려드려요 >]  → 시트(그 탭 날짜 선택 상태)
+   오늘 (화)   내일 (수)   모레 (목)    ← 밑줄 탭 3등분(2026-11 시안): 라벨(굵게) + "10.01" 날짜(회색)
+   ━━━━━━━━ ──────────────────      선택 = 진한 2px 밑줄, 탭 줄 아래 연회색 구분선, 박스·테두리 없음
+  15:00 · 15:30 · 16:00 …  / 없으면 가운데 회색 "예약이 모두 마감되었어요"
+  [⬜🔔 빈자리 알림 설정하기 / 원하는 시간에 자리가 나면 알려드려요 >]  → 시트(그 탭 날짜 선택 상태)
+     ↑ 파트너만. 연핑크 카드 + 왼쪽 흰 40px 라운드 타일 안 핑크 벨 + 진한 > (2026-11 시안)
 빈자리 알림 설정 시트 (SlotAlertSheet, RN Modal slide)
   날짜 선택(3칸, 선택 = 핑크 테두리·틴트) / 시간 선택 "복수 선택 가능"(칩 wrap, 선택 = 핑크)
   [빈자리 알림 받기](1개 이상 선택 시 활성) → POST → 시트 닫고 토스트 / "나중에 할게요"
@@ -63,13 +71,13 @@ src/shared/lib/slotTimes.ts   threeDays·businessHalfHours(영업시간 30분 �
 src/shared/ui/slot-alert/
   SlotAlertSheet.tsx      알림 설정 시트 (shop·slots·alerts 쿼리 직접 사용)
   SlotAlertToast.tsx      완료 토스트
-  useSlotAlertSheet.tsx   진입점 공용 훅: open(shopId, dayIndex) — 로그인 게이트 + 시트 + 토스트 element
-src/shared/ui/ShopListCard.tsx            feed 카드에 오늘 빈자리 줄 + "빈자리 알림" 버튼(onPressSlotAlert)
+  useSlotAlertSheet.tsx   진입점 공용 훅: open({ id, isPartner }, dayIndex) — 파트너 가드 + 로그인 게이트 + 시트 + 토스트 element
+src/shared/ui/ShopListCard.tsx            feed 카드에 오늘 빈자리 줄 + "빈자리 알림" 버튼(onPressSlotAlert, 파트너만)
 src/screens/home/HomeScreen.tsx           useSlotAlertSheet 1개 → ShopBottomSheet(카드·인라인 상세)로 opener 전달
 src/screens/home/shopToView.ts            availability 문구 → todayTimes: string[] (todayOpenTimes)
 src/screens/shop-detail/
   shopDetailToView.ts                     timeline(시간 막대) → availability: { key, prefix, weekday, times }[]
-  components/AvailabilitySection.tsx      새 "예약 가능 시간" 섹션
+  components/AvailabilitySection.tsx      새 "예약 가능 시간" 섹션 (isPartner일 때만 알림 카드)
   ShopDetailBody/Screen/Sheet.tsx         onOpenSlotAlert 전달(라우트 화면은 자체 훅, 홈 시트는 홈 훅)
 src/screens/notification/
   NotificationScreen.tsx                  탭·편집·나가기 가드(beforeRemove)

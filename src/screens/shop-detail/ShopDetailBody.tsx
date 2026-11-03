@@ -121,6 +121,7 @@ export function ShopDetailBody({
       <View className="px-5 pb-6 pt-6">
         <AvailabilitySection
           days={shop.availability}
+          isPartner={shop.isPartner}
           onOpenSlotAlert={onOpenSlotAlert}
           onSelectDay={onSelectSlotDay}
         />

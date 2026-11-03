@@ -10,16 +10,25 @@ const TOOLTIP_MS = 3000;
 
 type Props = {
   days: AvailabilityDay[];
+  isPartner: boolean; // 빈자리 알림 카드는 샥 파트너 샵만 (2026-11 사장님 결정)
   onOpenSlotAlert: (dayIndex: number) => void;
   onSelectDay?: (dayIndex: number) => void; // 날짜 탭 선택 알림(GA4 slot_list_view) — 화면 동작과 무관
 };
 
-// 예약 가능 시간 섹션 (디자이너 시안 2026-10-29 — 기존 빗금 시간 막대를 대체).
+// "YYYY-MM-DD" → "10.01" (탭 둘째 줄 날짜).
+function monthDay(key: string): string {
+  const [, m, d] = key.split('-');
+  return m && d ? `${m}.${d}` : '';
+}
+
+// 예약 가능 시간 섹션 (디자이너 시안 2026-10-29, 탭·알림 카드는 2026-11 시안으로 갱신).
 //   예약 가능 시간 (i)            ← (i) 탭 → 검은 말풍선 "오늘부터 3일간의 예약 가능한 시간을 확인할 수 있어요."
-//   [오늘 (화)][내일 (수)][모레 (목)]   선택 = 진한 채움, 나머지 = 흰 바탕 테두리
+//    오늘 (화)    내일 (수)    모레 (목)     ← 밑줄 탭 3등분. 라벨(굵게) + 날짜 "10.01"(회색)
+//    ━━━━━━━━  ─────────────────────   선택 탭 아래 진한 2px 바, 탭 줄 전체 아래 연회색 구분선
 //   15:00 · 15:30 · 16:00 · …        (없으면 가운데 회색 "예약이 모두 마감되었어요")
-//   [🔔 빈자리 알림 설정하기  원하는 시간에 자리가 나면 알려드려요  >]  → 알림 설정 시트(이 탭 날짜)
-export function AvailabilitySection({ days, onOpenSlotAlert, onSelectDay }: Props) {
+//   [⬜🔔 빈자리 알림 설정하기  원하는 시간에 자리가 나면 알려드려요  >]  → 알림 설정 시트(이 탭 날짜)
+//     ↑ 파트너 샵만. 비파트너는 카드 없이 시간(또는 마감 문구)만 보인다.
+export function AvailabilitySection({ days, isPartner, onOpenSlotAlert, onSelectDay }: Props) {
   const [selected, setSelected] = useState(0);
   const [tooltip, setTooltip] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -61,7 +70,7 @@ export function AvailabilitySection({ days, onOpenSlotAlert, onSelectDay }: Prop
         )}
       </View>
 
-      <View className="flex-row gap-2">
+      <View className="flex-row border-b" style={{ borderColor: colors.line.base }}>
         {days.map((d, i) => {
           const on = i === selected;
           return (
@@ -71,18 +80,20 @@ export function AvailabilitySection({ days, onOpenSlotAlert, onSelectDay }: Prop
                 setSelected(i);
                 onSelectDay?.(i);
               }}
-              className="flex-1 items-center justify-center rounded-sm py-2.5"
-              style={{
-                borderWidth: 1,
-                borderColor: on ? colors.text.strong : colors.line.base,
-                backgroundColor: on ? colors.text.strong : colors.white,
-              }}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: on }}
+              className="flex-1 items-center gap-0.5 pt-1 pb-2.5"
+              // 선택 밑줄은 구분선(1px) 위에 겹쳐 그린다.
+              style={{ marginBottom: -1, borderBottomWidth: 2, borderColor: on ? colors.text.strong : 'transparent' }}
             >
               <Text
                 className="text-body-m font-pretendard-semibold"
-                style={{ color: on ? colors.white : colors.text.muted }}
+                style={{ color: on ? colors.text.strong : colors.text.subtle }}
               >
                 {d.prefix} ({d.weekday})
+              </Text>
+              <Text className="text-caption-m font-pretendard" style={{ color: colors.text.faint }}>
+                {monthDay(d.key)}
               </Text>
             </Pressable>
           );
@@ -101,22 +112,26 @@ export function AvailabilitySection({ days, onOpenSlotAlert, onSelectDay }: Prop
         </View>
       )}
 
-      <Pressable
-        onPress={() => onOpenSlotAlert(selected)}
-        className="flex-row items-center gap-3 rounded-md px-4 py-3.5"
-        style={{ backgroundColor: colors.brand.tint }}
-      >
-        <Bell size={20} color={colors.primary[500]} fill={colors.primary[500]} />
-        <View className="flex-1 gap-0.5">
-          <Text className="text-label-m font-pretendard-semibold" style={{ color: colors.text.strong }}>
-            빈자리 알림 설정하기
-          </Text>
-          <Text className="text-caption-m font-pretendard" style={{ color: colors.text.subtle }}>
-            원하는 시간에 자리가 나면 알려드려요
-          </Text>
-        </View>
-        <ChevronRight size={18} color={colors.text.faint} />
-      </Pressable>
+      {isPartner && (
+        <Pressable
+          onPress={() => onOpenSlotAlert(selected)}
+          className="flex-row items-center gap-3 rounded-md px-4 py-3.5"
+          style={{ backgroundColor: colors.brand.tint }}
+        >
+          <View className="h-10 w-10 items-center justify-center rounded-sm" style={{ backgroundColor: colors.white }}>
+            <Bell size={20} color={colors.primary[500]} fill={colors.primary[500]} />
+          </View>
+          <View className="flex-1 gap-0.5">
+            <Text className="text-label-m font-pretendard-semibold" style={{ color: colors.text.strong }}>
+              빈자리 알림 설정하기
+            </Text>
+            <Text className="text-caption-m font-pretendard" style={{ color: colors.text.subtle }}>
+              원하는 시간에 자리가 나면 알려드려요
+            </Text>
+          </View>
+          <ChevronRight size={18} color={colors.text.strong} />
+        </Pressable>
+      )}
     </View>
   );
 }

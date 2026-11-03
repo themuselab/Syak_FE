@@ -106,7 +106,7 @@ export function ShopDetailScreen({ shopId }: Props) {
         renderScroll={(scrollProps, ref) => (
           <ScrollView {...scrollProps} ref={ref} scrollEventThrottle={16} />
         )}
-        onOpenSlotAlert={(dayIndex) => shopId && slotAlert.open(shopId, dayIndex)}
+        onOpenSlotAlert={(dayIndex) => slotAlert.open({ id: shop.id, isPartner: shop.isPartner }, dayIndex)}
       />
 
       <ReservationBar

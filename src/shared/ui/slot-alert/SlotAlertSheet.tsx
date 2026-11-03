@@ -248,6 +248,7 @@ export function SlotAlertSheet({ visible, shopId, initialDayIndex = 0, onClose, 
         </ScrollView>
 
         <View className="px-5 pt-4">
+          {/* 모든 실패(SLOT_ALERT_PARTNER_ONLY 포함 — 비파트너는 진입점이 없어 정상 흐름에선 안 나옴) 공통 문구 */}
           {create.isError && (
             <Text
               className="mb-2 text-center text-caption-m font-pretendard"

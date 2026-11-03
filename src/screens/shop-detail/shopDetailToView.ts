@@ -34,6 +34,7 @@ export type ShopDetailView = {
   reviewCount: number;
   photos: string[];
   eventDesc: string | null;
+  isPartner: boolean; // 샥 파트너 — 빈자리 알림 카드는 파트너만 노출
   address: string | null;
   todayOpen: boolean;
   phone: string | null;
@@ -106,6 +107,7 @@ export function toShopDetailView(
     reviewCount: shop.reviewCount,
     photos: shop.photos,
     eventDesc: shop.eventDesc,
+    isPartner: shop.isPartner === true,
     address: shop.roadAddress,
     todayOpen: shop.todayOpen,
     phone: shop.phone,

@@ -29,11 +29,13 @@ const PIN_SRC: Record<MarkerKind, string> = {
   default: assetUri(require('../../../../assets/icons/pin-default.png')),
   discount: assetUri(require('../../../../assets/icons/pin-discount.png')),
   reservable: assetUri(require('../../../../assets/icons/pin-reservable.png')),
+  partner: assetUri(require('../../../../assets/icons/pin-partner.png')), // 샥 S 심볼 핀(파트너 우선)
 };
 const DOT_SRC: Record<MarkerKind, string> = {
   default: assetUri(require('../../../../assets/icons/dot-default.png')),
   discount: assetUri(require('../../../../assets/icons/dot-discount.png')),
   reservable: assetUri(require('../../../../assets/icons/dot-reservable.png')),
+  partner: assetUri(require('../../../../assets/icons/dot-default.png')), // 축소 도트는 기본과 동일
 };
 const FOCUSED_SRC = assetUri(require('../../../../assets/icons/pin-focused.png'));
 const MY_LOCATION_SRC = assetUri(require('../../../../assets/icons/marker-my-location.png'));

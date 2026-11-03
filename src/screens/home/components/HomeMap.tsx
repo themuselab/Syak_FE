@@ -18,6 +18,8 @@ const PIN: Record<MarkerKind, MapImageProp> = {
   default: require('../../../../assets/icons/pin-default.png') as MapImageProp,
   discount: require('../../../../assets/icons/pin-discount.png') as MapImageProp,
   reservable: require('../../../../assets/icons/pin-reservable.png') as MapImageProp,
+  // 파트너 = pin-default와 같은 캔버스·앵커에 상점 아이콘 대신 샥 S 심볼(assets/icons/syak-symbol.png 합성)
+  partner: require('../../../../assets/icons/pin-partner.png') as MapImageProp,
 };
 
 // 축소 상태(스케일바 500m 이상)용 도트 마커. 핀과 같은 색이라 줌을 바꿔도 색이 안 튄다.
@@ -25,6 +27,7 @@ const DOT: Record<MarkerKind, MapImageProp> = {
   default: require('../../../../assets/icons/dot-default.png') as MapImageProp,
   discount: require('../../../../assets/icons/dot-discount.png') as MapImageProp,
   reservable: require('../../../../assets/icons/dot-reservable.png') as MapImageProp,
+  partner: require('../../../../assets/icons/dot-default.png') as MapImageProp, // 축소 도트는 기본과 동일
 };
 
 // 도트로 바꾸는 줌 기준. 스케일바 표기와 줌은 m/px = 156543 * cos(위도) / 2^zoom 관계라

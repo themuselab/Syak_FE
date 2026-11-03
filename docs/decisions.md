@@ -13,6 +13,13 @@
 
 ---
 
+## 2026-11-03 · 결정: 빈자리 알림은 샥 파트너 전용, 지도 핀은 파트너가 모드 색보다 우선
+- 맥락/문제: 사장님 결정(디자이너 새 시안) — 빈자리 알림을 파트너 샵 혜택으로 묶고, 목록·지도에서 파트너를 눈에 띄게.
+- 결정: ① 카드 "빈자리 알림" 버튼·상세 "빈자리 알림 설정하기" 카드는 `isPartner`일 때만 렌더. `useSlotAlertSheet.open({ id, isPartner })`도 비파트너면 무시(이중 가드). 서버도 409 `SLOT_ALERT_PARTNER_ONLY` + 발송 시 `shops.is_partner` 조인. ② 지도 핀 우선순위 = **파트너 > 토글 모드(할인/당일예약) > 기본**. 포커스 핀은 그대로, 축소 도트는 기본 분홍 도트.
+- 이유: 토글 모드는 "목록이 이미 그 조건으로 걸러짐"을 색으로 알리는 것이라 파트너 핀이 섞여도 의미가 깨지지 않고, 파트너 노출 강조가 사장님 목표다. 도트(12px)는 심볼이 안 보여 별도 색을 만들 이득이 작다.
+- 대안(버린 것): 토글 모드가 우선(파트너가 모드 중엔 안 보임), 도트에 파트너 전용 색(디자인 없음 — 임의 생성 금지 규칙).
+- 관련: [slot-alert.md](./slot-alert.md), [home.md](./home.md), `src/screens/home/shopToView.ts`
+
 ## 2026-11-01 · 결정: GA4는 웹 gtag 하나로 — www와 같은 속성, `platform` 파라미터로 구분, user_id는 내부 UUID만
 - 맥락/문제: 앱 분석이 no-op이었다(`@react-native-firebase/analytics`가 Expo54/RN0.81 iOS에서 빌드 실패해 v1에서 제거). 그사이 앱은 웹(`app.themuselab.kr`)을 띄우는 웹뷰 셸로 바뀌어 화면 코드는 전부 웹에서 돈다.
 - 결정: ① 웹 빌드가 gtag로 보낸다(`app/+html.tsx` head 로더, `send_page_view: false` + `app_screen_view` 직접 전송). 셸 안이면 `__SYAK_SHELL__.platform`으로 `platform=ios|android`, 아니면 `web`. ② 소비자 웹(www)과 **같은 GA4 속성 `G-Q0WLLSMTXM`** 을 쓰고, 겹치는 이벤트(`shop_view`·`reserve_click`·`filter_apply`)는 이름과 웹 파라미터(`shop_category`·`shop_district`·`route`·`source`)를 맞춘다. ③ GA `user_id`는 **내부 유저 UUID만**(이메일·전화·닉네임 금지), 로그아웃 시 해제. 설치 단위 `anonymous_id`(deviceId)는 이벤트 파라미터 + user_property. ④ 모든 이벤트에 `event_id`(UUID) — gtag가 GA4 중복 제거 필드(`evnid`)로 보낸다.

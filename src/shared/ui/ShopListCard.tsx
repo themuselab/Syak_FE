@@ -18,6 +18,7 @@ export type ShopCardInfo = {
   favorite: boolean;
   photos: string[];
   reviewCount?: number; // 컴팩트 카드에서 이름 옆 "리뷰 98"
+  isPartner?: boolean; // 샥 파트너 — feed 카드 메타 줄 맨 앞 "샥 파트너" 배지(시안 2026-11)
 };
 
 // 사진은 세로로 긴 3:4 비율로 가로 스크롤(시안). 마지막 장이 살짝 잘려 보여야 넘겨볼 수 있다는 게 읽힌다.
@@ -33,7 +34,10 @@ type Props = {
    * compact = 즐겨찾기 목록: 왼쪽 썸네일 1장 + 이름·리뷰 수 + 메타 한 줄 (시안 2026-10-15 "즐겨찾기")
    */
   variant?: 'feed' | 'compact';
-  /** feed 카드의 "빈자리 알림" 버튼 — 넘기면 버튼이 보인다(홈 목록). */
+  /**
+   * feed 카드의 "빈자리 알림" 버튼 — 넘기면 버튼이 보인다(홈 목록).
+   * 빈자리 알림은 파트너 샵 전용이라 비파트너 카드엔 넘기지 않는다(넘겨도 isPartner가 아니면 숨김).
+   */
   onPressSlotAlert?: () => void;
 };
 
@@ -42,8 +46,8 @@ const MAX_TIMES = 3;
 
 // 매장 카드 (디자이너 시안 2026-10-15). 홈 목록·즐겨찾기 목록 공용.
 //   이름                                  ★
-//   첫방문 특가 · 2만원대 · 320m 전농동
-//   ⏰ 오늘 15:00 15:30 16:00 외 +3          [🔔 빈자리 알림]   (시안 2026-10-29)
+//   [샥 파트너] 첫방문 특가 · 2만원대 · 320m 전농동      ← 배지는 파트너만 (시안 2026-11)
+//   ⏰ 오늘 15:00 15:30 16:00 외 +3          [🔔 빈자리 알림]   (시안 2026-10-29, 버튼은 파트너만)
 //   [사진][사진][사진]→
 //   [리뷰 한 줄]
 export function ShopListCard({
@@ -59,10 +63,14 @@ export function ShopListCard({
   if (shop.priceTier) meta.push({ text: shop.priceTier });
   if (shop.locationLabel) meta.push({ text: shop.locationLabel });
 
-  const metaRow = meta.length > 0 && (
+  // 파트너 배지는 홈 목록(feed) 시안에만 있다 — 즐겨찾기(compact)는 시안이 없어 그대로 둔다.
+  const partnerBadge = variant === 'feed' && shop.isPartner;
+
+  const metaRow = (meta.length > 0 || partnerBadge) && (
     // 한 줄 고정. 실제 이벤트 문구는 "첫방문50% 할인 /손젤 22.500/발젤…"처럼 길어서 줄바꿈되면
     // 둘째 줄이 "•"로 시작했다. 이벤트 문구만 줄어들며 말줄임되고 가격·동네는 항상 보인다.
     <View className="flex-row items-center">
+      {partnerBadge && <PartnerBadge />}
       {meta.map((m, i) => (
         <Fragment key={`${i}-${m.text}`}>
           {i > 0 && (
@@ -154,7 +162,10 @@ export function ShopListCard({
         {star}
       </View>
 
-      <TodaySlotsRow times={shop.todayTimes} onPressSlotAlert={onPressSlotAlert} />
+      <TodaySlotsRow
+        times={shop.todayTimes}
+        onPressSlotAlert={shop.isPartner ? onPressSlotAlert : undefined}
+      />
 
       {/* 작업 사진(포트폴리오). 눌러도 카드와 같이 상세로 간다. 사진이 없는 샵은 줄을 비운다. */}
       {shop.photos.length > 0 && (
@@ -195,7 +206,18 @@ export function ShopListCard({
   );
 }
 
-// 오늘 빈자리 줄 + 오른쪽 "빈자리 알림" 버튼.
+// "샥 파트너" 배지 — 핑크 틴트 바탕 + 핑크 글자의 작은 라운드 사각형. 메타 줄(14/20)과 높이를 맞춘다.
+function PartnerBadge() {
+  return (
+    <View className="mr-1.5 justify-center rounded-[4px] px-1.5 py-0.5" style={{ backgroundColor: colors.brand.tint }}>
+      <Text className="text-caption-m font-pretendard-semibold" style={{ color: colors.primary[500] }}>
+        샥 파트너
+      </Text>
+    </View>
+  );
+}
+
+// 오늘 빈자리 줄 + 오른쪽 "빈자리 알림" 버튼(파트너 샵만).
 function TodaySlotsRow({ times, onPressSlotAlert }: { times: string[]; onPressSlotAlert?: () => void }) {
   const shown = times.slice(0, MAX_TIMES);
   const rest = times.length - shown.length;

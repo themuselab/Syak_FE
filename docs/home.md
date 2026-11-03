@@ -1,5 +1,11 @@
 # 홈 (지도뷰)
 
+> **2026-11-03 변경 (샥 파트너 강조 + 빈자리 알림 파트너 전용):**
+> - 목록 카드(`ShopListCard` feed): 파트너면 메타 줄 맨 앞에 **"샥 파트너"** 배지(핑크 틴트 `brand.tint` 바탕 + `primary[500]` 글자, 4px 라운드, caption-m semibold, 높이 20 = 메타 줄과 동일). 비파트너 카드는 변화 없음. 즐겨찾기(compact) 카드는 시안이 없어 배지 미표시.
+> - "빈자리 알림" 버튼은 **파트너 카드만**. 비파트너는 "⏰ 오늘 15:00 …"(또는 "당일 예약이 마감되었어요") 줄만.
+> - 지도: 파트너 샵은 **파트너 핀** `assets/icons/pin-partner.png`(pin-default와 같은 96×120 캔버스·하단 꼭짓점 앵커, 상점 아이콘 대신 흰 샥 S 심볼 `assets/icons/syak-symbol.png`). **우선순위: 파트너 > 토글 모드(할인 노랑/당일예약 파랑) > 기본 분홍** — `markerKindOf(toggles, isPartner)`. 포커스 핀(pin-focused)은 파트너도 그대로. 축소 도트는 파트너도 기본 분홍 도트(`dot-default`).
+> - 뷰모델: `ShopCardView.isPartner`, `MapPinView.isPartner`, `MarkerKind`에 `'partner'` 추가. `/web/shops/pins`는 이미 `is_partner`를 준다(`toPinView` 반영).
+
 > **2026-10-29 변경:** 목록 카드의 "⏰ 오늘 15:00 예약 가능" 줄 → "⏰ 오늘 15:00 15:30 16:00 외 +N"(없으면 회색 "당일 예약이 마감되었어요") + 오른쪽 **"빈자리 알림"** 버튼.
 > 카드 뷰모델 `availability` → `todayTimes: string[]`. 상세는 [slot-alert.md](./slot-alert.md).
 
@@ -41,7 +47,8 @@ src/shared/domain/shops/
   shops.api.ts                       # getShops(params)·getShop(id), 쿼리스트링 빌더
   shops.queries.ts                   # useShops(params)·useShop(id)
 ```
-- 마커 핀 PNG: `assets/icons/pin-{partner,discount,reservable}.png`. `shopToView.markerKind`(isPartner→partner / eventDesc→discount / else reservable)와 직결.
+- 마커 핀 PNG: `assets/icons/pin-{default,discount,reservable,partner}.png`. `shopToView.markerKindOf(toggles, isPartner)` — 파트너 → partner, 그 외엔 켜진 토글(할인 → discount / 당일예약 → reservable / 없음 → default). (2026-11-03 갱신 — 이전 문구 "isPartner→partner / eventDesc→discount"는 옛 규칙)
+  - `pin-partner.png` 생성법: `pin-default.png`의 상점 아이콘 영역(흰색 bbox x23–72, y26–69)을 핀 핑크 `#D23E6A`로 덮고, `syak-symbol.png`(54×54 원본, 획 bbox 34×36)를 상점 아이콘 높이(44px)로 LANCZOS 확대해 같은 중심에 합성(Pillow). 캔버스·앵커는 pin-default와 동일.
   - **2026-07-14 (QA #4)**: 원본이 정사각 캔버스+불균일 투명 여백이라 34×42 렌더 시 찌그러짐 → 3종 모두 보이는 영역(96×120, 34:42 비율)으로 크롭. 렌더 크기(34×42)는 유지.
 - 내 위치 마커 PNG: `assets/icons/marker-my-location.png` — `design.pen` 프레임 `wMGlf`(내위치 마크업)의 `markup_my` 노드를 3배수 export(102px, 그림자 여백 포함). 지도에는 `NaverMapView`의 `locationOverlay`(SDK 내 위치 전용 오버레이, 지도당 1개)로 32dp 표시.
 - 포커스 핀 PNG: `assets/icons/pin-focused.png` — `design.pen` 프레임 `euK3A`(특정샵 포커스)의 `b6WWf` 노드 3배수 export(168px). 선택된 핀만 56dp + `zIndex 1`로 교체 표시.

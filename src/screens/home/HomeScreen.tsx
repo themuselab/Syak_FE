@@ -276,7 +276,7 @@ export function HomeScreen() {
     () =>
       shops
         .filter((s) => s.lat != null && s.lng != null)
-        .map((s) => ({ id: s.id, lat: s.lat!, lng: s.lng!, markerKind: s.markerKind })),
+        .map((s) => ({ id: s.id, lat: s.lat!, lng: s.lng!, markerKind: s.markerKind, isPartner: s.isPartner })),
     [shops],
   );
 

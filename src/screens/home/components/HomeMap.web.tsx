@@ -41,6 +41,8 @@ const FOCUSED_SRC = assetUri(require('../../../../assets/icons/pin-focused.png')
 const MY_LOCATION_SRC = assetUri(require('../../../../assets/icons/marker-my-location.png'));
 
 const PIN_SIZE = { width: 24, height: 30 };
+// 샥 파트너 핀은 시안(2026-11)대로 34px 높이(가로는 핀 PNG 비율 96:120 유지)로 크게, 축소해도 도트로 바꾸지 않는다.
+const PARTNER_PIN_SIZE = { width: 27, height: 34 };
 const DOT_SIZE = { width: 12, height: 12 };
 const FOCUSED_SIZE = { width: 48, height: 48 };
 // 스케일바가 "500m"를 가리키는 지점(서울 위도 기준 zoom≈13.8) 아래로 축소하면 도트로 바꾼다.
@@ -227,20 +229,22 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
 
       for (const p of pins) {
         const focused = p.id === selectedShopId;
-        const src = focused ? FOCUSED_SRC : isDotZoom ? DOT_SRC[p.markerKind] : PIN_SRC[p.markerKind];
-        const size = focused ? FOCUSED_SIZE : isDotZoom ? DOT_SIZE : PIN_SIZE;
+        const partner = p.markerKind === 'partner';
+        const dot = isDotZoom && !partner;
+        const src = focused ? FOCUSED_SRC : dot ? DOT_SRC[p.markerKind] : PIN_SRC[p.markerKind];
+        const size = focused ? FOCUSED_SIZE : dot ? DOT_SIZE : partner ? PARTNER_PIN_SIZE : PIN_SIZE;
         const existing = markersRef.current.get(p.id);
         if (existing) {
           existing.setPosition(new w.naver.maps.LatLng(p.lat, p.lng));
           existing.setIcon(icon(src, size));
-          existing.setZIndex(focused ? 10 : 1);
+          existing.setZIndex(focused ? 10 : partner ? 5 : 1); // 파트너 핀은 일반 핀 위로
           continue;
         }
         const marker = new w.naver.maps.Marker({
           map,
           position: new w.naver.maps.LatLng(p.lat, p.lng),
           icon: icon(src, size),
-          zIndex: focused ? 10 : 1,
+          zIndex: focused ? 10 : partner ? 5 : 1,
         });
         w.naver.maps.Event.addListener(marker, 'click', () => handlersRef.current.onMarkerPress(p.id));
         markersRef.current.set(p.id, marker);

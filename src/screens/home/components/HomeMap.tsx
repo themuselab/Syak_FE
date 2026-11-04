@@ -35,6 +35,8 @@ const DOT: Record<MarkerKind, MapImageProp> = {
 // 핀이 서로 겹쳐 지도를 덮으므로 12px 도트로 떨어뜨린다. 클러스터 maxZoom(14)과도 맞물린다.
 const DOT_ZOOM_THRESHOLD = 13.8;
 const PIN_SIZE = { width: 24, height: 30 };
+// 샥 파트너 핀은 시안(2026-11)대로 34px 높이(가로는 핀 PNG 비율 96:120 유지)로 크게, 축소해도 도트로 바꾸지 않는다.
+const PARTNER_PIN_SIZE = { width: 27, height: 34 };
 const DOT_SIZE = { width: 12, height: 12 };
 
 // 내 위치 마커 (design.pen 내위치 마크업 wMGlf > markup_my — 파란 점 + 후광, 3배수 export).
@@ -103,8 +105,8 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
             identifier: p.id,
             latitude: p.lat,
             longitude: p.lng,
-            image: isDotZoom ? DOT[p.markerKind] : PIN[p.markerKind],
-            ...(isDotZoom ? DOT_SIZE : PIN_SIZE),
+            image: isDotZoom && p.markerKind !== 'partner' ? DOT[p.markerKind] : PIN[p.markerKind],
+            ...(p.markerKind === 'partner' ? PARTNER_PIN_SIZE : isDotZoom ? DOT_SIZE : PIN_SIZE),
           })),
       [pins, selectedShopId, isDotZoom],
     );

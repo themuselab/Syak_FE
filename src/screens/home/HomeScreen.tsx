@@ -214,8 +214,11 @@ export function HomeScreen() {
   // 검색어가 있으면 결과가 지금 보이는 지도 밖(예: "천호")일 수 있다. bounds·위치를 보내면
   // 백엔드가 화면영역/반경 5km로 잘라내 "조건에 맞는 샵 없음"이 되므로 검색 중엔 빼고 보낸다.
   const hasSearch = debouncedSearch.trim().length > 0;
+  // "샥 파트너샵" 칩도 전국에서 찾는다 — 파트너는 전국에 수십 곳뿐이라 지금 지도 영역으로 자르면 거의 안 보인다.
+  const partnerPicked = picked?.kind === 'partner';
+  const nationwide = hasSearch || partnerPicked;
   const listParams = useMemo(() => {
-    if (hasSearch) return { ...params, limit: slotParams !== null ? 100 : 60 };
+    if (nationwide) return { ...params, limit: slotParams !== null ? 100 : 60 };
     // 화면 안 "가까운순" 상위 60개만 — 목록·핀 공용. (500개는 카드/이미지 과다로 버벅·이미지 빈칸)
     return {
       ...params,
@@ -227,7 +230,7 @@ export function HomeScreen() {
       neLng: mapBounds.neLng,
       limit: 60,
     };
-  }, [params, slotParams, hasSearch, mapCenter, mapBounds]);
+  }, [params, slotParams, nationwide, mapCenter, mapBounds]);
 
   const {
     data,
@@ -301,6 +304,20 @@ export function HomeScreen() {
     autoCommitUntilRef.current = Date.now() + 3000;
     mapRef.current?.moveTo(first.lat!, first.lng!);
   }, [debouncedSearch, shops]);
+
+  // 샥 파트너샵 칩: 전국 결과가 다 보이게 지도를 한 번 맞춘다(칩을 고를 때마다 1회).
+  const fittedPartnerRef = useRef(false);
+  useEffect(() => {
+    if (!partnerPicked) {
+      fittedPartnerRef.current = false;
+      return;
+    }
+    if (fittedPartnerRef.current || isPlaceholderData) return;
+    const pts = shops.filter((s) => s.lat != null && s.lng != null).map((s) => ({ lat: s.lat!, lng: s.lng! }));
+    if (!pts.length) return;
+    fittedPartnerRef.current = true;
+    mapRef.current?.fitTo(pts);
+  }, [partnerPicked, shops, isPlaceholderData]);
 
   const selectedShop = useMemo(
     () => shops.find((s) => s.id === selectedShopId) ?? null,
@@ -434,7 +451,7 @@ export function HomeScreen() {
           )}
 
           {/* 현 지도에서 검색 — 지도를 내 위치에서 옮겼을 때만. 검색어 중엔 화면영역으로 조회하지 않아 숨김. */}
-          {mapMoved && !hasSearch && !searchFocused && (
+          {mapMoved && !nationwide && !searchFocused && (
             <View pointerEvents="box-none" className="items-center pt-2">
               <Pressable
                 onPress={searchHere}

@@ -49,7 +49,11 @@ const DOT_ZOOM_THRESHOLD = 13.8;
 // 초기 카메라 = 강남역 (위치 미동의 시 기본 중심 — 네이티브와 동일).
 const GANGNAM = { lat: 37.4979, lng: 127.0276, zoom: 14 };
 
-export type HomeMapRef = { moveTo: (lat: number, lng: number) => void };
+export type HomeMapRef = {
+  moveTo: (lat: number, lng: number) => void;
+  // 주어진 좌표가 모두 보이게 카메라를 맞춘다(샥 파트너샵처럼 전국 결과일 때)
+  fitTo: (points: { lat: number; lng: number }[]) => void;
+};
 
 type Props = {
   pins: MapPinView[];
@@ -138,6 +142,19 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
       moveTo: (lat, lng) => {
         const w = window as NaverAny;
         if (mapRef.current) safe('morph', () => mapRef.current.morph(new w.naver.maps.LatLng(lat, lng), 14));
+      },
+      fitTo: (points) => {
+        const w = window as NaverAny;
+        if (!mapRef.current || !points.length) return;
+        safe('fitBounds', () => {
+          const lats = points.map((p) => p.lat);
+          const lngs = points.map((p) => p.lng);
+          const bounds = new w.naver.maps.LatLngBounds(
+            new w.naver.maps.LatLng(Math.min(...lats), Math.min(...lngs)),
+            new w.naver.maps.LatLng(Math.max(...lats), Math.max(...lngs)),
+          );
+          mapRef.current.fitBounds(bounds, { top: 80, right: 40, bottom: 80, left: 40 });
+        });
       },
     }));
 

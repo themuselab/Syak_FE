@@ -46,7 +46,11 @@ const PIN_FOCUSED = require('../../../../assets/icons/pin-focused.png') as MapIm
 // 초기 카메라 = 강남역 (위치 미동의 시 기본 중심 — 개선 요청 #8).
 const GANGNAM = { latitude: 37.4979, longitude: 127.0276, zoom: 14 };
 
-export type HomeMapRef = { moveTo: (lat: number, lng: number) => void };
+export type HomeMapRef = {
+  moveTo: (lat: number, lng: number) => void;
+  // 주어진 좌표가 모두 보이게 카메라를 맞춘다(샥 파트너샵처럼 전국 결과일 때)
+  fitTo: (points: { lat: number; lng: number }[]) => void;
+};
 
 // 웹(HomeMap.web.tsx)은 지도 SDK 스크립트를 미리 받는다. 네이티브 SDK는 앱에 내장이라 할 일 없음.
 export function preloadHomeMap(): void {}
@@ -77,6 +81,15 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
     useImperativeHandle(ref, () => ({
       moveTo: (lat, lng) =>
         mapRef.current?.animateCameraTo({ latitude: lat, longitude: lng, zoom: 14 }),
+      fitTo: (points) => {
+        if (!points.length) return;
+        const lats = points.map((p) => p.lat);
+        const lngs = points.map((p) => p.lng);
+        mapRef.current?.animateCameraWithTwoCoords({
+          coord1: { latitude: Math.min(...lats), longitude: Math.min(...lngs) },
+          coord2: { latitude: Math.max(...lats), longitude: Math.max(...lngs) },
+        });
+      },
     }));
 
     // 축소하면 근접 핀을 숫자로 묶고(클러스터), 확대하면 개별 핀으로 펼친다(디자인 요청).

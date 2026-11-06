@@ -220,14 +220,18 @@ export function HomeScreen() {
   const listParams = useMemo(() => {
     if (nationwide) return { ...params, limit: slotParams !== null ? 100 : 60 };
     // 화면 안 "가까운순" 상위 60개만 — 목록·핀 공용. (500개는 카드/이미지 과다로 버벅·이미지 빈칸)
+    // 기기 GPS가 서버로 가지 않게(위치정보 — 2026-11 결정): 현재위치 버튼을 누르면 지도 중심·영역이
+    // 내 좌표가 되므로, 서버엔 약 1km 격자(소수 2자리)로 뭉갠 중심과 바깥쪽으로 넓힌 영역만 보낸다.
+    // 거리 표시는 기기 안에서 실제 좌표로 계산한다(shopToView).
+    const grid = (n: number) => Math.round(n * 100) / 100;
     return {
       ...params,
-      lat: mapCenter.lat,
-      lng: mapCenter.lng,
-      swLat: mapBounds.swLat,
-      swLng: mapBounds.swLng,
-      neLat: mapBounds.neLat,
-      neLng: mapBounds.neLng,
+      lat: grid(mapCenter.lat),
+      lng: grid(mapCenter.lng),
+      swLat: Math.floor(mapBounds.swLat * 100) / 100,
+      swLng: Math.floor(mapBounds.swLng * 100) / 100,
+      neLat: Math.ceil(mapBounds.neLat * 100) / 100,
+      neLng: Math.ceil(mapBounds.neLng * 100) / 100,
       limit: 60,
     };
   }, [params, slotParams, nationwide, mapCenter, mapBounds]);

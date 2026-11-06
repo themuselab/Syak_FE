@@ -14,6 +14,7 @@ import type { MapBounds } from '@/shared/domain/shops/shops.types';
 import { useHardwareBack } from '@/shared/lib/backStack';
 import { markShopSource } from '@/shared/lib/analytics';
 import { useMyLocationStore } from '@/shared/lib/myLocation.store';
+import { distanceMeters } from '@/shared/lib/geo';
 import {
   getCurrentCoords,
   getLocationPermission,
@@ -50,6 +51,8 @@ function boundsAround(c: { lat: number; lng: number }): MapBounds {
   return { swLat: c.lat - 0.02, neLat: c.lat + 0.02, swLng: c.lng - 0.025, neLng: c.lng + 0.025 };
 }
 const INITIAL_BOUNDS: MapBounds = boundsAround(GANGNAM);
+// 서버로 보내는 지도 영역의 격자 칸(도). 0.02° ≈ 남북 2.2km × 동서 1.8km — 내 위치 대신 이 칸 단위로만 조회한다.
+const GRID = 0.02;
 
 // 관심 동네 안내 시트: 앱 실행 중 한 번, "나중에 할게요"를 누르면 7일간 다시 안 띄운다.
 let regionPromptShown = false;
@@ -220,21 +223,28 @@ export function HomeScreen() {
   const listParams = useMemo(() => {
     if (nationwide) return { ...params, limit: slotParams !== null ? 100 : 60 };
     // 화면 안 "가까운순" 상위 60개만 — 목록·핀 공용. (500개는 카드/이미지 과다로 버벅·이미지 빈칸)
-    // 기기 GPS가 서버로 가지 않게(위치정보 — 2026-11 결정): 현재위치 버튼을 누르면 지도 중심·영역이
-    // 내 좌표가 되므로, 서버엔 약 1km 격자(소수 2자리)로 뭉갠 중심과 바깥쪽으로 넓힌 영역만 보낸다.
-    // 거리 표시는 기기 안에서 실제 좌표로 계산한다(shopToView).
-    const grid = (n: number) => Math.round(n * 100) / 100;
+    // 내 위치는 서버로 보내지 않는다(위치정보 — 2026-11 결정). 현재위치 버튼을 누르면 지도 중심·영역이
+    // 내 좌표가 되므로, 서버엔 지도 영역을 고정 격자(GRID ≈ 2km 칸)에 맞춰 바깥쪽으로 넓힌 상자만 보낸다.
+    // 같은 칸 안이면 누구든 같은 요청 → 서버는 칸 안 어디에 있는지 알 수 없다. 정렬 기준점(lat/lng)도
+    // 그 상자의 가운데(격자에서 정해지는 값)라 내 좌표가 아니다. 가까운순·거리 표시는 기기 안에서
+    // 실제 좌표로 다시 계산한다(아래 shops, shopToView).
+    const snapDown = (n: number) => Math.floor(n / GRID) * GRID;
+    const snapUp = (n: number) => Math.ceil(n / GRID) * GRID;
+    const box = {
+      swLat: +snapDown(mapBounds.swLat).toFixed(2),
+      swLng: +snapDown(mapBounds.swLng).toFixed(2),
+      neLat: +snapUp(mapBounds.neLat).toFixed(2),
+      neLng: +snapUp(mapBounds.neLng).toFixed(2),
+    };
     return {
       ...params,
-      lat: grid(mapCenter.lat),
-      lng: grid(mapCenter.lng),
-      swLat: Math.floor(mapBounds.swLat * 100) / 100,
-      swLng: Math.floor(mapBounds.swLng * 100) / 100,
-      neLat: Math.ceil(mapBounds.neLat * 100) / 100,
-      neLng: Math.ceil(mapBounds.neLng * 100) / 100,
-      limit: 60,
+      ...box,
+      lat: +((box.swLat + box.neLat) / 2).toFixed(2),
+      lng: +((box.swLng + box.neLng) / 2).toFixed(2),
+      // 상자가 화면보다 넓어진 만큼 넉넉히 받아 기기에서 가까운 순으로 고른다.
+      limit: 100,
     };
-  }, [params, slotParams, nationwide, mapCenter, mapBounds]);
+  }, [params, slotParams, nationwide, mapBounds]);
 
   const {
     data,
@@ -264,9 +274,17 @@ export function HomeScreen() {
       const allowed = new Set(slotSearch.data.shops.map((s) => s.shopId));
       items = items.filter((it) => allowed.has(it.id));
     }
+    // 기본 정렬(지도 모드) = 가까운순을 기기에서 계산 — 서버엔 격자 상자만 보내므로 실제 기준점(지도 중심,
+    // 현재위치 버튼 후엔 내 위치)과의 거리로 다시 줄 세운다.
+    if (!nationwide && sort === 'default') {
+      const c = mapCenter;
+      const d = (it: (typeof items)[number]) =>
+        it.lat != null && it.lng != null ? distanceMeters(c, { lat: it.lat, lng: it.lng }) : Infinity;
+      items = [...items].sort((a, b) => d(a) - d(b));
+    }
     // toggles 전달: 토글이 켜진 동안은 핀 색을 그 조건으로 통일한다(할인=노랑/당일예약=파랑).
     return items.map((it) => toShopCardView(it, favoriteIds, toggles, myLocation));
-  }, [data, slotParams, slotSearch.data, favoriteIds, toggles, myLocation]);
+  }, [data, slotParams, slotSearch.data, favoriteIds, toggles, myLocation, nationwide, sort, mapCenter]);
 
   // GA4 shop_list_view · search · search_no_result · filter_apply (조합당 1회 — useHomeAnalytics).
   useHomeAnalytics({

@@ -4,6 +4,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { sizedImage } from '@/shared/lib/image';
 import { colors } from '@/shared/theme/colors';
+import { PartnerBadge } from '@/shared/ui/PartnerBadge';
 import { ShopPhoto } from '@/shared/ui/ShopPhoto';
 
 // 카드가 실제로 쓰는 필드만의 구조적 타입 — 홈 ShopCardView(지도 필드 포함)와
@@ -70,7 +71,7 @@ export function ShopListCard({
     // 한 줄 고정. 실제 이벤트 문구는 "첫방문50% 할인 /손젤 22.500/발젤…"처럼 길어서 줄바꿈되면
     // 둘째 줄이 "•"로 시작했다. 이벤트 문구만 줄어들며 말줄임되고 가격·동네는 항상 보인다.
     <View className="flex-row items-center">
-      {partnerBadge && <PartnerBadge />}
+      {partnerBadge && <View className="mr-1.5"><PartnerBadge /></View>}
       {meta.map((m, i) => (
         <Fragment key={`${i}-${m.text}`}>
           {i > 0 && (
@@ -203,17 +204,6 @@ export function ShopListCard({
         </View>
       )}
     </Pressable>
-  );
-}
-
-// "샥 파트너" 배지 — 핑크 틴트 바탕 + 핑크 글자의 작은 라운드 사각형. 메타 줄(14/20)과 높이를 맞춘다.
-function PartnerBadge() {
-  return (
-    <View className="mr-1.5 justify-center rounded-[4px] px-1.5 py-0.5" style={{ backgroundColor: colors.brand.tint }}>
-      <Text className="text-caption-m font-pretendard-semibold" style={{ color: colors.primary[500] }}>
-        샥 파트너
-      </Text>
-    </View>
   );
 }
 

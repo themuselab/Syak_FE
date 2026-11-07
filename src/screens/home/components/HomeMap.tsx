@@ -34,16 +34,23 @@ const DOT: Record<MarkerKind, MapImageProp> = {
 // 서울 위도(37.5)에서 스케일바가 "500m"를 가리키는 지점이 zoom≈13.8이다. 그 아래(더 축소)면
 // 핀이 서로 겹쳐 지도를 덮으므로 12px 도트로 떨어뜨린다. 클러스터 maxZoom(14)과도 맞물린다.
 const DOT_ZOOM_THRESHOLD = 13.8;
-const PIN_SIZE = { width: 24, height: 30 };
-// 샥 파트너 핀은 시안(2026-11)대로 34px 높이(가로는 핀 PNG 비율 96:120 유지)로 크게, 축소해도 도트로 바꾸지 않는다.
-const PARTNER_PIN_SIZE = { width: 27, height: 34 };
+// 시안(2026-11): 일반 샵 = 원 안에 상점 아이콘(SHOP), 누르면 물방울 핀. 파트너 = 큰 S 핀(축소해도 유지),
+// 누르면 크기 그대로 검은 테두리. 웹(HomeMap.web.tsx)과 같은 에셋·크기.
+const PIN_SIZE = { width: 27, height: 34 };
+const PARTNER_FOCUSED_SIZE = { width: 30, height: 37 };
+const SHOP_SIZE = { width: 20, height: 20 };
+const SHOP: Record<MarkerKind, MapImageProp> = {
+  default: require('../../../../assets/icons/marker-shop.png') as MapImageProp,
+  discount: require('../../../../assets/icons/marker-shop-discount.png') as MapImageProp,
+  reservable: require('../../../../assets/icons/marker-shop-reservable.png') as MapImageProp,
+  partner: require('../../../../assets/icons/pin-partner.png') as MapImageProp,
+};
+const PIN_PARTNER_FOCUSED = require('../../../../assets/icons/pin-partner-focused.png') as MapImageProp;
 const DOT_SIZE = { width: 12, height: 12 };
 
 // 내 위치 마커 (design.pen 내위치 마크업 wMGlf > markup_my — 파란 점 + 후광, 3배수 export).
 const MY_LOCATION = require('../../../../assets/icons/marker-my-location.png') as MapImageProp;
 
-// 포커스 핀 (design.pen 특정샵 포커스 euK3A > b6WWf — 56px 핑크 맵핀+상점 아이콘, 3배수 export).
-const PIN_FOCUSED = require('../../../../assets/icons/pin-focused.png') as MapImageProp;
 
 // 초기 카메라 = 강남역 (위치 미동의 시 기본 중심 — 개선 요청 #8).
 const GANGNAM = { latitude: 37.4979, longitude: 127.0276, zoom: 14 };
@@ -105,8 +112,8 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
             identifier: p.id,
             latitude: p.lat,
             longitude: p.lng,
-            image: isDotZoom && p.markerKind !== 'partner' ? DOT[p.markerKind] : PIN[p.markerKind],
-            ...(p.markerKind === 'partner' ? PARTNER_PIN_SIZE : isDotZoom ? DOT_SIZE : PIN_SIZE),
+            image: p.markerKind === 'partner' ? PIN.partner : isDotZoom ? DOT[p.markerKind] : SHOP[p.markerKind],
+            ...(p.markerKind === 'partner' ? PIN_SIZE : isDotZoom ? DOT_SIZE : SHOP_SIZE),
           })),
       [pins, selectedShopId, isDotZoom],
     );
@@ -174,9 +181,8 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
           <NaverMapMarkerOverlay
             latitude={focusedPin.lat}
             longitude={focusedPin.lng}
-            width={48}
-            height={48}
-            image={PIN_FOCUSED}
+            {...(focusedPin.markerKind === 'partner' ? PARTNER_FOCUSED_SIZE : PIN_SIZE)}
+            image={focusedPin.markerKind === 'partner' ? PIN_PARTNER_FOCUSED : PIN[focusedPin.markerKind]}
             zIndex={10}
             onTap={() => onMarkerPress(focusedPin.id)}
           />

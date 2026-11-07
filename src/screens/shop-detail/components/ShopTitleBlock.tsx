@@ -2,11 +2,12 @@ import { Star } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 
 import { colors } from '@/shared/theme/colors';
+import { PartnerBadge } from '@/shared/ui/PartnerBadge';
 
 import type { ShopDetailView } from '../shopDetailToView';
 
 type Props = {
-  shop: Pick<ShopDetailView, 'name' | 'category' | 'locationLabel' | 'rating' | 'reviewCount'>;
+  shop: Pick<ShopDetailView, 'name' | 'category' | 'locationLabel' | 'rating' | 'reviewCount' | 'isPartner'>;
   // 홈 포커스 시트(35%)에서만 타이틀 행에 별을 둔다. 라우트 화면은 헤더 별을 쓴다.
   favorite?: boolean;
   onToggleFavorite?: () => void;
@@ -64,6 +65,12 @@ export function ShopTitleBlock({ shop, favorite, onToggleFavorite }: Props) {
         <Text className="text-caption-m font-pretendard" style={{ color: colors.text.subtle }}>
           {reviewText}
         </Text>
+        {/* 샥 파트너 배지 — 메타 줄 오른쪽 끝(시안 2026-11 "파트너샵 마커") */}
+        {shop.isPartner && (
+          <View className="ml-auto">
+            <PartnerBadge withSymbol />
+          </View>
+        )}
       </View>
     </View>
   );

@@ -37,14 +37,22 @@ const DOT_SRC: Record<MarkerKind, string> = {
   reservable: assetUri(require('../../../../assets/icons/dot-reservable.png')),
   partner: assetUri(require('../../../../assets/icons/dot-default.png')), // 축소 도트는 기본과 동일
 };
-const FOCUSED_SRC = assetUri(require('../../../../assets/icons/pin-focused.png'));
+// 시안(2026-11): 일반 샵 = 원 안에 상점 아이콘, 누르면 물방울 핀. 파트너 = 큰 S 핀, 누르면 크기 그대로 검은 테두리.
+const SHOP_SRC: Record<MarkerKind, string> = {
+  default: assetUri(require('../../../../assets/icons/marker-shop.png')),
+  discount: assetUri(require('../../../../assets/icons/marker-shop-discount.png')),
+  reservable: assetUri(require('../../../../assets/icons/marker-shop-reservable.png')),
+  partner: assetUri(require('../../../../assets/icons/pin-partner.png')), // 파트너는 원형 안 씀(항상 핀)
+};
+const PARTNER_FOCUSED_SRC = assetUri(require('../../../../assets/icons/pin-partner-focused.png'));
 const MY_LOCATION_SRC = assetUri(require('../../../../assets/icons/marker-my-location.png'));
 
-const PIN_SIZE = { width: 24, height: 30 };
-// 샥 파트너 핀은 시안(2026-11)대로 34px 높이(가로는 핀 PNG 비율 96:120 유지)로 크게, 축소해도 도트로 바꾸지 않는다.
-const PARTNER_PIN_SIZE = { width: 27, height: 34 };
+// 핀(파트너 핀·일반 샵 포커스 핀)은 시안대로 34px 높이(가로는 핀 PNG 비율 96:120 유지).
+const PIN_SIZE = { width: 27, height: 34 };
+// 파트너 포커스 = 같은 핀에 검은 테두리(PNG 108×132, 테두리만큼 캔버스가 커서 핀 몸통 크기는 같게 보인다).
+const PARTNER_FOCUSED_SIZE = { width: 30, height: 37 };
+const SHOP_SIZE = { width: 20, height: 20 };
 const DOT_SIZE = { width: 12, height: 12 };
-const FOCUSED_SIZE = { width: 48, height: 48 };
 // 스케일바가 "500m"를 가리키는 지점(서울 위도 기준 zoom≈13.8) 아래로 축소하면 도트로 바꾼다.
 const DOT_ZOOM_THRESHOLD = 13.8;
 
@@ -230,9 +238,12 @@ export const HomeMap = forwardRef<HomeMapRef, Props>(
       for (const p of pins) {
         const focused = p.id === selectedShopId;
         const partner = p.markerKind === 'partner';
-        const dot = isDotZoom && !partner;
-        const src = focused ? FOCUSED_SRC : dot ? DOT_SRC[p.markerKind] : PIN_SRC[p.markerKind];
-        const size = focused ? FOCUSED_SIZE : dot ? DOT_SIZE : partner ? PARTNER_PIN_SIZE : PIN_SIZE;
+        // 파트너: 항상 S 핀(축소해도 도트 안 됨), 포커스면 검은 테두리. 일반: 원형 → 포커스면 물방울 핀, 축소면 도트.
+        const [src, size] = partner
+          ? focused ? [PARTNER_FOCUSED_SRC, PARTNER_FOCUSED_SIZE] : [PIN_SRC.partner, PIN_SIZE]
+          : focused ? [PIN_SRC[p.markerKind], PIN_SIZE]
+          : isDotZoom ? [DOT_SRC[p.markerKind], DOT_SIZE]
+          : [SHOP_SRC[p.markerKind], SHOP_SIZE];
         const existing = markersRef.current.get(p.id);
         if (existing) {
           existing.setPosition(new w.naver.maps.LatLng(p.lat, p.lng));

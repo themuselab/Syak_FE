@@ -13,6 +13,8 @@ const delivery = createAnalyticsDelivery({
   transport: process.env.EXPO_PUBLIC_ANALYTICS_TRANSPORT,
 });
 
+export const decideNaverCta = (signal: AbortSignal) => delivery.decideNaverCta(signal);
+
 // GA4 계측 — 웹 빌드(app.themuselab.kr)가 gtag로 보낸다. 앱(iOS/Android)도 그 웹을 웹뷰로 띄우므로
 // 같은 코드가 셸 안에서 돌고, `platform` 파라미터로 web/ios/android를 나눈다. 속성은 소비자 웹(www)과
 // 같은 G-Q0WLLSMTXM — shop_view·reserve_click·region_select·filter_apply는 웹과 이름을 맞췄다.

@@ -7,8 +7,11 @@ import { openExternal } from '@/shared/lib/openExternal';
 import type { BookingRouteType, ReservationRoute } from '@/shared/domain/shops/shops.types';
 import { colors } from '@/shared/theme/colors';
 import { InstagramIcon } from '@/shared/ui/InstagramIcon';
+import { useNaverCta } from '@/shared/lib/useNaverCta';
 
 type Props = {
+  shopId: string;
+  isPartner: boolean;
   instagram: { handle: string; url: string } | null;
   phone: string | null;
   route: ReservationRoute | null; // 온라인 예약 수단(네이버 우선, 없으면 카카오·톡톡)
@@ -23,9 +26,10 @@ type Props = {
 //          없으면 회색 안내 "네이버 예약이 불가한 샵이에요"(누를 수 없음)
 // 시안에는 네이버만 있지만, 네이버가 없고 카카오·톡톡 예약만 있는 샵은 그 수단을 같은 자리에
 // 띄운다 — 예약 경로를 숨기면 손님이 예약할 방법이 사라진다.
-export function ReservationBar({ instagram, phone, route, onReserveClick }: Props) {
+export function ReservationBar({ shopId, isPartner, instagram, phone, route, onReserveClick }: Props) {
   const insets = useSafeAreaInsets();
   const open = openExternal;
+  const cta = useNaverCta(shopId, isPartner, route?.type === 'naver' && !!route.value);
 
   let left: { icon: ReactNode; label: string; onPress: () => void } | null = null;
   if (instagram) {
@@ -75,6 +79,7 @@ export function ReservationBar({ instagram, phone, route, onReserveClick }: Prop
         {route ? (
           <Pressable
             onPress={() => {
+              cta.onInteraction();
               onReserveClick?.(route.type);
               open(route.value);
             }}
@@ -82,7 +87,7 @@ export function ReservationBar({ instagram, phone, route, onReserveClick }: Prop
             style={{ flex: 2, height: 48, backgroundColor: colors.social.naver }}
           >
             <Text className="text-label-l font-pretendard-semibold" style={{ color: colors.white }}>
-              {route.type === 'naver' ? '네이버 예약' : route.label}
+              {route.type === 'naver' ? (cta.label ?? '네이버 예약') : route.label}
             </Text>
             <ArrowUpRight size={18} color={colors.white} />
           </Pressable>

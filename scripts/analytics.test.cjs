@@ -23,6 +23,40 @@ function browser() {
   global.document = { querySelector: () => scripts[0], createElement: () => ({ dataset: {} }), head: { appendChild: e => scripts.push(e) } };
   return { ga, scripts };
 }
+
+test('CTA experiment includes guests and keeps device allocation through login with safe fallback', async () => {
+  browser();
+  const calls = [];
+  const client = { onInitialized: async () => {}, track() {},
+    isFeatureOn: (key, user) => { calls.push([key, user]); return true; },
+    variationDetail: (key, user) => { calls.push([key, user]); return { variation: 'B', reason: 'TRAFFIC_ALLOCATED' }; },
+    remoteConfig: () => ({ get: () => '네이버에서 확인하기' }) };
+  const { createAnalyticsDelivery } = load('../src/shared/lib/analyticsDelivery.ts', { createInstance: () => client });
+  const delivery = createAnalyticsDelivery({ sdkKey: 'test', deviceId: 'same-device' });
+  const signal = new AbortController().signal;
+  assert.equal((await delivery.decideNaverCta(signal)).variation, 'B');
+  delivery.setIdentity('member');
+  await delivery.decideNaverCta(signal);
+  assert.deepEqual(calls.map(c => c[1].deviceId), Array(4).fill('same-device'));
+  assert.deepEqual(calls.map(c => c[0]), [4, 5, 4, 5]);
+  client.isFeatureOn = () => false;
+  assert.equal(await delivery.decideNaverCta(signal), undefined);
+  client.isFeatureOn = () => true;
+  client.variationDetail = () => ({ variation: 'A', reason: 'EXPERIMENT_DRAFT' });
+  assert.equal(await delivery.decideNaverCta(signal), undefined);
+});
+
+test('leaving or clicking before SDK initialization does not allocate an experiment', async () => {
+  browser(); let release; let allocations = 0;
+  const client = { onInitialized: () => new Promise(r => release = r), isFeatureOn: () => { allocations++; return true; } };
+  const { createAnalyticsDelivery } = load('../src/shared/lib/analyticsDelivery.ts', { createInstance: () => client });
+  const delivery = createAnalyticsDelivery({ sdkKey: 'test', deviceId: 'device' });
+  delivery.setIdentity('member');
+  const abort = new AbortController();
+  const decision = delivery.decideNaverCta(abort.signal);
+  await new Promise(r => setImmediate(r)); abort.abort(); release();
+  assert.equal(await decision, undefined); assert.equal(allocations, 0);
+});
 test('one GA event, clean GTM payload, and identity captured before asynchronous Hackle initialization', async () => {
   const { ga } = browser(); const calls = []; let release;
   const client = { onInitialized: () => new Promise(r => release = r), track: (...a) => calls.push(a) };

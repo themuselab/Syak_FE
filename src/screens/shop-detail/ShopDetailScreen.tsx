@@ -111,6 +111,8 @@ export function ShopDetailScreen({ shopId }: Props) {
       />
 
       <ReservationBar
+        shopId={shop.id}
+        isPartner={shop.isPartner}
         instagram={shop.instagram}
         phone={shop.phone}
         route={shop.bookingRoute}

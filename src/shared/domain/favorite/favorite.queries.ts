@@ -59,6 +59,7 @@ export function useToggleFavorite() {
       next ? addFavorite(shopId) : removeFavorite(shopId),
 
     onMutate: async ({ shopId, next }) => {
+      track('favorite_submit', { shop_id: shopId, action: next ? 'add' : 'remove' });
       await queryClient.cancelQueries({ queryKey: FAVORITES_KEY });
       const prev = queryClient.getQueryData<FavoriteListResponse>(FAVORITES_KEY);
       const removed = prev?.favorites.find((f) => f.shopId === shopId) ?? null;
@@ -97,6 +98,7 @@ export function useToggleFavorite() {
       // 그 외(SHOP_NOT_FOUND·네트워크 등): 해당 샵만 역연산 롤백.
       // 전체 스냅샷 복원은 다른 샵의 동시 낙관 반영을 덮어써서 금지.
       // 실패 안내 UI는 토스트 인프라 부재로 생략(조용히 원복) — docs/home.md 임시 동작 참조.
+      track('favorite_failed', { shop_id: shopId, action: next ? 'add' : 'remove', error_code: error instanceof ApiError ? error.code : 'request_failed' });
       queryClient.setQueryData<FavoriteListResponse>(FAVORITES_KEY, (old) => {
         const favorites = old?.favorites ?? [];
         if (next) return { favorites: favorites.filter((f) => f.shopId !== shopId) };

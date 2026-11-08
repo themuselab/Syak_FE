@@ -14,6 +14,8 @@ import { isFullPrice, type HomeFilterState, type Picked } from './useHomeFilterS
 const SETTLE_MS = 800;
 let lastListKey: string | null = null;
 let lastSearchKey: string | null = null;
+let lastCategory: string | null = null;
+let lastSort: string | null = null;
 let lastFilterSummary = 'none';
 
 type FilterSnapshot = Pick<HomeFilterState, 'sort' | 'priceRange' | 'date' | 'times' | 'toggles'>;
@@ -62,6 +64,10 @@ export function useHomeAnalytics({ search, picked, filters, firstPage, resultCou
   const category = categoryOf(picked);
   const filterSummary = filterSummaryOf(filters);
   const term = search.trim().toLowerCase();
+  useEffect(() => {
+    if (lastCategory !== category) { lastCategory = category; track('category_select', { category }); }
+    if (lastSort !== filters.sort) { lastSort = filters.sort; track('sort_change', { action: filters.sort }); }
+  }, [category, filters.sort]);
   const region = ready ? dominantDistrict(firstPage) : undefined;
 
   // shop_list_view — 검색어 없는 홈 목록이 새 조합(category·region·filter)으로 보일 때 1회.
@@ -104,6 +110,7 @@ export function useHomeAnalytics({ search, picked, filters, firstPage, resultCou
     if (filterSummary === lastFilterSummary) return;
     const t = setTimeout(() => {
       lastFilterSummary = filterSummary;
+      if (filterSummary === 'none') track('filter_reset');
       if (filterSummary !== 'none') track('filter_apply', { source: filterSummary, filter: filterSummary });
     }, SETTLE_MS);
     return () => clearTimeout(t);

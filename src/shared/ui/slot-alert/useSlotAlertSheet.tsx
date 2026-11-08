@@ -1,3 +1,4 @@
+import { track } from '@/shared/lib/analytics';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -33,9 +34,11 @@ export function useSlotAlertSheet({ toastBottom }: { toastBottom: number }) {
 
   const open = useCallback(
     (shop: SlotAlertShop, dayIndex = 0) => {
+      track('slot_alert_start', { shop_id: shop.id, shop_type: shop.isPartner ? 'partner' : 'general' });
       if (!shop.isPartner) return; // 비파트너 샵은 진입 불가(서버도 SLOT_ALERT_PARTNER_ONLY로 거절)
       requireLogin(() => {
         setTarget({ shopId: shop.id, dayIndex });
+        track('slot_alert_form_view', { shop_id: shop.id, shop_type: 'partner' });
         setVisible(true);
       });
     },
@@ -54,7 +57,7 @@ export function useSlotAlertSheet({ toastBottom }: { toastBottom: number }) {
         visible={visible}
         shopId={target?.shopId ?? null}
         initialDayIndex={target?.dayIndex ?? 0}
-        onClose={() => setVisible(false)}
+        onClose={() => { track('slot_alert_form_close', { shop_id: target?.shopId }); setVisible(false); }}
         onCreated={showToast}
       />
       {toast && (

@@ -1,3 +1,4 @@
+import { track } from '@/shared/lib/analytics';
 import { API_URL } from '@/shared/lib/env';
 import { ApiError, ErrorCode, type ApiErrorBody } from '@/shared/api/errors';
 import { refreshSession } from '@/shared/api/refresh';
@@ -67,6 +68,7 @@ export async function apiFetch<T>(
     });
   }
 
+  track('api_error', { stage: path.split('?')[0].split('/').filter(Boolean)[0] ?? 'api', status_code: res.status, error_code: errorBody.code });
   throw new ApiError(res.status, errorBody);
 }
 
@@ -82,6 +84,7 @@ async function fetchWithTimeout(
   try {
     return await fetch(url, { ...init, signal: controller.signal });
   } catch (e) {
+    track('api_error', { stage: 'network', error_code: controller.signal.aborted ? 'timeout' : 'network_error' });
     if (controller.signal.aborted) {
       throw new ApiError(0, {
         code: ErrorCode.TIMEOUT,

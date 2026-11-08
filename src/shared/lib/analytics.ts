@@ -4,6 +4,14 @@ import { Platform } from 'react-native';
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import { getDeviceId } from '@/shared/lib/deviceId';
 import { inShell, shellInfo } from '@/shell/bridgeClient';
+import { createAnalyticsDelivery, installInteractionTracking } from './analyticsDelivery';
+
+const delivery = createAnalyticsDelivery({
+  sdkKey: process.env.EXPO_PUBLIC_HACKLE_SDK_KEY,
+  getDeviceId,
+  gtmId: process.env.EXPO_PUBLIC_GTM_ID,
+  transport: process.env.EXPO_PUBLIC_ANALYTICS_TRANSPORT,
+});
 
 // GA4 계측 — 웹 빌드(app.themuselab.kr)가 gtag로 보낸다. 앱(iOS/Android)도 그 웹을 웹뷰로 띄우므로
 // 같은 코드가 셸 안에서 돌고, `platform` 파라미터로 web/ios/android를 나눈다. 속성은 소비자 웹(www)과
@@ -60,8 +68,7 @@ let anonymousId: string | null = null;
  */
 function trackCore(name: string, params: AnalyticsParams = {}): void {
   safe(() => {
-    const g = gtag();
-    if (!g) return;
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
     const info = shellInfo();
     const payload: Record<string, string | number | boolean> = {
       platform: info?.platform ?? 'web',
@@ -72,7 +79,7 @@ function trackCore(name: string, params: AnalyticsParams = {}): void {
     for (const [k, v] of Object.entries(params)) {
       if (v !== undefined && v !== null && v !== '') payload[k] = v;
     }
-    g('event', name, payload);
+    delivery.send(name, payload);
   });
 }
 
@@ -84,6 +91,7 @@ let currentUserId: string | null | undefined;
 export function setAnalyticsUserId(id: string | null): void {
   if (id === currentUserId) return;
   currentUserId = id;
+  delivery.setIdentity(id, anonymousId ?? undefined);
   safe(() => gtag()?.('set', { user_id: id ?? null }));
 }
 
@@ -104,6 +112,7 @@ let pendingSource: { shopId: string; source: ShopViewSource; at: number } | null
 const SOURCE_TTL_MS = 30_000;
 
 export function markShopSource(shopId: string, source: ShopViewSource): void {
+  trackCore('shop_select', { shop_id: shopId, source });
   pendingSource = { shopId, source, at: Date.now() };
 }
 
@@ -124,7 +133,7 @@ function screenNameOf(pathname: string): string | null {
   if (pathname === '/notifications') return 'notifications';
   if (pathname === '/my') return 'my';
   if (pathname === '/favorites') return 'favorites';
-  return null;
+  return pathname.replace(/\/[^/]*[0-9][^/]*/g, '/:id').replace(/^\//, '') || 'entry';
 }
 
 const DAY_KEYS = ['today', 'tomorrow', 'day_after'] as const;
@@ -154,10 +163,12 @@ export const track = Object.assign(trackCore, {
    * shop_view — 샵 상세(라우트) 또는 홈 포커스 시트가 데이터를 받아 처음 그려질 때.
    * 호출부가 마운트당 샵 id 1회로 부른다. 웹과 같은 이름 + 웹 측정기준(shop_category·shop_district)도 함께.
    */
-  shopView(p: { shopId: string; category?: string | null; region?: string | null; fallbackSource: ShopViewSource }) {
+  shopView(p: { isPartner: boolean; shopId: string; category?: string | null; region?: string | null; fallbackSource: ShopViewSource }) {
     const source = takeShopSource(p.shopId, p.fallbackSource);
     trackCore('shop_view', {
       shop_id: p.shopId,
+      shop_type: p.isPartner ? 'partner' : 'general',
+      is_partner: p.isPartner ? 1 : 0,
       category: p.category,
       region: p.region,
       source,
@@ -181,9 +192,11 @@ export const track = Object.assign(trackCore, {
   },
 
   /** reserve_click — 예약 버튼(온라인 예약·전화예약) 누름. 웹과 같은 이름 + 웹 파라미터 route도 함께 */
-  reserveClick(p: { shopId: string; method: string; slotDate?: string; slotTime?: string }) {
+  reserveClick(p: { isPartner: boolean; shopId: string; method: string; slotDate?: string; slotTime?: string }) {
     trackCore('reserve_click', {
       shop_id: p.shopId,
+      shop_type: p.isPartner ? 'partner' : 'general',
+      is_partner: p.isPartner ? 1 : 0,
       reservation_method: p.method,
       route: p.method,
       slot_date: p.slotDate,
@@ -203,7 +216,7 @@ export const track = Object.assign(trackCore, {
 
   /** slot_alert_created — 빈자리 알림 신청 POST 성공 시 1회 */
   slotAlertCreated(p: { shopId: string; date: string; timeCount: number }) {
-    trackCore('slot_alert_created', { shop_id: p.shopId, date: p.date, time_count: p.timeCount });
+    trackCore('slot_alert_created', { shop_type: 'partner', shop_id: p.shopId, date: p.date, time_count: p.timeCount });
   },
 
   /** push_permission_granted — 권한 요청 직후 허용으로 바뀐 것이 확인됐을 때. 세션당 1회 */
@@ -231,11 +244,22 @@ export function initAnalytics(): () => void {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return () => {};
   if (initialized) return () => {};
   initialized = true;
+  const stopInteractions = installInteractionTracking((name, params) => trackCore(name, params));
+  let referrerHost = 'direct';
+  try { if (document.referrer) referrerHost = new URL(document.referrer).hostname; } catch { /* unavailable */ }
+  trackCore('service_enter', { source: referrerHost });
+  let lastVisibleAt = Date.now();
+  const onVisibility = () => {
+    if (document.visibilityState === 'hidden') trackCore('service_background', { ms: Date.now() - lastVisibleAt });
+    else { lastVisibleAt = Date.now(); trackCore('service_resume'); }
+  };
+  document.addEventListener('visibilitychange', onVisibility);
 
   // 익명 설치 ID
   getDeviceId()
     .then((id) => {
       anonymousId = id;
+      delivery.setIdentity(currentUserId ?? null, id);
       safe(() => gtag()?.('set', 'user_properties', { anonymous_id: id }));
     })
     .catch(() => {});
@@ -257,6 +281,8 @@ export function initAnalytics(): () => void {
   }
 
   return () => {
+    stopInteractions();
+    document.removeEventListener('visibilitychange', onVisibility);
     unsub();
     initialized = false;
   };

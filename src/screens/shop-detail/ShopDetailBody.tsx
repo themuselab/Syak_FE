@@ -57,6 +57,9 @@ export function ShopDetailBody({
   slotsReady = true,
 }: Props) {
   const spy = useSectionSpy();
+  useEffect(() => {
+    track('shop_section_view', { shop_id: shop.id, shop_type: shop.isPartner ? 'partner' : 'general', section: spy.activeTab });
+  }, [shop.id, shop.isPartner, spy.activeTab]);
 
   // GA4 slot_list_view: "예약 가능 시간" 섹션이 화면에 들어오면(스크롤스파이 활성 탭 = availability)
   // 샵당 1회(trigger=shown), 날짜 탭을 바꾸면 누를 때마다(trigger=tab).

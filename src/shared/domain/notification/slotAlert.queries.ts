@@ -22,6 +22,8 @@ export function useCreateSlotAlerts() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createSlotAlerts,
+    onMutate: input => { track('slot_alert_submit', { shop_id: input.shopId, shop_type: 'partner', time_count: input.times.length }); },
+    onError: (_error, input) => { track('slot_alert_failed', { shop_id: input.shopId, error_code: 'request_failed' }); },
     onSuccess: (_data, input) => {
       // GA4 slot_alert_created — POST 성공 1회당 1번.
       track.slotAlertCreated({ shopId: input.shopId, date: input.date, timeCount: input.times.length });
@@ -35,6 +37,6 @@ export function useDeleteSlotAlerts() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteSlotAlerts,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: SLOT_ALERTS_KEY }),
+    onSuccess: () => { track('slot_alert_deleted'); return queryClient.invalidateQueries({ queryKey: SLOT_ALERTS_KEY }); },
   });
 }

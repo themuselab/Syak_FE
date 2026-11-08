@@ -5,6 +5,7 @@
   "dependencies": {
     "@expo/config-plugins": "~54.0.4",
     "@gorhom/bottom-sheet": "^5.2.14",
+    "@hackler/javascript-sdk": "^12.2.1",
     "@mj-studio/react-native-naver-map": "^2.9.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-kakao/core": "^2.4.5",
@@ -57,7 +58,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:analytics": "node scripts/analytics.test.cjs"
   },
   "private": true,
   "expo": {

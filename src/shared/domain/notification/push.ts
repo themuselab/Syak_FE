@@ -36,7 +36,9 @@ async function getPushToken(): Promise<string | null> {
     // 셸의 getPushToken은 권한이 없으면 OS 팝업으로 요청한다. 요청 전엔 꺼져 있었는데 토큰이 나왔다
     // = 방금 허용 → GA4 push_permission_granted(세션당 1회, analytics trackOnce).
     const before = await getPushPermission().catch(() => null);
+    if (before && !before.granted) track('push_permission_request', { trigger: 'startup' });
     const r = await callShell({ type: 'getPushToken' }, 30_000).catch(() => null);
+    if (before && !before.granted) track('push_permission_result', { result: r?.token ? 'token_available' : 'unavailable', trigger: 'startup' });
     if (r) shellDeviceId = r.deviceId;
     if (r?.token && before && !before.granted) track.pushPermissionGranted('startup');
     return r?.token ?? null;

@@ -56,6 +56,7 @@ export function ShopDetailSheet({
     if (!detail) return;
     track.shopView({
       shopId: detail.id,
+      isPartner: detail.isPartner,
       category: detail.categories[0] ?? null,
       region: detail.district,
       fallbackSource: 'list',
@@ -129,7 +130,7 @@ export function ShopDetailSheet({
             // 클릭 애널리틱스 — 실패해도 무시(fire-and-forget). 서버 집계는 기존대로 온라인 예약 버튼만.
             if (method !== 'phone') postReservationClick(shop.id).catch(() => {});
             // GA4 reserve_click (웹과 동일 이벤트) — 누를 때마다 1회. 버튼이 특정 시각을 고른 상태가 아니라 slot_date/time 없음.
-            track.reserveClick({ shopId: shop.id, method });
+            track.reserveClick({ shopId: shop.id, isPartner: shop.isPartner, method });
           }}
         />
       )}

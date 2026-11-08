@@ -21,6 +21,7 @@ import { LoginPanel } from './components/LoginPanel';
 import { OnboardingBackground } from './components/OnboardingBackground';
 import { SocialLoginButton } from './components/SocialLoginButton';
 import { SyakLogo } from './components/SyakLogo';
+import { ReviewLoginForm } from './components/ReviewLoginForm';
 import { colors } from '@/shared/theme/colors';
 
 const appleIcon = require('../../../assets/icons/social-apple.png');
@@ -51,12 +52,14 @@ export function LoginScreen({ intro = false, revealed = true }: Props) {
     if (loadingProvider) return;
     setErrorMessage(null);
     setLoadingProvider(provider);
+    track('login_start', { method: provider });
     try {
       const { token, name } = await getSocialToken(provider);
       await socialLogin.mutateAsync({ provider, accessToken: token, name });
       router.replace('/home'); // 신규·기존 모두 홈 (닉네임 화면 없음)
     } catch (e) {
       const message = resolveLoginError(e);
+      track(message ? 'login_failed' : 'login_cancelled', { method: provider, error_code: message ? 'login_failed' : 'cancelled' });
       if (message) setErrorMessage(message); // 취소(null)는 오류 아님 → 토스트 생략
     } finally {
       setLoadingProvider(null);
@@ -65,6 +68,7 @@ export function LoginScreen({ intro = false, revealed = true }: Props) {
 
   // 비회원 둘러보기 (user=null 유지). 기억해 두고 다음 실행부터 바로 홈(guestBrowse).
   const goBrowse = () => {
+    track('guest_browse');
     setGuestBrowse(true);
     router.replace('/home');
   };
@@ -196,6 +200,7 @@ export function LoginScreen({ intro = false, revealed = true }: Props) {
               </Text>
             </Pressable>
           )}
+          <ReviewLoginForm disabled={busy} />
         </LoginPanel>
       </View>
     </OnboardingBackground>

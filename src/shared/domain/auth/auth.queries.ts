@@ -4,7 +4,7 @@ import { unregisterPushToken } from '@/shared/domain/notification/push';
 
 import { setAnalyticsUserId, track } from '@/shared/lib/analytics';
 import { setGuestBrowse } from '@/shared/lib/guestBrowse';
-import { signOut, socialLogin } from './auth.api';
+import { reviewLogin, signOut, socialLogin } from './auth.api';
 import { useAuthStore } from './auth.store';
 import type { SocialProvider } from './auth.types';
 
@@ -23,6 +23,23 @@ export function useSocialLogin() {
   });
 }
 
+export function useReviewLogin() {
+  const setUser = useAuthStore((s) => s.setUser);
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { username: string; password: string }) => reviewLogin(vars.username, vars.password),
+    onSuccess: (data) => {
+      queryClient.removeQueries({ queryKey: ['favorites'] });
+      queryClient.removeQueries({ queryKey: ['notifications'] });
+      queryClient.removeQueries({ queryKey: ['user'] });
+      setGuestBrowse(false);
+      setAnalyticsUserId(data.user.id);
+      track('login', { method: 'review' });
+      setUser(data.user);
+    },
+  });
+}
+
 export function useSignOut() {
   const setUser = useAuthStore((s) => s.setUser);
   const queryClient = useQueryClient();
@@ -35,6 +52,7 @@ export function useSignOut() {
     // 성공/실패(AUTH_UNAUTHORIZED = 이미 로그아웃) 모두 로컬 세션을 비운다.
     // 계정 스코프 캐시(즐겨찾기·알림)도 제거 — 다른 계정으로 재로그인 시 이전 계정 데이터 노출/오조작 방지.
     onSettled: () => {
+      track('logout');
       setUser(null);
       setGuestBrowse(false); // 로그아웃한 사람은 다음 실행 때 로그인 화면부터
       queryClient.removeQueries({ queryKey: ['favorites'] });

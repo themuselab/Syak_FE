@@ -1,3 +1,4 @@
+import { track } from '@/shared/lib/analytics';
 import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 
@@ -23,7 +24,7 @@ export function useLoginGate() {
   const requireLogin = useCallback(
     (action: () => void) => {
       if (isLoggedIn) action();
-      else setVisible(true);
+      else { track('login_prompt_view'); setVisible(true); }
     },
     [isLoggedIn],
   );
@@ -32,9 +33,10 @@ export function useLoginGate() {
     <LoginPromptModal
       visible={visible}
       // 로그인 화면으로 이동하기 전에 모달을 먼저 닫아야 push된 화면을 모달이 덮지 않는다.
-      onClose={() => setVisible(false)}
+      onClose={() => { track('login_prompt_dismiss'); setVisible(false); }}
       onPressLogin={() => {
         setVisible(false);
+        track('login_prompt_click');
         router.push('/login');
       }}
     />

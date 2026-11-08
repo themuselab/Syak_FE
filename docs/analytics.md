@@ -1,3 +1,5 @@
+> v2 update: GA/GTM/Hackle parallel delivery and partner/general classification. See [analytics-v2.md](./analytics-v2.md). The original GA-only description below is historical.
+
 # analytics — GA4 계측 (웹 gtag, 앱 웹뷰 공용)
 
 소비자 앱의 사용 이벤트를 GA4로 보낸다. 앱(iOS/Android)은 웹(`app.themuselab.kr`)을 띄우는 웹뷰 셸이라

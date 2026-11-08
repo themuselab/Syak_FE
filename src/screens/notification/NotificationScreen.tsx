@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { markShopSource } from '@/shared/lib/analytics';
+import { markShopSource, track } from '@/shared/lib/analytics';
 import { useHardwareBack } from '@/shared/lib/backStack';
 import { openExternal } from '@/shared/lib/openExternal';
 import { useAuthStore } from '@/shared/domain/auth/auth.store';
@@ -51,6 +51,7 @@ export function NotificationScreen() {
   // 토스트 "내역보기" → /notifications?tab=requests
   const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
   const [tab, setTab] = useState<Tab>(isLoggedIn && tabParam === 'requests' ? 'requests' : 'received');
+  useEffect(() => { track('notification_tab_view', { section: tab }); }, [tab]);
   useEffect(() => {
     if (tabParam === 'requests' && isLoggedIn) setTab('requests');
   }, [tabParam, isLoggedIn]);

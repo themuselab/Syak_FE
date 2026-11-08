@@ -20,7 +20,7 @@
       }
     },
     "android": {
-      "package": "com.themuselab.syak",
+      "package": "syak.muselab",
       "permissions": [
         "android.permission.POST_NOTIFICATIONS"
       ],

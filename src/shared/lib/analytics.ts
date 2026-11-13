@@ -5,15 +5,14 @@ import { useAuthStore } from '@/shared/domain/auth/auth.store';
 import { getDeviceId } from '@/shared/lib/deviceId';
 import { inShell, shellInfo } from '@/shell/bridgeClient';
 import { createAnalyticsDelivery, installInteractionTracking } from './analyticsDelivery';
-import { createBehaviorTracking } from './behaviorTracking';
-import { API_URL } from './env';
+import { createClarityTracking } from './behaviorTracking';
 
 const delivery = createAnalyticsDelivery({
   sdkKey: process.env.EXPO_PUBLIC_HACKLE_SDK_KEY,
   getDeviceId,
   gtmId: process.env.EXPO_PUBLIC_GTM_ID,
   transport: process.env.EXPO_PUBLIC_ANALYTICS_TRANSPORT,
-  onEvent: createBehaviorTracking(`${API_URL.replace(/\/$/, '')}/analytics/events`, process.env.EXPO_PUBLIC_CLARITY_PROJECT_ID ?? 'zd1l2cqi0i'),
+  onEvent: createClarityTracking(process.env.EXPO_PUBLIC_CLARITY_PROJECT_ID ?? 'zd1l2cqi0i'),
 });
 
 export const decideNaverCta = (signal: AbortSignal) => delivery.decideNaverCta(signal);
